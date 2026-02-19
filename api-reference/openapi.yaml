@@ -2,17 +2,21 @@ openapi: 3.0.0
 info:
   title: MORI API
   version: 2.0.0
-  description: |
-    MORI API provides three core services for digital content protection:
+  description: 'MORI API provides three core services for digital content protection:
+
     - **Anti-AI**: Protect images from AI training
+
     - **Watermark Embed**: Embed invisible digital watermarks into images
+
     - **Watermark Extract**: Extract and verify watermarks from images
+
+    '
   contact:
     name: MORI Support
     email: mori@morimori.app
 servers:
-  - url: https://morimori.app
-    description: Production
+- url: https://morimori.app
+  description: Production
 components:
   securitySchemes:
     ApiKeyAuth:
@@ -27,14 +31,12 @@ components:
         data:
           nullable: true
           description: Response data (null if no data)
-
     ErrorResponse:
       type: object
       properties:
         code:
           type: string
           description: Error code
-
     PageInfo:
       type: object
       properties:
@@ -50,20 +52,25 @@ components:
         itemsPerPage:
           type: integer
           description: Items per page
-
     OrderOptions:
       type: object
       properties:
         strength:
           type: string
-          enum: [low, standard, high]
+          enum:
+          - low
+          - standard
+          - high
           default: high
-          description: |
-            Protection strength level
+          description: 'Protection strength level
+
             * low - Low protection strength
+
             * standard - Standard protection strength
+
             * high - High protection strength
 
+            '
     OrderFile:
       type: object
       properties:
@@ -80,13 +87,15 @@ components:
         fileKey:
           type: string
           description: S3 file key
-
     AntiAiOrderFile:
       type: object
-      description: |
-        Anti-AI order file info (fields vary by file mode)
+      description: 'Anti-AI order file info (fields vary by file mode)
+
         - Upload mode: fileId, fileName, uploadUrl, fileKey
+
         - URL mode: fileId, fileName, originalFileUrl
+
+        '
       properties:
         fileId:
           type: string
@@ -105,7 +114,6 @@ components:
           type: string
           format: uri
           description: Original image URL — URL mode files only
-
     WtrExtractOrderFile:
       type: object
       description: Watermark extract order file info
@@ -129,11 +137,14 @@ components:
           example: JPG
         fileType:
           type: string
-          enum: [IMG, DOCUMENT]
+          enum:
+          - IMG
+          - DOCUMENT
           description: File type (image or PDF)
         role:
           type: string
-          enum: [watermarked]
+          enum:
+          - watermarked
           description: File role (always watermarked)
         sequence:
           type: integer
@@ -162,17 +173,18 @@ components:
               description: File format
             fileType:
               type: string
-              enum: [IMG]
+              enum:
+              - IMG
               description: File type (image only)
             role:
               type: string
-              enum: [original]
+              enum:
+              - original
               description: File role (always original)
             sequence:
               type: integer
               description: File sequence (always 1)
               example: 1
-
     Order:
       type: object
       properties:
@@ -184,23 +196,41 @@ components:
           description: Order name
         type:
           type: string
-          enum: [antiAi, watermarkEmbed, watermarkExtract]
+          enum:
+          - antiAi
+          - watermarkEmbed
+          - watermarkExtract
           description: Order type
         channel:
           type: string
-          enum: [api, web]
+          enum:
+          - api
+          - web
           description: Order channel
         status:
           type: string
-          enum: [pending, inProgress, complete, failed, detected, undetected]
-          description: |
-            Order status
+          enum:
+          - pending
+          - inProgress
+          - complete
+          - failed
+          - detected
+          - undetected
+          description: 'Order status
+
             * pending - Waiting
+
             * inProgress - Processing
+
             * complete - Completed
+
             * failed - Failed
+
             * detected - Watermark detected (wtr-extract only)
+
             * undetected - Watermark not detected (wtr-extract only)
+
+            '
         fileCount:
           type: integer
           description: Number of files
@@ -217,7 +247,6 @@ components:
           type: string
           format: date-time
           description: Updated at
-
     OrderDetail:
       type: object
       description: Order detail info
@@ -230,15 +259,26 @@ components:
           description: Order name
         type:
           type: string
-          enum: [antiAi, watermarkEmbed, watermarkExtract]
+          enum:
+          - antiAi
+          - watermarkEmbed
+          - watermarkExtract
           description: Order type
         channel:
           type: string
-          enum: [api, web]
+          enum:
+          - api
+          - web
           description: Order channel
         status:
           type: string
-          enum: [pending, inProgress, complete, failed, detected, undetected]
+          enum:
+          - pending
+          - inProgress
+          - complete
+          - failed
+          - detected
+          - undetected
           description: Order status
         fileCount:
           type: integer
@@ -269,7 +309,6 @@ components:
           type: string
           nullable: true
           description: Extracted watermark text (watermarkExtract orders only)
-
     UsageStats:
       type: object
       properties:
@@ -294,18 +333,16 @@ components:
           items:
             type: integer
           description: Chart Y-axis tick values
-
     WebhookRegisterRequest:
       type: object
       required:
-        - url
+      - url
       properties:
         url:
           type: string
           format: uri
           description: Webhook endpoint URL
-          example: 'https://example.com/webhook'
-
+          example: https://example.com/webhook
     WebhookInfo:
       type: object
       properties:
@@ -319,11 +356,10 @@ components:
           format: date-time
           nullable: true
           description: Created at
-
     WebhookCreateRequest:
       type: object
       required:
-        - url
+      - url
       properties:
         name:
           type: string
@@ -333,8 +369,7 @@ components:
           type: string
           format: uri
           description: Webhook endpoint URL
-          example: 'https://example.com/webhook'
-
+          example: https://example.com/webhook
     WebhookUpdateRequest:
       type: object
       properties:
@@ -346,8 +381,7 @@ components:
           type: string
           format: uri
           description: Webhook URL
-          example: 'https://example.com/webhook'
-
+          example: https://example.com/webhook
     WebhookListItem:
       type: object
       properties:
@@ -373,7 +407,6 @@ components:
           type: string
           format: date-time
           description: Created at
-
     WebhookDetail:
       type: object
       properties:
@@ -401,7 +434,6 @@ components:
           type: string
           format: date-time
           description: Updated at
-
     WebhookEvent:
       type: object
       properties:
@@ -415,10 +447,14 @@ components:
         eventType:
           type: string
           description: Event type
-          example: 'order.antiAi.completed'
+          example: order.antiAi.completed
         status:
           type: string
-          enum: [PENDING, SENT, RETRYING, FAILED]
+          enum:
+          - PENDING
+          - SENT
+          - RETRYING
+          - FAILED
           description: Delivery status
         retries:
           type: integer
@@ -432,7 +468,6 @@ components:
           type: string
           format: date-time
           description: Created at
-
     WebhookPagination:
       type: object
       properties:
@@ -448,7 +483,6 @@ components:
         totalPages:
           type: integer
           description: Total pages
-
   responses:
     BadRequest:
       description: Bad request
@@ -458,7 +492,6 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: VALIDATION_FAILED
-
     Unauthorized:
       description: Authentication failed
       content:
@@ -467,7 +500,6 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: AUTH_NOT_AUTHENTICATED
-
     NotFound:
       description: Resource not found
       content:
@@ -476,7 +508,6 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: RESOURCE_NOT_FOUND
-
     UsageLimitExceeded:
       description: Usage limit exceeded
       content:
@@ -485,7 +516,6 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: USAGE_LIMIT_EXCEEDED
-
     InternalError:
       description: Internal server error
       content:
@@ -494,45 +524,64 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: SERVER_INTERNAL_ERROR
-
 tags:
-  - name: Anti-AI
-    description: Anti-AI image protection orders
-  - name: Watermark Embed
-    description: Watermark embedding orders
-  - name: Watermark Extract
-    description: Watermark extraction orders
-  - name: Orders
-    description: Order query and management
-  - name: Webhooks
-    description: Webhook configuration and events
-
+- name: Anti-AI
+  description: Anti-AI image protection orders
+- name: Watermark Embed
+  description: Watermark embedding orders
+- name: Watermark Extract
+  description: Watermark extraction orders
+- name: Orders
+  description: Order query and management
+- name: Webhooks
+  description: Webhook configuration and events
 paths:
-  # ===== Anti-AI =====
   /api/v2/orders/anti-ai:
     post:
       summary: Create Anti-AI order
-      description: |
-        Create an order for AI detection protection processing.
+      description: 'Create an order for AI detection protection processing.
+
 
         ## Input Modes (Upload / URL / Mixed)
-        The input mode is determined by the presence of `originalFileUrl` in each file object:
-        - **Upload mode** (no `originalFileUrl`): Presigned URL issued → Client uploads to S3 → Call `/confirm`
-        - **URL mode** (`originalFileUrl` provided): Image downloaded from the URL and processed immediately
+
+        The input mode is determined by the presence of `originalFileUrl` in each
+        file object:
+
+        - **Upload mode** (no `originalFileUrl`): Presigned URL issued → Client uploads
+        to S3 → Call `/confirm`
+
+        - **URL mode** (`originalFileUrl` provided): Image downloaded from the URL
+        and processed immediately
+
         - **Mixed mode**: Some files in Upload mode, others in URL mode simultaneously
 
+
         ### Behavior
+
         | Condition | Order Status | Confirm Required |
+
         |-----------|-------------|-----------------|
-        | All files have `originalFileUrl` | `inProgress` | No (immediate processing) |
-        | Any file without `originalFileUrl` | `pending` | Yes (upload then confirm) |
+
+        | All files have `originalFileUrl` | `inProgress` | No (immediate processing)
+        |
+
+        | Any file without `originalFileUrl` | `pending` | Yes (upload then confirm)
+        |
+
 
         ## Zero Copy Mode
-        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided presigned URLs.
-        In this case, `outputTargets` array is required and must match the length of `files` array.
-      tags: [Anti-AI]
+
+        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided
+        presigned URLs.
+
+        In this case, `outputTargets` array is required and must match the length
+        of `files` array.
+
+        '
+      tags:
+      - Anti-AI
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -540,8 +589,8 @@ paths:
             schema:
               type: object
               required:
-                - idempotencyKey
-                - files
+              - idempotencyKey
+              - files
               properties:
                 idempotencyKey:
                   type: string
@@ -557,7 +606,7 @@ paths:
                   items:
                     type: object
                     required:
-                      - fileName
+                    - fileName
                     properties:
                       fileName:
                         type: string
@@ -566,10 +615,15 @@ paths:
                       originalFileUrl:
                         type: string
                         format: uri
-                        description: |
-                          Original image URL (optional)
-                          - Provided: URL mode (no presigned URL issued, immediate processing)
-                          - Not provided: Upload mode (presigned URL issued, confirm required)
+                        description: 'Original image URL (optional)
+
+                          - Provided: URL mode (no presigned URL issued, immediate
+                          processing)
+
+                          - Not provided: Upload mode (presigned URL issued, confirm
+                          required)
+
+                          '
                         example: https://example.com/image.jpg
                 mode:
                   type: object
@@ -581,13 +635,14 @@ paths:
                       description: Enable Zero Copy mode
                 outputTargets:
                   type: array
-                  description: Output upload targets for Zero Copy mode (required when mode.zeroCopy is true)
+                  description: Output upload targets for Zero Copy mode (required
+                    when mode.zeroCopy is true)
                   items:
                     type: object
                     required:
-                      - fileKey
-                      - url
-                      - presignedUrlExpiresAt
+                    - fileKey
+                    - url
+                    - presignedUrlExpiresAt
                     properties:
                       fileKey:
                         type: string
@@ -606,33 +661,33 @@ paths:
               uploadMode:
                 summary: Upload mode (traditional)
                 value:
-                  idempotencyKey: "key-upload-001"
+                  idempotencyKey: key-upload-001
                   files:
-                    - fileName: "image1.jpg"
-                    - fileName: "image2.png"
+                  - fileName: image1.jpg
+                  - fileName: image2.png
                   options:
-                    strength: "high"
+                    strength: high
               urlMode:
                 summary: URL mode (immediate processing)
                 value:
-                  idempotencyKey: "key-url-001"
+                  idempotencyKey: key-url-001
                   files:
-                    - fileName: "image1.jpg"
-                      originalFileUrl: "https://example.com/image1.jpg"
-                    - fileName: "image2.png"
-                      originalFileUrl: "https://example.com/image2.png"
+                  - fileName: image1.jpg
+                    originalFileUrl: https://example.com/image1.jpg
+                  - fileName: image2.png
+                    originalFileUrl: https://example.com/image2.png
                   options:
-                    strength: "high"
+                    strength: high
               mixedMode:
                 summary: Mixed mode
                 value:
-                  idempotencyKey: "key-mixed-001"
+                  idempotencyKey: key-mixed-001
                   files:
-                    - fileName: "upload-file.jpg"
-                    - fileName: "url-file.png"
-                      originalFileUrl: "https://example.com/image.png"
+                  - fileName: upload-file.jpg
+                  - fileName: url-file.png
+                    originalFileUrl: https://example.com/image.png
                   options:
-                    strength: "standard"
+                    strength: standard
       responses:
         '200':
           description: Order created successfully
@@ -650,11 +705,16 @@ paths:
                         type: string
                       status:
                         type: string
-                        enum: [pending, inProgress]
-                        description: |
-                          Order status
+                        enum:
+                        - pending
+                        - inProgress
+                        description: 'Order status
+
                           - `pending`: Contains upload files (confirm required)
+
                           - `inProgress`: All files in URL mode (immediate processing)
+
+                          '
                       files:
                         type: array
                         items:
@@ -664,25 +724,25 @@ paths:
                   summary: Upload mode response
                   value:
                     data:
-                      orderName: "anti_ai_2026-02-09"
-                      orderId: "123456789"
-                      status: "pending"
+                      orderName: anti_ai_2026-02-09
+                      orderId: '123456789'
+                      status: pending
                       files:
-                        - fileId: 1
-                          fileName: "image1.jpg"
-                          uploadUrl: "https://s3.amazonaws.com/..."
-                          fileKey: "temp/123456789/0/image1.jpg"
+                      - fileId: 1
+                        fileName: image1.jpg
+                        uploadUrl: https://s3.amazonaws.com/...
+                        fileKey: temp/123456789/0/image1.jpg
                 urlModeResponse:
                   summary: URL mode response
                   value:
                     data:
-                      orderName: "anti_ai_2026-02-09"
-                      orderId: "123456789"
-                      status: "inProgress"
+                      orderName: anti_ai_2026-02-09
+                      orderId: '123456789'
+                      status: inProgress
                       files:
-                        - fileId: 1
-                          fileName: "image1.jpg"
-                          originalFileUrl: "https://example.com/image1.jpg"
+                      - fileId: 1
+                        fileName: image1.jpg
+                        originalFileUrl: https://example.com/image1.jpg
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -691,19 +751,49 @@ paths:
           $ref: '#/components/responses/UsageLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalError'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://morimori.app/api/v2/orders/anti-ai \\\n  -H\
+          \ \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-001\",\n    \"files\": [\n\
+          \      {\"fileName\": \"image1.jpg\"},\n      {\"fileName\": \"image2.png\"\
+          }\n    ],\n    \"options\": {\"strength\": \"high\"}\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://morimori.app/api/v2/orders/anti-ai',\
+          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
+          \    idempotencyKey: 'key-001',\n    files: [\n      { fileName: 'image1.jpg'\
+          \ },\n      { fileName: 'image2.png' }\n    ],\n    options: { strength:\
+          \ 'high' }\n  })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/anti-ai',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \ 'key-001',\n        'files': [\n            {'fileName': 'image1.jpg'},\n\
+          \            {'fileName': 'image2.png'}\n        ],\n        'options':\
+          \ {'strength': 'high'}\n    }\n)\ndata = response.json()"
   /api/v2/orders/anti-ai/confirm:
     post:
       summary: Confirm Anti-AI order
-      description: |
-        Call after file upload is complete to start processing.
+      description: 'Call after file upload is complete to start processing.
+
         - Call after all upload files are uploaded to S3
+
         - Status changes to `inProgress` when processing starts
-        - In mixed mode, only upload files are checked for S3 presence; URL files are already ready
-        - Orders where all files are in URL mode are already `inProgress` and don't need confirm
-      tags: [Anti-AI]
+
+        - In mixed mode, only upload files are checked for S3 presence; URL files
+        are already ready
+
+        - Orders where all files are in URL mode are already `inProgress` and don''t
+        need confirm
+
+        '
+      tags:
+      - Anti-AI
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -711,8 +801,8 @@ paths:
             schema:
               type: object
               required:
-                - idempotencyKey
-                - orderId
+              - idempotencyKey
+              - orderId
               properties:
                 idempotencyKey:
                   type: string
@@ -733,23 +823,50 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://morimori.app/api/v2/orders/anti-ai/confirm \\\
+          \n  -H \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-confirm-001\",\n    \"orderId\"\
+          : \"ORDER_ID\"\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://morimori.app/api/v2/orders/anti-ai/confirm',\
+          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
+          \    idempotencyKey: 'key-confirm-001',\n    orderId: 'ORDER_ID'\n  })\n\
+          });\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/anti-ai/confirm',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \ 'key-confirm-001',\n        'orderId': 'ORDER_ID'\n    }\n)\ndata = response.json()"
   /api/v2/orders/anti-ai/with-urls:
     post:
       summary: Create Anti-AI order with URLs
       deprecated: true
-      description: |
-        **Deprecated**: Use `/anti-ai` endpoint with `originalFileUrl` field instead.
+      description: '**Deprecated**: Use `/anti-ai` endpoint with `originalFileUrl`
+        field instead.
+
 
         Provide image URLs directly for processing.
+
         - Processing starts immediately without presigned URL issuance
+
         - Downloads and processes images from the provided URLs
 
+
         ## Zero Copy Mode
-        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided presigned URLs.
-      tags: [Anti-AI]
+
+        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided
+        presigned URLs.
+
+        '
+      tags:
+      - Anti-AI
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -757,8 +874,8 @@ paths:
             schema:
               type: object
               required:
-                - idempotencyKey
-                - files
+              - idempotencyKey
+              - files
               properties:
                 idempotencyKey:
                   type: string
@@ -774,8 +891,8 @@ paths:
                   items:
                     type: object
                     required:
-                      - fileName
-                      - imageUrl
+                    - fileName
+                    - imageUrl
                     properties:
                       fileName:
                         type: string
@@ -796,9 +913,9 @@ paths:
                   items:
                     type: object
                     required:
-                      - fileKey
-                      - url
-                      - presignedUrlExpiresAt
+                    - fileKey
+                    - url
+                    - presignedUrlExpiresAt
                     properties:
                       fileKey:
                         type: string
@@ -834,19 +951,48 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
-
-  # ===== Watermark Embed =====
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://morimori.app/api/v2/orders/anti-ai/with-urls\
+          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-url-001\",\n    \"files\":\
+          \ [\n      {\n        \"fileName\": \"image1.jpg\",\n        \"imageUrl\"\
+          : \"https://example.com/image1.jpg\"\n      }\n    ],\n    \"options\":\
+          \ {\"strength\": \"high\"}\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://morimori.app/api/v2/orders/anti-ai/with-urls',\
+          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
+          \    idempotencyKey: 'key-url-001',\n    files: [\n      {\n        fileName:\
+          \ 'image1.jpg',\n        imageUrl: 'https://example.com/image1.jpg'\n  \
+          \    }\n    ],\n    options: { strength: 'high' }\n  })\n});\nconst data\
+          \ = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/anti-ai/with-urls',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \ 'key-url-001',\n        'files': [\n            {\n                'fileName':\
+          \ 'image1.jpg',\n                'imageUrl': 'https://example.com/image1.jpg'\n\
+          \            }\n        ],\n        'options': {'strength': 'high'}\n  \
+          \  }\n)\ndata = response.json()"
   /api/v2/orders/wtr-embed:
     post:
       summary: Create watermark embed order
-      description: |
-        Create a watermark embedding order.
+      description: 'Create a watermark embedding order.
+
         - Up to 10 watermark texts per image
+
         - Up to 100 images per order
+
         - Supported formats: jpg, jpeg, png, webp
-      tags: [Watermark Embed]
+
+        '
+      tags:
+      - Watermark Embed
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -854,8 +1000,8 @@ paths:
             schema:
               type: object
               required:
-                - idempotencyKey
-                - files
+              - idempotencyKey
+              - files
               properties:
                 idempotencyKey:
                   type: string
@@ -867,8 +1013,8 @@ paths:
                   items:
                     type: object
                     required:
-                      - fileName
-                      - watermarks
+                    - fileName
+                    - watermarks
                     properties:
                       fileName:
                         type: string
@@ -881,7 +1027,7 @@ paths:
                         items:
                           type: object
                           required:
-                            - text
+                          - text
                           properties:
                             text:
                               type: string
@@ -912,20 +1058,47 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
-
-  # ===== Watermark Extract =====
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://morimori.app/api/v2/orders/wtr-embed \\\n  -H\
+          \ \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-embed-001\",\n    \"files\"\
+          : [\n      {\n        \"fileName\": \"image.jpg\",\n        \"watermarks\"\
+          : [{\"text\": \"MORI_WATERMARK\"}]\n      }\n    ]\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://morimori.app/api/v2/orders/wtr-embed',\
+          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
+          \    idempotencyKey: 'key-embed-001',\n    files: [\n      {\n        fileName:\
+          \ 'image.jpg',\n        watermarks: [{ text: 'MORI_WATERMARK' }]\n     \
+          \ }\n    ]\n  })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/wtr-embed',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \ 'key-embed-001',\n        'files': [\n            {\n                'fileName':\
+          \ 'image.jpg',\n                'watermarks': [{'text': 'MORI_WATERMARK'}]\n\
+          \            }\n        ]\n    }\n)\ndata = response.json()"
   /api/v2/orders/wtr-extract:
     post:
       summary: Create watermark extract order
-      description: |
-        Create a watermark extraction order.
+      description: 'Create a watermark extraction order.
+
         - Only 1 file per order
+
         - Supports image (jpg, jpeg, png, gif, webp, bmp, tiff) or PDF files
+
         - For images, `includeOriginal: true` allows uploading the original file alongside
+
         - PDF does not support `includeOriginal`
-      tags: [Watermark Extract]
+
+        '
+      tags:
+      - Watermark Extract
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -933,8 +1106,8 @@ paths:
             schema:
               type: object
               required:
-                - idempotencyKey
-                - file
+              - idempotencyKey
+              - file
               properties:
                 idempotencyKey:
                   type: string
@@ -942,7 +1115,7 @@ paths:
                 file:
                   type: object
                   required:
-                    - fileName
+                  - fileName
                   properties:
                     fileName:
                       type: string
@@ -951,15 +1124,19 @@ paths:
                     includeOriginal:
                       type: boolean
                       default: false
-                      description: |
-                        Include original file (image only)
+                      description: 'Include original file (image only)
+
                         - true: Upload URL for original file is also issued
+
                         - Not available for PDF files
+
+                        '
                     originalFile:
                       type: object
-                      description: Original file info (required when includeOriginal is true)
+                      description: Original file info (required when includeOriginal
+                        is true)
                       required:
-                        - fileName
+                      - fileName
                       properties:
                         fileName:
                           type: string
@@ -969,24 +1146,24 @@ paths:
               imageOnly:
                 summary: Single image (watermark only)
                 value:
-                  idempotencyKey: "key-001"
+                  idempotencyKey: key-001
                   file:
-                    fileName: "watermarked.jpg"
+                    fileName: watermarked.jpg
               imageWithOriginal:
                 summary: Image + original included
                 value:
-                  idempotencyKey: "key-002"
+                  idempotencyKey: key-002
                   file:
-                    fileName: "watermarked.jpg"
+                    fileName: watermarked.jpg
                     includeOriginal: true
                     originalFile:
-                      fileName: "original.jpg"
+                      fileName: original.jpg
               pdfOnly:
                 summary: PDF file
                 value:
-                  idempotencyKey: "key-003"
+                  idempotencyKey: key-003
                   file:
-                    fileName: "document.pdf"
+                    fileName: document.pdf
       responses:
         '200':
           description: Order created successfully
@@ -1011,40 +1188,40 @@ paths:
                   summary: Single image response
                   value:
                     data:
-                      orderName: "wtr_extract_2026-02-13"
-                      orderId: "123456789"
+                      orderName: wtr_extract_2026-02-13
+                      orderId: '123456789'
                       file:
                         fileId: 1
-                        fileName: "watermarked.jpg"
-                        uploadUrl: "https://s3.amazonaws.com/..."
-                        fileKey: "123/456/watermarked.jpg"
-                        fileFormat: "JPG"
-                        fileType: "IMG"
-                        role: "watermarked"
+                        fileName: watermarked.jpg
+                        uploadUrl: https://s3.amazonaws.com/...
+                        fileKey: 123/456/watermarked.jpg
+                        fileFormat: JPG
+                        fileType: IMG
+                        role: watermarked
                         sequence: 1
                 imageWithOriginalResponse:
                   summary: Image + original response
                   value:
                     data:
-                      orderName: "wtr_extract_2026-02-13"
-                      orderId: "123456789"
+                      orderName: wtr_extract_2026-02-13
+                      orderId: '123456789'
                       file:
                         fileId: 1
-                        fileName: "watermarked.jpg"
-                        uploadUrl: "https://s3.amazonaws.com/..."
-                        fileKey: "123/456/watermarked.jpg"
-                        fileFormat: "JPG"
-                        fileType: "IMG"
-                        role: "watermarked"
+                        fileName: watermarked.jpg
+                        uploadUrl: https://s3.amazonaws.com/...
+                        fileKey: 123/456/watermarked.jpg
+                        fileFormat: JPG
+                        fileType: IMG
+                        role: watermarked
                         sequence: 1
                         originalFile:
                           fileId: 2
-                          fileName: "original.jpg"
-                          uploadUrl: "https://s3.amazonaws.com/..."
-                          fileKey: "123/456/original.jpg"
-                          fileFormat: "JPG"
-                          fileType: "IMG"
-                          role: "original"
+                          fileName: original.jpg
+                          uploadUrl: https://s3.amazonaws.com/...
+                          fileKey: 123/456/original.jpg
+                          fileFormat: JPG
+                          fileType: IMG
+                          role: original
                           sequence: 1
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -1052,60 +1229,97 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
-
-  # ===== Order Query =====
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://morimori.app/api/v2/orders/wtr-extract \\\n\
+          \  -H \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-extract-001\",\n    \"file\"\
+          : {\n      \"fileName\": \"watermarked.jpg\"\n    }\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://morimori.app/api/v2/orders/wtr-extract',\
+          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
+          \    idempotencyKey: 'key-extract-001',\n    file: {\n      fileName: 'watermarked.jpg'\n\
+          \    }\n  })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/wtr-extract',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \ 'key-extract-001',\n        'file': {\n            'fileName': 'watermarked.jpg'\n\
+          \        }\n    }\n)\ndata = response.json()"
   /api/v2/orders:
     get:
       summary: List orders
-      description: |
-        Retrieve orders with pagination.
+      description: 'Retrieve orders with pagination.
+
         - Filter by status, type, and channel
+
         - Keyword search supported
+
         - Sorted by most recent
-      tags: [Orders]
+
+        '
+      tags:
+      - Orders
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-          description: Page number
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            default: 10
-            minimum: 1
-            maximum: 100
-          description: Items per page (-1 for all)
-        - in: query
-          name: keyword
-          schema:
-            type: string
-          description: Search keyword
-        - in: query
-          name: status
-          schema:
-            type: string
-            enum: [pending, inProgress, complete, failed, detected, undetected, all]
-            default: all
-          description: Status filter
-        - in: query
-          name: type
-          schema:
-            type: string
-            enum: [antiAi, watermarkEmbed, watermarkExtract, all]
-          description: Order type filter
-        - in: query
-          name: channel
-          schema:
-            type: string
-            enum: [api, web, all]
-            default: all
-          description: Channel filter
+      - in: query
+        name: page
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+        description: Page number
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 100
+        description: Items per page (-1 for all)
+      - in: query
+        name: keyword
+        schema:
+          type: string
+        description: Search keyword
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - pending
+          - inProgress
+          - complete
+          - failed
+          - detected
+          - undetected
+          - all
+          default: all
+        description: Status filter
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - antiAi
+          - watermarkEmbed
+          - watermarkExtract
+          - all
+        description: Order type filter
+      - in: query
+        name: channel
+        schema:
+          type: string
+          enum:
+          - api
+          - web
+          - all
+          default: all
+        description: Channel filter
       responses:
         '200':
           description: Success
@@ -1125,21 +1339,37 @@ paths:
                         $ref: '#/components/schemas/PageInfo'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET \"https://morimori.app/api/v2/orders?page=1&limit=10&status=all\"\
+          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const params = new URLSearchParams({ page: 1, limit: 10, status:\
+          \ 'all' });\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders?${params}`,\n\
+          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \ response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.get(\n    'https://morimori.app/api/v2/orders',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    params={'page': 1, 'limit':\
+          \ 10, 'status': 'all'}\n)\ndata = response.json()"
   /api/v2/orders/stats/recent:
     get:
       summary: Recent usage statistics
       description: Usage statistics for the last 7 days
-      tags: [Orders]
+      tags:
+      - Orders
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: query
-          name: date
-          schema:
-            type: string
-            format: date
-          description: Reference date (ISO String)
+      - in: query
+        name: date
+        schema:
+          type: string
+          format: date
+        description: Reference date (ISO String)
       responses:
         '200':
           description: Success
@@ -1152,20 +1382,34 @@ paths:
                     $ref: '#/components/schemas/UsageStats'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://morimori.app/api/v2/orders/stats/recent \\\n\
+          \  -H \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  'https://morimori.app/api/v2/orders/stats/recent',\n\
+          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \ response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.get(\n    'https://morimori.app/api/v2/orders/stats/recent',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/{orderId}:
     get:
       summary: Get order details
-      tags: [Orders]
+      tags:
+      - Orders
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: path
-          name: orderId
-          required: true
-          schema:
-            type: string
-          description: Order ID
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+        description: Order ID
       responses:
         '200':
           description: Success
@@ -1180,24 +1424,42 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://morimori.app/api/v2/orders/ORDER_ID \\\n  -H\
+          \ \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders/${orderId}`,\n\
+          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \ response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n\
+          \    f'https://morimori.app/api/v2/orders/{order_id}',\n    headers={'X-API-Key':\
+          \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/{orderId}/download:
     get:
       summary: Get download URL
-      description: |
-        Issue a download URL for completed order files.
+      description: 'Issue a download URL for completed order files.
+
         - Only available for orders with `complete` status
+
         - URL is valid for 1 hour
-      tags: [Orders]
+
+        '
+      tags:
+      - Orders
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: path
-          name: orderId
-          required: true
-          schema:
-            type: string
-          description: Order ID
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+        description: Order ID
       responses:
         '200':
           description: URL issued successfully
@@ -1221,23 +1483,42 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://morimori.app/api/v2/orders/ORDER_ID/download\
+          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders/${orderId}/download`,\n\
+          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \ response.json();\n// data.data.downloadUrl contains the presigned download\
+          \ URL"
+      - lang: python
+        label: Python
+        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n\
+          \    f'https://morimori.app/api/v2/orders/{order_id}/download',\n    headers={'X-API-Key':\
+          \ 'YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['downloadUrl']\
+          \ contains the presigned download URL"
   /api/v2/orders/{orderId}/refresh-urls:
     post:
       summary: Refresh presigned URLs
-      description: |
-        Reissue expired upload URLs.
+      description: 'Reissue expired upload URLs.
+
         - Only available for orders with `pending` status
-      tags: [Orders]
+
+        '
+      tags:
+      - Orders
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: path
-          name: orderId
-          required: true
-          schema:
-            type: string
-          description: Order ID
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+        description: Order ID
       responses:
         '200':
           description: URLs refreshed successfully
@@ -1257,19 +1538,36 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
-  # ===== Webhooks (Legacy) =====
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://morimori.app/api/v2/orders/ORDER_ID/refresh-urls\
+          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders/${orderId}/refresh-urls`,\n\
+          \  {\n    method: 'POST',\n    headers: { 'X-API-Key': 'YOUR_API_KEY' }\n\
+          \  }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.post(\n\
+          \    f'https://morimori.app/api/v2/orders/{order_id}/refresh-urls',\n  \
+          \  headers={'X-API-Key': 'YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/webhook:
     post:
       summary: Register webhook (Legacy)
       deprecated: true
-      description: |
-        **Deprecated**: This API has been replaced by `/webhooks`.
+      description: '**Deprecated**: This API has been replaced by `/webhooks`.
 
-        Register a webhook URL to receive notifications when order processing completes or fails.
-      tags: [Webhooks]
+
+        Register a webhook URL to receive notifications when order processing completes
+        or fails.
+
+        '
+      tags:
+      - Webhooks
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -1287,15 +1585,33 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://morimori.app/api/v2/orders/webhook \\\n  -H\
+          \ \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\"url\": \"https://example.com/webhook\"}'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://morimori.app/api/v2/orders/webhook',\
+          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\
+          \ url: 'https://example.com/webhook' })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/webhook',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={'url': 'https://example.com/webhook'}\n\
+          )\ndata = response.json()"
     get:
       summary: Get webhook (Legacy)
       deprecated: true
-      description: |
-        **Deprecated**: This API has been replaced by `/webhooks`.
-      tags: [Webhooks]
+      description: '**Deprecated**: This API has been replaced by `/webhooks`.
+
+        '
+      tags:
+      - Webhooks
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       responses:
         '200':
           description: Success
@@ -1308,15 +1624,30 @@ paths:
                     $ref: '#/components/schemas/WebhookInfo'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://morimori.app/api/v2/orders/webhook \\\n  -H \"\
+          X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  'https://morimori.app/api/v2/orders/webhook',\n\
+          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \ response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.get(\n    'https://morimori.app/api/v2/orders/webhook',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'}\n)\ndata = response.json()"
     delete:
       summary: Delete webhook (Legacy)
       deprecated: true
-      description: |
-        **Deprecated**: This API has been replaced by `/webhooks/{webhookId}`.
-      tags: [Webhooks]
+      description: '**Deprecated**: This API has been replaced by `/webhooks/{webhookId}`.
+
+        '
+      tags:
+      - Webhooks
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       responses:
         '200':
           description: Webhook deleted successfully
@@ -1326,38 +1657,53 @@ paths:
                 $ref: '#/components/schemas/BaseResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
-  # ===== Webhooks (New) =====
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X DELETE https://morimori.app/api/v2/orders/webhook \\\n  -H\
+          \ \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://morimori.app/api/v2/orders/webhook',\
+          \ {\n  method: 'DELETE',\n  headers: { 'X-API-Key': 'YOUR_API_KEY' }\n});\n\
+          const data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.delete(\n    'https://morimori.app/api/v2/orders/webhook',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/webhooks:
     get:
       summary: List webhooks
-      description: |
-        Retrieve registered webhooks with pagination.
+      description: 'Retrieve registered webhooks with pagination.
+
         - Includes name, URL, active status, and last sent time
-      tags: [Webhooks]
+
+        '
+      tags:
+      - Webhooks
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: Page number
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-          description: Items per page
-        - in: query
-          name: keyword
-          schema:
-            type: string
-          description: Search keyword (searches webhook name or URL)
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: Page number
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+        description: Items per page
+      - in: query
+        name: keyword
+        schema:
+          type: string
+        description: Search keyword (searches webhook name or URL)
       responses:
         '200':
           description: Success
@@ -1377,47 +1723,43 @@ paths:
                         $ref: '#/components/schemas/WebhookPagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET \"https://morimori.app/api/v2/orders/webhooks?page=1&limit=10\"\
+          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const params = new URLSearchParams({ page: 1, limit: 10 });\nconst\
+          \ response = await fetch(\n  `https://morimori.app/api/v2/orders/webhooks?${params}`,\n\
+          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \ response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.get(\n    'https://morimori.app/api/v2/orders/webhooks',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    params={'page': 1, 'limit':\
+          \ 10}\n)\ndata = response.json()"
     post:
       summary: Create webhook
-      description: |
-        Register a new webhook.
-        - Multiple webhooks can be registered
-        - A signing secret is returned upon registration
-
-        **Important**: The secret is only shown in this response. Store it securely.
-
-        ## Webhook Event Types
-
-        | Event Type | Description |
-        |-----------|-------------|
-        | `order.antiAi.completed` | Anti-AI processing completed |
-        | `order.antiAi.failed` | Anti-AI processing failed |
-        | `order.watermarkEmbed.completed` | Watermark embedding completed |
-        | `order.watermarkEmbed.failed` | Watermark embedding failed |
-        | `order.watermarkExtract.completed` | Watermark extraction completed |
-        | `order.watermarkExtract.failed` | Watermark extraction failed |
-
-        ## Signature Verification
-
-        Webhook requests include an `X-MoriBiz-Signature` header.
-        The signature is generated using HMAC-SHA256 with the secret issued at registration.
-
-        ```javascript
-        const crypto = require('crypto');
-        const signature = crypto.createHmac('sha256', secret)
-          .update(JSON.stringify(payload))
-          .digest('hex');
-        ```
-
-        ## Retry Policy
-
-        - Max 3 retries
-        - Exponential backoff (1s, 2s, 4s)
-        - Success response: 2xx status code
-      tags: [Webhooks]
+      description: "Register a new webhook.\n- Multiple webhooks can be registered\n\
+        - A signing secret is returned upon registration\n\n**Important**: The secret\
+        \ is only shown in this response. Store it securely.\n\n## Webhook Event Types\n\
+        \n| Event Type | Description |\n|-----------|-------------|\n| `order.antiAi.completed`\
+        \ | Anti-AI processing completed |\n| `order.antiAi.failed` | Anti-AI processing\
+        \ failed |\n| `order.watermarkEmbed.completed` | Watermark embedding completed\
+        \ |\n| `order.watermarkEmbed.failed` | Watermark embedding failed |\n| `order.watermarkExtract.completed`\
+        \ | Watermark extraction completed |\n| `order.watermarkExtract.failed` |\
+        \ Watermark extraction failed |\n\n## Signature Verification\n\nWebhook requests\
+        \ include an `X-MoriBiz-Signature` header.\nThe signature is generated using\
+        \ HMAC-SHA256 with the secret issued at registration.\n\n```javascript\nconst\
+        \ crypto = require('crypto');\nconst signature = crypto.createHmac('sha256',\
+        \ secret)\n  .update(JSON.stringify(payload))\n  .digest('hex');\n```\n\n\
+        ## Retry Policy\n\n- Max 3 retries\n- Exponential backoff (1s, 2s, 4s)\n-\
+        \ Success response: 2xx status code\n"
+      tags:
+      - Webhooks
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       requestBody:
         required: true
         content:
@@ -1443,28 +1785,53 @@ paths:
                         description: Webhook name
                       secret:
                         type: string
-                        description: |
-                          Webhook signing secret.
-                          **Warning**: This value cannot be retrieved again. Store it securely.
+                        description: 'Webhook signing secret.
+
+                          **Warning**: This value cannot be retrieved again. Store
+                          it securely.
+
+                          '
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://morimori.app/api/v2/orders/webhooks \\\n  -H\
+          \ \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\n    \"name\": \"My Webhook\",\n    \"url\": \"https://example.com/webhook\"\
+          \n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://morimori.app/api/v2/orders/webhooks',\
+          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
+          \    name: 'My Webhook',\n    url: 'https://example.com/webhook'\n  })\n\
+          });\nconst data = await response.json();\n// Save data.data.secret securely\
+          \ — it won't be shown again"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/webhooks',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'name':\
+          \ 'My Webhook',\n        'url': 'https://example.com/webhook'\n    }\n)\n\
+          data = response.json()\n# Save data['data']['secret'] securely — it won't\
+          \ be shown again"
   /api/v2/orders/webhooks/{webhookId}:
     get:
       summary: Get webhook details
       description: Retrieve detailed information for a specific webhook.
-      tags: [Webhooks]
+      tags:
+      - Webhooks
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: path
-          name: webhookId
-          required: true
-          schema:
-            type: integer
-          description: Webhook ID
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
       responses:
         '200':
           description: Success
@@ -1479,20 +1846,35 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://morimori.app/api/v2/orders/webhooks/WEBHOOK_ID\
+          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n\
+          \  `https://morimori.app/api/v2/orders/webhooks/${webhookId}`,\n  { headers:\
+          \ { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n\
+          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}',\n    headers={'X-API-Key':\
+          \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
     put:
       summary: Update webhook
       description: Update webhook information.
-      tags: [Webhooks]
+      tags:
+      - Webhooks
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: path
-          name: webhookId
-          required: true
-          schema:
-            type: integer
-          description: Webhook ID
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
       requestBody:
         required: true
         content:
@@ -1528,20 +1910,41 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X PUT https://morimori.app/api/v2/orders/webhooks/WEBHOOK_ID\
+          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\n    \"name\": \"Updated Webhook\",\n    \"url\": \"https://example.com/webhook-v2\"\
+          \n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n\
+          \  `https://morimori.app/api/v2/orders/webhooks/${webhookId}`,\n  {\n  \
+          \  method: 'PUT',\n    headers: {\n      'X-API-Key': 'YOUR_API_KEY',\n\
+          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n\
+          \      name: 'Updated Webhook',\n      url: 'https://example.com/webhook-v2'\n\
+          \    })\n  }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.put(\n\
+          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}',\n    headers={'X-API-Key':\
+          \ 'YOUR_API_KEY'},\n    json={\n        'name': 'Updated Webhook',\n   \
+          \     'url': 'https://example.com/webhook-v2'\n    }\n)\ndata = response.json()"
     delete:
       summary: Delete webhook
       description: Delete a webhook.
-      tags: [Webhooks]
+      tags:
+      - Webhooks
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: path
-          name: webhookId
-          required: true
-          schema:
-            type: integer
-          description: Webhook ID
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
       responses:
         '200':
           description: Deleted successfully
@@ -1553,38 +1956,56 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X DELETE https://morimori.app/api/v2/orders/webhooks/WEBHOOK_ID\
+          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n\
+          \  `https://morimori.app/api/v2/orders/webhooks/${webhookId}`,\n  {\n  \
+          \  method: 'DELETE',\n    headers: { 'X-API-Key': 'YOUR_API_KEY' }\n  }\n\
+          );\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.delete(\n\
+          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}',\n    headers={'X-API-Key':\
+          \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/webhooks/{webhookId}/events:
     get:
       summary: List webhook events
-      description: |
-        Retrieve delivery events for a specific webhook with pagination.
+      description: 'Retrieve delivery events for a specific webhook with pagination.
+
         - Includes status, event type, and delivery time
-      tags: [Webhooks]
+
+        '
+      tags:
+      - Webhooks
       security:
-        - ApiKeyAuth: []
+      - ApiKeyAuth: []
       parameters:
-        - in: path
-          name: webhookId
-          required: true
-          schema:
-            type: integer
-          description: Webhook ID
-        - in: query
-          name: page
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: Page number
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-          description: Items per page
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: Page number
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: Items per page
       responses:
         '200':
           description: Success
@@ -1606,3 +2027,20 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET \"https://morimori.app/api/v2/orders/webhooks/WEBHOOK_ID/events?page=1&limit=20\"\
+          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+      - lang: javascript
+        label: JavaScript
+        source: "const webhookId = 'WEBHOOK_ID';\nconst params = new URLSearchParams({\
+          \ page: 1, limit: 20 });\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders/webhooks/${webhookId}/events?${params}`,\n\
+          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \ response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n\
+          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}/events',\n\
+          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    params={'page': 1, 'limit':\
+          \ 20}\n)\ndata = response.json()"
