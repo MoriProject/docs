@@ -241,14 +241,13 @@
   },
   "footer": {
     "socials": {
-      "website": "https://mori.art"
+      "website": "https://developers.mori.art"
     },
     "links": [
       {
         "title": "Product",
         "items": [
           { "label": "Developer Center", "href": "https://developers.mori.art" },
-          { "label": "mori.art", "href": "https://mori.art" }
         ]
       },
       {
