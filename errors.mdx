@@ -1,0 +1,75 @@
+---
+title: "Error Codes"
+description: "Complete reference of MORI API error codes"
+---
+
+All error responses follow this format:
+
+```json
+{
+  "code": "ERROR_CODE"
+}
+```
+
+The HTTP status code conveys the error category. Use the `code` field for programmatic error handling and i18n/localization.
+
+## Authentication errors
+
+| Error Code | HTTP Status | Description |
+|-----------|-------------|-------------|
+| `AUTH_NOT_AUTHENTICATED` | 401 | Authentication required |
+| `AUTH_TOKEN_EXPIRED` | 401 | Authentication token has expired |
+| `AUTH_TOKEN_INVALID` | 401 | Invalid authentication token |
+| `AUTH_TOKEN_INVALID_FORMAT` | 401 | Token format is invalid |
+| `AUTH_FORBIDDEN` | 403 | Insufficient permissions |
+
+## Validation errors
+
+| Error Code | HTTP Status | Description |
+|-----------|-------------|-------------|
+| `VALIDATION_FAILED` | 400 | Input validation failed |
+| `VALIDATION_IDEMPOTENCY_KEY_INVALID` | 400 | Invalid idempotency key |
+| `INVALID_PARAMETER` | 400 | Invalid parameter provided |
+
+## Order errors
+
+| Error Code | HTTP Status | Description |
+|-----------|-------------|-------------|
+| `ORDER_NOT_FOUND` | 404 | Order not found |
+| `ORDER_NOT_PENDING` | 400 | Order is not in pending status |
+| `ORDER_NOT_OWNER` | 403 | Not the order owner |
+| `ORDER_EXPIRED` | 400 | Order has expired |
+| `ORDER_NOT_COMPLETED` | 400 | Order is not completed |
+| `ORDER_FILE_NOT_UPLOADED` | 400 | Order file has not been uploaded |
+| `ORDER_ALREADY_CONFIRMED` | 400 | Order has already been confirmed |
+| `ORDER_ALREADY_COMPLETED` | 400 | Order is already completed |
+| `ORDER_ALREADY_FAILED` | 400 | Order has already failed |
+| `ORDER_TYPE_NOT_MATCH` | 400 | Order type does not match |
+| `ORDER_TYPE_CANT_DOWNLOAD` | 400 | This order type cannot be downloaded |
+| `ORDER_TIMEOUT` | 408 | Order processing timed out |
+
+## Usage & plan errors
+
+| Error Code | HTTP Status | Description |
+|-----------|-------------|-------------|
+| `USAGE_LIMIT_EXCEEDED` | 400 | Usage limit exceeded |
+| `USAGE_NOT_ENOUGH` | 400 | Insufficient usage quota |
+| `PLAN_NOT_FOUND` | 404 | Plan not found |
+
+## Webhook errors
+
+| Error Code | HTTP Status | Description |
+|-----------|-------------|-------------|
+| `WEBHOOK_NOT_FOUND` | 404 | Webhook not found |
+
+## Rate limiting
+
+| Error Code | HTTP Status | Description |
+|-----------|-------------|-------------|
+| `RATE_LIMIT_EXCEEDED` | 429 | Too many requests |
+
+## Server errors
+
+| Error Code | HTTP Status | Description |
+|-----------|-------------|-------------|
+| `SERVER_INTERNAL_ERROR` | 500 | Internal server error |

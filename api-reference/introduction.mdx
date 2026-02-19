@@ -1,33 +1,40 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: "API Reference"
+description: "Complete reference for the MORI API endpoints"
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+## Base URL
 
-## Welcome
-
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
-
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+```
+https://morimori.app/api/v2
+```
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+All endpoints require an API key passed via the `X-API-Key` header:
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
 ```
+X-API-Key: sk_your_api_key_here
+```
+
+See the [Authentication](/authentication) guide for details.
+
+## Endpoint groups
+
+<Columns cols={2}>
+  <Card title="Anti-AI" icon="shield" href="/api-reference/anti-ai/create-order">
+    Create and manage Anti-AI image protection orders.
+  </Card>
+  <Card title="Watermark Embed" icon="stamp" href="/api-reference/watermark-embed/create-order">
+    Embed invisible digital watermarks into images.
+  </Card>
+  <Card title="Watermark Extract" icon="magnifying-glass" href="/api-reference/watermark-extract/create-order">
+    Extract and verify watermarks from images.
+  </Card>
+  <Card title="Orders" icon="list" href="/api-reference/orders/list-orders">
+    Query, download, and manage orders.
+  </Card>
+  <Card title="Webhooks" icon="bell" href="/api-reference/webhooks/list-webhooks">
+    Configure webhook endpoints for event notifications.
+  </Card>
+</Columns>

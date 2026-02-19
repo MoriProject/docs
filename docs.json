@@ -1,68 +1,176 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "MORI API Documentation",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4F46E5"
   },
   "favicon": "/favicon.svg",
+  "openapi": ["/api-reference/openapi.yaml"],
+  "languages": [
+    {
+      "language": "en",
+      "name": "English"
+    },
+    {
+      "language": "ko",
+      "name": "한국어"
+    }
+  ],
   "navigation": {
-    "tabs": [
+    "languages": [
       {
-        "tab": "Guides",
-        "groups": [
+        "language": "en",
+        "tabs": [
           {
-            "group": "Getting started",
-            "pages": [
-              "index",
-              "quickstart",
-              "development"
+            "tab": "Guides",
+            "groups": [
+              {
+                "group": "Getting Started",
+                "pages": [
+                  "index",
+                  "authentication",
+                  "quickstart"
+                ]
+              },
+              {
+                "group": "Guides",
+                "pages": [
+                  "errors",
+                  "webhooks"
+                ]
+              }
             ]
           },
           {
-            "group": "Customization",
-            "pages": [
-              "essentials/settings",
-              "essentials/navigation"
-            ]
-          },
-          {
-            "group": "Writing content",
-            "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
-            ]
-          },
-          {
-            "group": "AI tools",
-            "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+            "tab": "API Reference",
+            "groups": [
+              {
+                "group": "Overview",
+                "pages": [
+                  "api-reference/introduction"
+                ]
+              },
+              {
+                "group": "Anti-AI",
+                "pages": [
+                  "api-reference/anti-ai/create-order",
+                  "api-reference/anti-ai/confirm-order",
+                  "api-reference/anti-ai/create-order-urls"
+                ]
+              },
+              {
+                "group": "Watermark Embed",
+                "pages": [
+                  "api-reference/watermark-embed/create-order"
+                ]
+              },
+              {
+                "group": "Watermark Extract",
+                "pages": [
+                  "api-reference/watermark-extract/create-order"
+                ]
+              },
+              {
+                "group": "Orders",
+                "pages": [
+                  "api-reference/orders/list-orders",
+                  "api-reference/orders/get-order",
+                  "api-reference/orders/download-order",
+                  "api-reference/orders/refresh-urls",
+                  "api-reference/orders/recent-stats"
+                ]
+              },
+              {
+                "group": "Webhooks",
+                "pages": [
+                  "api-reference/webhooks/list-webhooks",
+                  "api-reference/webhooks/create-webhook",
+                  "api-reference/webhooks/get-webhook",
+                  "api-reference/webhooks/update-webhook",
+                  "api-reference/webhooks/delete-webhook",
+                  "api-reference/webhooks/list-events"
+                ]
+              }
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
-        "groups": [
+        "language": "ko",
+        "tabs": [
           {
-            "group": "API documentation",
-            "pages": [
-              "api-reference/introduction"
+            "tab": "가이드",
+            "groups": [
+              {
+                "group": "시작하기",
+                "pages": [
+                  "ko/index",
+                  "ko/authentication",
+                  "ko/quickstart"
+                ]
+              },
+              {
+                "group": "가이드",
+                "pages": [
+                  "ko/errors",
+                  "ko/webhooks"
+                ]
+              }
             ]
           },
           {
-            "group": "Endpoint examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+            "tab": "API 레퍼런스",
+            "groups": [
+              {
+                "group": "개요",
+                "pages": [
+                  "ko/api-reference/introduction"
+                ]
+              },
+              {
+                "group": "Anti-AI",
+                "pages": [
+                  "ko/api-reference/anti-ai/create-order",
+                  "ko/api-reference/anti-ai/confirm-order",
+                  "ko/api-reference/anti-ai/create-order-urls"
+                ]
+              },
+              {
+                "group": "워터마크 삽입",
+                "pages": [
+                  "ko/api-reference/watermark-embed/create-order"
+                ]
+              },
+              {
+                "group": "워터마크 추출",
+                "pages": [
+                  "ko/api-reference/watermark-extract/create-order"
+                ]
+              },
+              {
+                "group": "주문",
+                "pages": [
+                  "ko/api-reference/orders/list-orders",
+                  "ko/api-reference/orders/get-order",
+                  "ko/api-reference/orders/download-order",
+                  "ko/api-reference/orders/refresh-urls",
+                  "ko/api-reference/orders/recent-stats"
+                ]
+              },
+              {
+                "group": "웹훅",
+                "pages": [
+                  "ko/api-reference/webhooks/list-webhooks",
+                  "ko/api-reference/webhooks/create-webhook",
+                  "ko/api-reference/webhooks/get-webhook",
+                  "ko/api-reference/webhooks/update-webhook",
+                  "ko/api-reference/webhooks/delete-webhook",
+                  "ko/api-reference/webhooks/list-events"
+                ]
+              }
             ]
           }
         ]
@@ -71,14 +179,14 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "Developer Center",
+          "href": "https://developers.mori.art",
+          "icon": "code"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "Support",
+          "href": "mailto:mori@morimori.app",
+          "icon": "envelope"
         }
       ]
     }
@@ -91,32 +199,25 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "href": "mailto:mori@morimori.app"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
+      "label": "Developer Center",
+      "href": "https://developers.mori.art"
     }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
+      "website": "https://mori.art"
+    }
+  },
+  "api": {
+    "baseUrl": "https://morimori.app",
+    "auth": {
+      "method": "key",
+      "name": "X-API-Key"
     }
   }
 }

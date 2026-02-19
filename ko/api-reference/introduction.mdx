@@ -1,0 +1,40 @@
+---
+title: "API 레퍼런스"
+description: "MORI API 엔드포인트 전체 레퍼런스"
+---
+
+## 기본 URL
+
+```
+https://morimori.app/api/v2
+```
+
+## 인증
+
+모든 엔드포인트는 `X-API-Key` 헤더를 통한 API 키 인증이 필요합니다:
+
+```
+X-API-Key: sk_your_api_key_here
+```
+
+자세한 내용은 [인증](/ko/authentication) 가이드를 참고하세요.
+
+## 엔드포인트 그룹
+
+<Columns cols={2}>
+  <Card title="Anti-AI" icon="shield" href="/ko/api-reference/anti-ai/create-order">
+    Anti-AI 이미지 보호 주문을 생성하고 관리합니다.
+  </Card>
+  <Card title="워터마크 삽입" icon="stamp" href="/ko/api-reference/watermark-embed/create-order">
+    이미지에 보이지 않는 디지털 워터마크를 삽입합니다.
+  </Card>
+  <Card title="워터마크 추출" icon="magnifying-glass" href="/ko/api-reference/watermark-extract/create-order">
+    이미지에서 워터마크를 추출하고 검증합니다.
+  </Card>
+  <Card title="주문" icon="list" href="/ko/api-reference/orders/list-orders">
+    주문을 조회, 다운로드, 관리합니다.
+  </Card>
+  <Card title="웹훅" icon="bell" href="/ko/api-reference/webhooks/list-webhooks">
+    이벤트 알림을 위한 웹훅 엔드포인트를 설정합니다.
+  </Card>
+</Columns>

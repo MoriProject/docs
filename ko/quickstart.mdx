@@ -1,22 +1,22 @@
 ---
-title: "Quickstart"
-description: "Make your first MORI API call in minutes"
+title: "빠른 시작"
+description: "몇 분 안에 첫 번째 MORI API 호출 해보기"
 ---
 
-This guide walks you through creating an Anti-AI protection order — the most common use case. The same flow applies to Watermark Embed orders.
+이 가이드는 가장 일반적인 사용 사례인 Anti-AI 보호 주문 생성을 안내합니다. 워터마크 삽입 주문에도 동일한 흐름이 적용됩니다.
 
-## Prerequisites
+## 사전 준비
 
-- A MORI API key ([get one here](https://developers.mori.art))
-- An image file to protect (jpg, jpeg, png, or webp)
+- MORI API 키 ([여기서 발급](https://developers.mori.art))
+- 보호할 이미지 파일 (jpg, jpeg, png, 또는 webp)
 
-## Step 1: Create an order
+## 1단계: 주문 생성
 
-Choose your preferred input mode:
+원하는 입력 방식을 선택하세요:
 
 <Tabs>
-  <Tab title="Upload Mode">
-    Create an order and receive presigned URLs for uploading files to S3.
+  <Tab title="업로드 모드">
+    주문을 생성하고 S3에 파일을 업로드하기 위한 Presigned URL을 받습니다.
 
     ```bash
     curl -X POST https://morimori.app/api/v2/orders/anti-ai \
@@ -33,7 +33,7 @@ Choose your preferred input mode:
       }'
     ```
 
-    **Response:**
+    **응답:**
     ```json
     {
       "data": {
@@ -52,8 +52,8 @@ Choose your preferred input mode:
     }
     ```
   </Tab>
-  <Tab title="URL Mode">
-    Provide image URLs directly — processing starts immediately without file upload.
+  <Tab title="URL 모드">
+    이미지 URL을 직접 제공합니다 — 파일 업로드 없이 즉시 처리가 시작됩니다.
 
     ```bash
     curl -X POST https://morimori.app/api/v2/orders/anti-ai \
@@ -73,7 +73,7 @@ Choose your preferred input mode:
       }'
     ```
 
-    **Response:**
+    **응답:**
     ```json
     {
       "data": {
@@ -92,14 +92,14 @@ Choose your preferred input mode:
     ```
 
     <Info>
-      With URL mode, skip to [Step 4](#step-4-check-order-status) — no upload or confirm needed.
+      URL 모드를 사용하면 [4단계](#4단계-주문-상태-확인)로 바로 이동하세요 — 업로드 및 확인 단계가 필요 없습니다.
     </Info>
   </Tab>
 </Tabs>
 
-## Step 2: Upload files (Upload Mode only)
+## 2단계: 파일 업로드 (업로드 모드만 해당)
 
-Upload your image to the presigned URL from the response:
+응답에서 받은 Presigned URL로 이미지를 업로드합니다:
 
 ```bash
 curl -X PUT "https://s3.amazonaws.com/..." \
@@ -108,12 +108,12 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 ```
 
 <Note>
-  The presigned URL expires after a set time. If expired, use the [Refresh URLs](/api-reference/orders/refresh-urls) endpoint to get new ones.
+  Presigned URL은 일정 시간 후 만료됩니다. 만료된 경우 [URL 갱신](/ko/api-reference/orders/refresh-urls) 엔드포인트를 사용하여 새 URL을 받으세요.
 </Note>
 
-## Step 3: Confirm the order (Upload Mode only)
+## 3단계: 주문 확인 (업로드 모드만 해당)
 
-After uploading all files, confirm the order to start processing:
+모든 파일 업로드 완료 후, 처리를 시작하기 위해 주문을 확인합니다:
 
 ```bash
 curl -X POST https://morimori.app/api/v2/orders/anti-ai/confirm \
@@ -125,31 +125,31 @@ curl -X POST https://morimori.app/api/v2/orders/anti-ai/confirm \
   }'
 ```
 
-## Step 4: Check order status
+## 4단계: 주문 상태 확인
 
-Poll the order status or set up a [webhook](/webhooks) to receive notifications.
+주문 상태를 폴링하거나 [웹훅](/ko/webhooks)을 설정하여 알림을 받습니다.
 
 ```bash
 curl https://morimori.app/api/v2/orders/123456789 \
   -H "X-API-Key: sk_your_api_key"
 ```
 
-The order goes through these statuses:
-- `pending` → Waiting for file upload
-- `inProgress` → Processing
-- `complete` → Done (ready for download)
-- `failed` → Processing failed
+주문은 다음 상태를 거칩니다:
+- `pending` → 파일 업로드 대기 중
+- `inProgress` → 처리 중
+- `complete` → 완료 (다운로드 가능)
+- `failed` → 처리 실패
 
-## Step 5: Download the result
+## 5단계: 결과 다운로드
 
-Once the status is `complete`, get the download URL:
+상태가 `complete`이면 다운로드 URL을 받습니다:
 
 ```bash
 curl https://morimori.app/api/v2/orders/123456789/download \
   -H "X-API-Key: sk_your_api_key"
 ```
 
-**Response:**
+**응답:**
 ```json
 {
   "data": {
@@ -159,15 +159,15 @@ curl https://morimori.app/api/v2/orders/123456789/download \
 }
 ```
 
-Download the protected file using the presigned URL.
+Presigned URL을 사용하여 보호된 파일을 다운로드합니다.
 
-## Next steps
+## 다음 단계
 
 <Columns cols={2}>
-  <Card title="Watermark Embed" icon="stamp" href="/api-reference/watermark-embed/create-order">
-    Embed invisible watermarks into your images.
+  <Card title="워터마크 삽입" icon="stamp" href="/ko/api-reference/watermark-embed/create-order">
+    이미지에 보이지 않는 워터마크를 삽입합니다.
   </Card>
-  <Card title="Webhooks" icon="bell" href="/webhooks">
-    Set up webhooks to get notified when processing completes.
+  <Card title="웹훅" icon="bell" href="/ko/webhooks">
+    처리 완료 시 알림을 받기 위해 웹훅을 설정합니다.
   </Card>
 </Columns>

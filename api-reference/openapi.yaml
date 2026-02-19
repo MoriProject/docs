@@ -1,0 +1,1608 @@
+openapi: 3.0.0
+info:
+  title: MORI API
+  version: 2.0.0
+  description: |
+    MORI API provides three core services for digital content protection:
+    - **Anti-AI**: Protect images from AI training
+    - **Watermark Embed**: Embed invisible digital watermarks into images
+    - **Watermark Extract**: Extract and verify watermarks from images
+  contact:
+    name: MORI Support
+    email: mori@morimori.app
+servers:
+  - url: https://morimori.app
+    description: Production
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API Key for external client access
+  schemas:
+    BaseResponse:
+      type: object
+      properties:
+        data:
+          nullable: true
+          description: Response data (null if no data)
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code
+
+    PageInfo:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+          description: Total number of items
+        totalPages:
+          type: integer
+          description: Total number of pages
+        currentPage:
+          type: integer
+          description: Current page number
+        itemsPerPage:
+          type: integer
+          description: Items per page
+
+    OrderOptions:
+      type: object
+      properties:
+        strength:
+          type: string
+          enum: [low, standard, high]
+          default: high
+          description: |
+            Protection strength level
+            * low - Low protection strength
+            * standard - Standard protection strength
+            * high - High protection strength
+
+    OrderFile:
+      type: object
+      properties:
+        fileId:
+          type: string
+          description: File ID
+        fileName:
+          type: string
+          description: File name
+        uploadUrl:
+          type: string
+          format: uri
+          description: Upload URL (presigned URL)
+        fileKey:
+          type: string
+          description: S3 file key
+
+    AntiAiOrderFile:
+      type: object
+      description: |
+        Anti-AI order file info (fields vary by file mode)
+        - Upload mode: fileId, fileName, uploadUrl, fileKey
+        - URL mode: fileId, fileName, originalFileUrl
+      properties:
+        fileId:
+          type: string
+          description: File ID
+        fileName:
+          type: string
+          description: File name
+        uploadUrl:
+          type: string
+          format: uri
+          description: Upload URL (presigned URL) — Upload mode files only
+        fileKey:
+          type: string
+          description: S3 file key — Upload mode files only
+        originalFileUrl:
+          type: string
+          format: uri
+          description: Original image URL — URL mode files only
+
+    WtrExtractOrderFile:
+      type: object
+      description: Watermark extract order file info
+      properties:
+        fileId:
+          type: integer
+          description: File ID
+        fileName:
+          type: string
+          description: File name
+        uploadUrl:
+          type: string
+          format: uri
+          description: Upload URL (presigned URL)
+        fileKey:
+          type: string
+          description: S3 file key
+        fileFormat:
+          type: string
+          description: File format
+          example: JPG
+        fileType:
+          type: string
+          enum: [IMG, DOCUMENT]
+          description: File type (image or PDF)
+        role:
+          type: string
+          enum: [watermarked]
+          description: File role (always watermarked)
+        sequence:
+          type: integer
+          description: File sequence (always 1)
+          example: 1
+        originalFile:
+          type: object
+          nullable: true
+          description: Original file info (only when includeOriginal is true)
+          properties:
+            fileId:
+              type: integer
+              description: File ID
+            fileName:
+              type: string
+              description: File name
+            uploadUrl:
+              type: string
+              format: uri
+              description: Upload URL (presigned URL)
+            fileKey:
+              type: string
+              description: S3 file key
+            fileFormat:
+              type: string
+              description: File format
+            fileType:
+              type: string
+              enum: [IMG]
+              description: File type (image only)
+            role:
+              type: string
+              enum: [original]
+              description: File role (always original)
+            sequence:
+              type: integer
+              description: File sequence (always 1)
+              example: 1
+
+    Order:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: Order ID
+        orderName:
+          type: string
+          description: Order name
+        type:
+          type: string
+          enum: [antiAi, watermarkEmbed, watermarkExtract]
+          description: Order type
+        channel:
+          type: string
+          enum: [api, web]
+          description: Order channel
+        status:
+          type: string
+          enum: [pending, inProgress, complete, failed, detected, undetected]
+          description: |
+            Order status
+            * pending - Waiting
+            * inProgress - Processing
+            * complete - Completed
+            * failed - Failed
+            * detected - Watermark detected (wtr-extract only)
+            * undetected - Watermark not detected (wtr-extract only)
+        fileCount:
+          type: integer
+          description: Number of files
+        thumbnailImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Thumbnail image URL (presigned URL)
+        createdAt:
+          type: string
+          format: date-time
+          description: Created at
+        updatedAt:
+          type: string
+          format: date-time
+          description: Updated at
+
+    OrderDetail:
+      type: object
+      description: Order detail info
+      properties:
+        orderId:
+          type: string
+          description: Order ID
+        orderName:
+          type: string
+          description: Order name
+        type:
+          type: string
+          enum: [antiAi, watermarkEmbed, watermarkExtract]
+          description: Order type
+        channel:
+          type: string
+          enum: [api, web]
+          description: Order channel
+        status:
+          type: string
+          enum: [pending, inProgress, complete, failed, detected, undetected]
+          description: Order status
+        fileCount:
+          type: integer
+          description: Number of files
+        thumbnailImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Thumbnail image URL (presigned URL)
+        createdAt:
+          type: string
+          format: date-time
+          description: Created at
+        updatedAt:
+          type: string
+          format: date-time
+          description: Updated at
+        errors:
+          type: string
+          nullable: true
+          description: Error message (on failure)
+        watermarks:
+          type: array
+          items:
+            type: string
+          description: Watermark text list (watermarkEmbed orders only)
+        watermarkText:
+          type: string
+          nullable: true
+          description: Extracted watermark text (watermarkExtract orders only)
+
+    UsageStats:
+      type: object
+      properties:
+        dailyStats:
+          type: array
+          items:
+            type: object
+            properties:
+              usageDate:
+                type: string
+                description: Usage date (MM.DD)
+              usageCount:
+                type: integer
+                description: Usage count
+        domain:
+          type: array
+          items:
+            type: integer
+          description: Chart Y-axis range [min, max]
+        ticks:
+          type: array
+          items:
+            type: integer
+          description: Chart Y-axis tick values
+
+    WebhookRegisterRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Webhook endpoint URL
+          example: 'https://example.com/webhook'
+
+    WebhookInfo:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          nullable: true
+          description: Registered webhook URL
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Created at
+
+    WebhookCreateRequest:
+      type: object
+      required:
+        - url
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Webhook name (for identification)
+        url:
+          type: string
+          format: uri
+          description: Webhook endpoint URL
+          example: 'https://example.com/webhook'
+
+    WebhookUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Webhook name
+        url:
+          type: string
+          format: uri
+          description: Webhook URL
+          example: 'https://example.com/webhook'
+
+    WebhookListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Webhook ID
+        name:
+          type: string
+          description: Webhook name
+        url:
+          type: string
+          format: uri
+          description: Webhook URL
+        isActive:
+          type: boolean
+          description: Active status
+        lastSentAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last sent at
+        createdAt:
+          type: string
+          format: date-time
+          description: Created at
+
+    WebhookDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Webhook ID
+        name:
+          type: string
+          description: Webhook name
+        url:
+          type: string
+          format: uri
+          description: Webhook URL
+        secret:
+          type: string
+          description: Webhook signing secret
+        isActive:
+          type: boolean
+          description: Active status
+        createdAt:
+          type: string
+          format: date-time
+          description: Created at
+        updatedAt:
+          type: string
+          format: date-time
+          description: Updated at
+
+    WebhookEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Event DB ID
+        eventId:
+          type: string
+          format: uuid
+          description: Event UUID
+        eventType:
+          type: string
+          description: Event type
+          example: 'order.antiAi.completed'
+        status:
+          type: string
+          enum: [PENDING, SENT, RETRYING, FAILED]
+          description: Delivery status
+        retries:
+          type: integer
+          description: Retry count
+        lastSentAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Last sent at
+        createdAt:
+          type: string
+          format: date-time
+          description: Created at
+
+    WebhookPagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Current page
+        limit:
+          type: integer
+          description: Items per page
+        total:
+          type: integer
+          description: Total items
+        totalPages:
+          type: integer
+          description: Total pages
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: VALIDATION_FAILED
+
+    Unauthorized:
+      description: Authentication failed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: AUTH_NOT_AUTHENTICATED
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: RESOURCE_NOT_FOUND
+
+    UsageLimitExceeded:
+      description: Usage limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: USAGE_LIMIT_EXCEEDED
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: SERVER_INTERNAL_ERROR
+
+tags:
+  - name: Anti-AI
+    description: Anti-AI image protection orders
+  - name: Watermark Embed
+    description: Watermark embedding orders
+  - name: Watermark Extract
+    description: Watermark extraction orders
+  - name: Orders
+    description: Order query and management
+  - name: Webhooks
+    description: Webhook configuration and events
+
+paths:
+  # ===== Anti-AI =====
+  /api/v2/orders/anti-ai:
+    post:
+      summary: Create Anti-AI order
+      description: |
+        Create an order for AI detection protection processing.
+
+        ## Input Modes (Upload / URL / Mixed)
+        The input mode is determined by the presence of `originalFileUrl` in each file object:
+        - **Upload mode** (no `originalFileUrl`): Presigned URL issued → Client uploads to S3 → Call `/confirm`
+        - **URL mode** (`originalFileUrl` provided): Image downloaded from the URL and processed immediately
+        - **Mixed mode**: Some files in Upload mode, others in URL mode simultaneously
+
+        ### Behavior
+        | Condition | Order Status | Confirm Required |
+        |-----------|-------------|-----------------|
+        | All files have `originalFileUrl` | `inProgress` | No (immediate processing) |
+        | Any file without `originalFileUrl` | `pending` | Yes (upload then confirm) |
+
+        ## Zero Copy Mode
+        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided presigned URLs.
+        In this case, `outputTargets` array is required and must match the length of `files` array.
+      tags: [Anti-AI]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: Idempotency key to prevent duplicate requests
+                orderName:
+                  type: string
+                  maxLength: 64
+                  description: Order name (optional, auto-generated if not provided)
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required:
+                      - fileName
+                    properties:
+                      fileName:
+                        type: string
+                        description: File name (with extension)
+                        example: image.jpg
+                      originalFileUrl:
+                        type: string
+                        format: uri
+                        description: |
+                          Original image URL (optional)
+                          - Provided: URL mode (no presigned URL issued, immediate processing)
+                          - Not provided: Upload mode (presigned URL issued, confirm required)
+                        example: https://example.com/image.jpg
+                mode:
+                  type: object
+                  description: Processing mode settings
+                  properties:
+                    zeroCopy:
+                      type: boolean
+                      default: false
+                      description: Enable Zero Copy mode
+                outputTargets:
+                  type: array
+                  description: Output upload targets for Zero Copy mode (required when mode.zeroCopy is true)
+                  items:
+                    type: object
+                    required:
+                      - fileKey
+                      - url
+                      - presignedUrlExpiresAt
+                    properties:
+                      fileKey:
+                        type: string
+                        description: File key (identifier)
+                      url:
+                        type: string
+                        format: uri
+                        description: Presigned URL for uploading results
+                      presignedUrlExpiresAt:
+                        type: string
+                        format: date-time
+                        description: Presigned URL expiration time (ISO 8601)
+                options:
+                  $ref: '#/components/schemas/OrderOptions'
+            examples:
+              uploadMode:
+                summary: Upload mode (traditional)
+                value:
+                  idempotencyKey: "key-upload-001"
+                  files:
+                    - fileName: "image1.jpg"
+                    - fileName: "image2.png"
+                  options:
+                    strength: "high"
+              urlMode:
+                summary: URL mode (immediate processing)
+                value:
+                  idempotencyKey: "key-url-001"
+                  files:
+                    - fileName: "image1.jpg"
+                      originalFileUrl: "https://example.com/image1.jpg"
+                    - fileName: "image2.png"
+                      originalFileUrl: "https://example.com/image2.png"
+                  options:
+                    strength: "high"
+              mixedMode:
+                summary: Mixed mode
+                value:
+                  idempotencyKey: "key-mixed-001"
+                  files:
+                    - fileName: "upload-file.jpg"
+                    - fileName: "url-file.png"
+                      originalFileUrl: "https://example.com/image.png"
+                  options:
+                    strength: "standard"
+      responses:
+        '200':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                      orderId:
+                        type: string
+                      status:
+                        type: string
+                        enum: [pending, inProgress]
+                        description: |
+                          Order status
+                          - `pending`: Contains upload files (confirm required)
+                          - `inProgress`: All files in URL mode (immediate processing)
+                      files:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AntiAiOrderFile'
+              examples:
+                uploadModeResponse:
+                  summary: Upload mode response
+                  value:
+                    data:
+                      orderName: "anti_ai_2026-02-09"
+                      orderId: "123456789"
+                      status: "pending"
+                      files:
+                        - fileId: 1
+                          fileName: "image1.jpg"
+                          uploadUrl: "https://s3.amazonaws.com/..."
+                          fileKey: "temp/123456789/0/image1.jpg"
+                urlModeResponse:
+                  summary: URL mode response
+                  value:
+                    data:
+                      orderName: "anti_ai_2026-02-09"
+                      orderId: "123456789"
+                      status: "inProgress"
+                      files:
+                        - fileId: 1
+                          fileName: "image1.jpg"
+                          originalFileUrl: "https://example.com/image1.jpg"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v2/orders/anti-ai/confirm:
+    post:
+      summary: Confirm Anti-AI order
+      description: |
+        Call after file upload is complete to start processing.
+        - Call after all upload files are uploaded to S3
+        - Status changes to `inProgress` when processing starts
+        - In mixed mode, only upload files are checked for S3 presence; URL files are already ready
+        - Orders where all files are in URL mode are already `inProgress` and don't need confirm
+      tags: [Anti-AI]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - orderId
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: Idempotency key
+                orderId:
+                  type: string
+                  description: Order ID
+      responses:
+        '200':
+          description: Order confirmed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v2/orders/anti-ai/with-urls:
+    post:
+      summary: Create Anti-AI order with URLs
+      deprecated: true
+      description: |
+        **Deprecated**: Use `/anti-ai` endpoint with `originalFileUrl` field instead.
+
+        Provide image URLs directly for processing.
+        - Processing starts immediately without presigned URL issuance
+        - Downloads and processes images from the provided URLs
+
+        ## Zero Copy Mode
+        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided presigned URLs.
+      tags: [Anti-AI]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: Idempotency key
+                orderName:
+                  type: string
+                  maxLength: 64
+                  description: Order name (optional)
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required:
+                      - fileName
+                      - imageUrl
+                    properties:
+                      fileName:
+                        type: string
+                        description: File name (with extension)
+                        example: image.jpg
+                      imageUrl:
+                        type: string
+                        format: uri
+                        description: Image URL
+                mode:
+                  type: object
+                  properties:
+                    zeroCopy:
+                      type: boolean
+                      default: false
+                outputTargets:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - fileKey
+                      - url
+                      - presignedUrlExpiresAt
+                    properties:
+                      fileKey:
+                        type: string
+                      url:
+                        type: string
+                        format: uri
+                      presignedUrlExpiresAt:
+                        type: string
+                        format: date-time
+                options:
+                  $ref: '#/components/schemas/OrderOptions'
+      responses:
+        '200':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                      orderId:
+                        type: string
+                      status:
+                        type: string
+                        example: inProgress
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+
+  # ===== Watermark Embed =====
+  /api/v2/orders/wtr-embed:
+    post:
+      summary: Create watermark embed order
+      description: |
+        Create a watermark embedding order.
+        - Up to 10 watermark texts per image
+        - Up to 100 images per order
+        - Supported formats: jpg, jpeg, png, webp
+      tags: [Watermark Embed]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: Idempotency key
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required:
+                      - fileName
+                      - watermarks
+                    properties:
+                      fileName:
+                        type: string
+                        description: File name
+                        example: image.jpg
+                      watermarks:
+                        type: array
+                        minItems: 1
+                        maxItems: 10
+                        items:
+                          type: object
+                          required:
+                            - text
+                          properties:
+                            text:
+                              type: string
+                              maxLength: 1000
+                              description: Watermark text
+      responses:
+        '200':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                      orderId:
+                        type: string
+                      files:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OrderFile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+
+  # ===== Watermark Extract =====
+  /api/v2/orders/wtr-extract:
+    post:
+      summary: Create watermark extract order
+      description: |
+        Create a watermark extraction order.
+        - Only 1 file per order
+        - Supports image (jpg, jpeg, png, gif, webp, bmp, tiff) or PDF files
+        - For images, `includeOriginal: true` allows uploading the original file alongside
+        - PDF does not support `includeOriginal`
+      tags: [Watermark Extract]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - file
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: Idempotency key
+                file:
+                  type: object
+                  required:
+                    - fileName
+                  properties:
+                    fileName:
+                      type: string
+                      description: Watermarked file name (with extension)
+                      example: watermarked.jpg
+                    includeOriginal:
+                      type: boolean
+                      default: false
+                      description: |
+                        Include original file (image only)
+                        - true: Upload URL for original file is also issued
+                        - Not available for PDF files
+                    originalFile:
+                      type: object
+                      description: Original file info (required when includeOriginal is true)
+                      required:
+                        - fileName
+                      properties:
+                        fileName:
+                          type: string
+                          description: Original file name
+                          example: original.jpg
+            examples:
+              imageOnly:
+                summary: Single image (watermark only)
+                value:
+                  idempotencyKey: "key-001"
+                  file:
+                    fileName: "watermarked.jpg"
+              imageWithOriginal:
+                summary: Image + original included
+                value:
+                  idempotencyKey: "key-002"
+                  file:
+                    fileName: "watermarked.jpg"
+                    includeOriginal: true
+                    originalFile:
+                      fileName: "original.jpg"
+              pdfOnly:
+                summary: PDF file
+                value:
+                  idempotencyKey: "key-003"
+                  file:
+                    fileName: "document.pdf"
+      responses:
+        '200':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                        description: Order name (auto-generated)
+                      orderId:
+                        type: string
+                        description: Order ID
+                      file:
+                        $ref: '#/components/schemas/WtrExtractOrderFile'
+              examples:
+                imageOnlyResponse:
+                  summary: Single image response
+                  value:
+                    data:
+                      orderName: "wtr_extract_2026-02-13"
+                      orderId: "123456789"
+                      file:
+                        fileId: 1
+                        fileName: "watermarked.jpg"
+                        uploadUrl: "https://s3.amazonaws.com/..."
+                        fileKey: "123/456/watermarked.jpg"
+                        fileFormat: "JPG"
+                        fileType: "IMG"
+                        role: "watermarked"
+                        sequence: 1
+                imageWithOriginalResponse:
+                  summary: Image + original response
+                  value:
+                    data:
+                      orderName: "wtr_extract_2026-02-13"
+                      orderId: "123456789"
+                      file:
+                        fileId: 1
+                        fileName: "watermarked.jpg"
+                        uploadUrl: "https://s3.amazonaws.com/..."
+                        fileKey: "123/456/watermarked.jpg"
+                        fileFormat: "JPG"
+                        fileType: "IMG"
+                        role: "watermarked"
+                        sequence: 1
+                        originalFile:
+                          fileId: 2
+                          fileName: "original.jpg"
+                          uploadUrl: "https://s3.amazonaws.com/..."
+                          fileKey: "123/456/original.jpg"
+                          fileFormat: "JPG"
+                          fileType: "IMG"
+                          role: "original"
+                          sequence: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+
+  # ===== Order Query =====
+  /api/v2/orders:
+    get:
+      summary: List orders
+      description: |
+        Retrieve orders with pagination.
+        - Filter by status, type, and channel
+        - Keyword search supported
+        - Sorted by most recent
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          description: Items per page (-1 for all)
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          description: Search keyword
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, inProgress, complete, failed, detected, undetected, all]
+            default: all
+          description: Status filter
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [antiAi, watermarkEmbed, watermarkExtract, all]
+          description: Order type filter
+        - in: query
+          name: channel
+          schema:
+            type: string
+            enum: [api, web, all]
+            default: all
+          description: Channel filter
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orders:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Order'
+                      pageInfo:
+                        $ref: '#/components/schemas/PageInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v2/orders/stats/recent:
+    get:
+      summary: Recent usage statistics
+      description: Usage statistics for the last 7 days
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          description: Reference date (ISO String)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UsageStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v2/orders/{orderId}:
+    get:
+      summary: Get order details
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OrderDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v2/orders/{orderId}/download:
+    get:
+      summary: Get download URL
+      description: |
+        Issue a download URL for completed order files.
+        - Only available for orders with `complete` status
+        - URL is valid for 1 hour
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        '200':
+          description: URL issued successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      downloadUrl:
+                        type: string
+                        format: uri
+                        description: Download URL (presigned)
+                      expiresIn:
+                        type: integer
+                        description: URL expiration time (seconds)
+                        example: 3600
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v2/orders/{orderId}/refresh-urls:
+    post:
+      summary: Refresh presigned URLs
+      description: |
+        Reissue expired upload URLs.
+        - Only available for orders with `pending` status
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+          description: Order ID
+      responses:
+        '200':
+          description: URLs refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      files:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OrderFile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===== Webhooks (Legacy) =====
+  /api/v2/orders/webhook:
+    post:
+      summary: Register webhook (Legacy)
+      deprecated: true
+      description: |
+        **Deprecated**: This API has been replaced by `/webhooks`.
+
+        Register a webhook URL to receive notifications when order processing completes or fails.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookRegisterRequest'
+      responses:
+        '200':
+          description: Webhook registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      summary: Get webhook (Legacy)
+      deprecated: true
+      description: |
+        **Deprecated**: This API has been replaced by `/webhooks`.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/WebhookInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      summary: Delete webhook (Legacy)
+      deprecated: true
+      description: |
+        **Deprecated**: This API has been replaced by `/webhooks/{webhookId}`.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Webhook deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ===== Webhooks (New) =====
+  /api/v2/orders/webhooks:
+    get:
+      summary: List webhooks
+      description: |
+        Retrieve registered webhooks with pagination.
+        - Includes name, URL, active status, and last sent time
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: Items per page
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          description: Search keyword (searches webhook name or URL)
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      webhooks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WebhookListItem'
+                      pagination:
+                        $ref: '#/components/schemas/WebhookPagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create webhook
+      description: |
+        Register a new webhook.
+        - Multiple webhooks can be registered
+        - A signing secret is returned upon registration
+
+        **Important**: The secret is only shown in this response. Store it securely.
+
+        ## Webhook Event Types
+
+        | Event Type | Description |
+        |-----------|-------------|
+        | `order.antiAi.completed` | Anti-AI processing completed |
+        | `order.antiAi.failed` | Anti-AI processing failed |
+        | `order.watermarkEmbed.completed` | Watermark embedding completed |
+        | `order.watermarkEmbed.failed` | Watermark embedding failed |
+        | `order.watermarkExtract.completed` | Watermark extraction completed |
+        | `order.watermarkExtract.failed` | Watermark extraction failed |
+
+        ## Signature Verification
+
+        Webhook requests include an `X-MoriBiz-Signature` header.
+        The signature is generated using HMAC-SHA256 with the secret issued at registration.
+
+        ```javascript
+        const crypto = require('crypto');
+        const signature = crypto.createHmac('sha256', secret)
+          .update(JSON.stringify(payload))
+          .digest('hex');
+        ```
+
+        ## Retry Policy
+
+        - Max 3 retries
+        - Exponential backoff (1s, 2s, 4s)
+        - Success response: 2xx status code
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCreateRequest'
+      responses:
+        '200':
+          description: Webhook created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: Webhook ID
+                      name:
+                        type: string
+                        description: Webhook name
+                      secret:
+                        type: string
+                        description: |
+                          Webhook signing secret.
+                          **Warning**: This value cannot be retrieved again. Store it securely.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v2/orders/webhooks/{webhookId}:
+    get:
+      summary: Get webhook details
+      description: Retrieve detailed information for a specific webhook.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: webhookId
+          required: true
+          schema:
+            type: integer
+          description: Webhook ID
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/WebhookDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update webhook
+      description: Update webhook information.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: webhookId
+          required: true
+          schema:
+            type: integer
+          description: Webhook ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookUpdateRequest'
+      responses:
+        '200':
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      url:
+                        type: string
+                        format: uri
+                      isActive:
+                        type: boolean
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete webhook
+      description: Delete a webhook.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: webhookId
+          required: true
+          schema:
+            type: integer
+          description: Webhook ID
+      responses:
+        '200':
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v2/orders/webhooks/{webhookId}/events:
+    get:
+      summary: List webhook events
+      description: |
+        Retrieve delivery events for a specific webhook with pagination.
+        - Includes status, event type, and delivery time
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: webhookId
+          required: true
+          schema:
+            type: integer
+          description: Webhook ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WebhookEvent'
+                      pagination:
+                        $ref: '#/components/schemas/WebhookPagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'

@@ -1,0 +1,187 @@
+---
+title: "Webhooks"
+description: "Receive real-time notifications when orders are processed"
+---
+
+Webhooks allow you to receive HTTP callbacks when order processing completes or fails, eliminating the need to poll for status updates.
+
+## Setting up webhooks
+
+<Steps>
+  <Step title="Register a webhook">
+    Create a webhook endpoint using the [Create Webhook](/api-reference/webhooks/create-webhook) API:
+
+    ```bash
+    curl -X POST https://morimori.app/api/v2/orders/webhooks \
+      -H "X-API-Key: sk_your_api_key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "My Webhook",
+        "url": "https://your-server.com/webhook"
+      }'
+    ```
+
+    **Response:**
+    ```json
+    {
+      "data": {
+        "id": 1,
+        "name": "My Webhook",
+        "secret": "whsec_xxxxxxxxxxxxxxxxxx"
+      }
+    }
+    ```
+
+    <Warning>
+      Store the `secret` securely — it cannot be retrieved again. You'll need it to verify webhook signatures.
+    </Warning>
+  </Step>
+  <Step title="Implement your endpoint">
+    Your webhook endpoint should:
+    - Accept `POST` requests with JSON body
+    - Return a `2xx` status code on success
+    - Verify the signature header
+  </Step>
+  <Step title="Verify signatures">
+    Every webhook request includes an `X-MoriBiz-Signature` header for verification. See [Signature Verification](#signature-verification) below.
+  </Step>
+</Steps>
+
+## Event types
+
+| Event Type | Description |
+|-----------|-------------|
+| `order.antiAi.completed` | Anti-AI processing completed successfully |
+| `order.antiAi.failed` | Anti-AI processing failed |
+| `order.watermarkEmbed.completed` | Watermark embedding completed successfully |
+| `order.watermarkEmbed.failed` | Watermark embedding failed |
+| `order.watermarkExtract.completed` | Watermark extraction completed successfully |
+| `order.watermarkExtract.failed` | Watermark extraction failed |
+
+## Webhook payload
+
+All webhook payloads follow this structure:
+
+```json
+{
+  "eventType": "order.antiAi.completed",
+  "occurredAt": "2026-02-19T12:00:00.000Z",
+  "data": {
+    "orderId": "123456789",
+    "orderName": "anti_ai_2026-02-19",
+    "createdAt": "2026-02-19T11:50:00.000Z",
+    "completedAt": "2026-02-19T12:00:00.000Z",
+    "status": "complete",
+    "fileCount": 3,
+    "downloadUrl": "https://s3.amazonaws.com/..."
+  }
+}
+```
+
+### Completed event data
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `orderId` | string | Order ID |
+| `orderName` | string | Order name |
+| `createdAt` | string | Order creation time (ISO 8601) |
+| `completedAt` | string | Processing completion time (ISO 8601) |
+| `status` | string | `complete`, `detected`, or `undetected` |
+| `fileCount` | integer | Number of processed files |
+| `downloadUrl` | string | Result file download URL (valid for 1 hour) |
+
+### Failed event data
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `orderId` | string | Order ID |
+| `orderName` | string | Order name |
+| `createdAt` | string | Order creation time (ISO 8601) |
+| `failedAt` | string | Processing failure time (ISO 8601) |
+| `status` | string | Always `failed` |
+| `error.code` | string | Error code |
+| `error.message` | string | Error message |
+
+### Watermark extract completed
+
+For watermark extract orders, the completed event includes additional fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | `detected` or `undetected` |
+| `watermarkFound` | boolean | Whether a watermark was detected |
+| `watermarkInfo.text` | string | Detected watermark text (only when `watermarkFound` is true) |
+
+## Signature verification
+
+Verify webhook authenticity by checking the `X-MoriBiz-Signature` header:
+
+<CodeGroup>
+```javascript Node.js
+const crypto = require('crypto');
+
+function verifyWebhookSignature(payload, signature, secret) {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expectedSignature)
+  );
+}
+
+// In your webhook handler
+app.post('/webhook', (req, res) => {
+  const signature = req.headers['x-moribiz-signature'];
+
+  if (!verifyWebhookSignature(req.body, signature, WEBHOOK_SECRET)) {
+    return res.status(401).send('Invalid signature');
+  }
+
+  // Process the webhook event
+  const { eventType, data } = req.body;
+  console.log(`Received ${eventType} for order ${data.orderId}`);
+
+  res.status(200).send('OK');
+});
+```
+
+```python Python
+import hmac
+import hashlib
+import json
+
+def verify_webhook_signature(payload, signature, secret):
+    expected = hmac.new(
+        secret.encode(),
+        json.dumps(payload).encode(),
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)
+```
+</CodeGroup>
+
+## Retry policy
+
+If your endpoint doesn't return a `2xx` status code, MORI retries the delivery:
+
+| Attempt | Delay |
+|---------|-------|
+| 1st retry | 1 second |
+| 2nd retry | 2 seconds |
+| 3rd retry | 4 seconds |
+
+After 3 failed retries, the event is marked as `FAILED`. You can view failed events using the [List Webhook Events](/api-reference/webhooks/list-events) endpoint.
+
+## Managing webhooks
+
+| Action | Endpoint |
+|--------|----------|
+| List all webhooks | [GET /webhooks](/api-reference/webhooks/list-webhooks) |
+| Create a webhook | [POST /webhooks](/api-reference/webhooks/create-webhook) |
+| Get webhook details | [GET /webhooks/{id}](/api-reference/webhooks/get-webhook) |
+| Update a webhook | [PUT /webhooks/{id}](/api-reference/webhooks/update-webhook) |
+| Delete a webhook | [DELETE /webhooks/{id}](/api-reference/webhooks/delete-webhook) |
+| View delivery events | [GET /webhooks/{id}/events](/api-reference/webhooks/list-events) |

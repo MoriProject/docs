@@ -1,97 +1,63 @@
 ---
 title: "Introduction"
-description: "Welcome to the new home for your documentation"
+description: "MORI API - Digital content protection services"
 ---
 
-## Setting up
+MORI API provides three core services for protecting digital content from unauthorized use.
 
-Get your documentation site up and running in minutes.
+## Services
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<Columns cols={3}>
+  <Card title="Anti-AI" icon="shield" href="/api-reference/anti-ai/create-order">
+    Protect images from being used for AI model training. Apply invisible protection that prevents AI systems from learning from your images.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Watermark Embed" icon="stamp" href="/api-reference/watermark-embed/create-order">
+    Embed invisible digital watermarks into images. Track ownership and prove authenticity without visible alterations.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
-  </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="Watermark Extract" icon="magnifying-glass" href="/api-reference/watermark-extract/create-order">
+    Extract and verify watermarks from images. Detect embedded watermark data to confirm image origin.
   </Card>
 </Columns>
 
-## Create beautiful pages
-
-Everything you need to create world-class documentation.
+## Quick links
 
 <Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
+  <Card title="Authentication" icon="key" href="/authentication">
+    Learn how to authenticate your API requests using API keys.
   </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Follow a step-by-step guide to make your first API call.
   </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
+  <Card title="Error Codes" icon="circle-exclamation" href="/errors">
+    Reference all error codes and their HTTP status mappings.
   </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
+  <Card title="Webhooks" icon="bell" href="/webhooks">
+    Set up webhooks to receive real-time notifications.
   </Card>
 </Columns>
 
-## Need inspiration?
+## Base URL
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+All API requests should be made to:
+
+```
+https://morimori.app/api/v2
+```
+
+## Response format
+
+**Success response:**
+```json
+{
+  "data": { ... }
+}
+```
+
+**Error response:**
+```json
+{
+  "code": "ERROR_CODE"
+}
+```
+
+The HTTP status code conveys the error category. Clients should use the error `code` field for i18n/localization.

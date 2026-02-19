@@ -1,0 +1,89 @@
+---
+title: "Authentication"
+description: "How to authenticate your MORI API requests"
+---
+
+All API endpoints require authentication using an API key.
+
+## Getting your API key
+
+1. Sign in to the [MORI Developer Center](https://developers.mori.art)
+2. Navigate to **Settings** > **API Keys**
+3. Click **Create API Key**
+4. Copy and securely store the key — it will only be shown once
+
+<Warning>
+  Your API key grants full access to your account's API. Never expose it in client-side code or public repositories.
+</Warning>
+
+## Using your API key
+
+Include your API key in the `X-API-Key` header:
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://morimori.app/api/v2/orders/anti-ai \
+  -H "X-API-Key: sk_your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"idempotencyKey": "unique-key", "files": [{"fileName": "image.jpg"}]}'
+```
+
+```javascript Node.js
+const response = await fetch('https://morimori.app/api/v2/orders/anti-ai', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': 'sk_your_api_key_here',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    idempotencyKey: 'unique-key',
+    files: [{ fileName: 'image.jpg' }],
+  }),
+});
+```
+
+```python Python
+import requests
+
+response = requests.post(
+    'https://morimori.app/api/v2/orders/anti-ai',
+    headers={
+        'X-API-Key': 'sk_your_api_key_here',
+        'Content-Type': 'application/json',
+    },
+    json={
+        'idempotencyKey': 'unique-key',
+        'files': [{'fileName': 'image.jpg'}],
+    },
+)
+```
+</CodeGroup>
+
+Alternatively, you can use the `Authorization` header with Bearer format:
+
+```bash
+Authorization: Bearer sk_your_api_key_here
+```
+
+## Rate limits
+
+API requests are rate-limited based on your subscription plan:
+
+| Plan | Requests per minute |
+|------|-------------------|
+| Free | 60 |
+| Pro | 300 |
+| Enterprise | 1,000 |
+
+When you exceed the rate limit, the API returns a `429` status code with `RATE_LIMIT_EXCEEDED` error code.
+
+## Idempotency
+
+All order creation endpoints support an `idempotencyKey` parameter. Sending a duplicate request with the same key returns the existing order instead of creating a new one. This prevents double-processing on network retries.
+
+```json
+{
+  "idempotencyKey": "unique-request-id-123",
+  "files": [...]
+}
+```
