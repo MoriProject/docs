@@ -247,7 +247,7 @@
       {
         "title": "Product",
         "items": [
-          { "label": "Developer Center", "href": "https://developers.mori.art" },
+          { "label": "Developer Center", "href": "https://developers.mori.art" }
         ]
       },
       {
