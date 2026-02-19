@@ -8,7 +8,7 @@
     "dark": "#4F46E5"
   },
   "favicon": "/favicon.svg",
-  "openapi": ["/api-reference/openapi.yaml"],
+  "openapi": ["/api-reference/openapi.yaml", "/ko/api-reference/openapi.yaml"],
   "languages": [
     {
       "language": "en",
@@ -132,43 +132,48 @@
               },
               {
                 "group": "Anti-AI",
+                "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "ko/api-reference/anti-ai/create-order",
-                  "ko/api-reference/anti-ai/confirm-order",
-                  "ko/api-reference/anti-ai/create-order-urls"
+                  "POST /api/v2/orders/anti-ai",
+                  "POST /api/v2/orders/anti-ai/confirm",
+                  "POST /api/v2/orders/anti-ai/with-urls"
                 ]
               },
               {
                 "group": "워터마크 삽입",
+                "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "ko/api-reference/watermark-embed/create-order"
+                  "POST /api/v2/orders/wtr-embed"
                 ]
               },
               {
                 "group": "워터마크 추출",
+                "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "ko/api-reference/watermark-extract/create-order"
+                  "POST /api/v2/orders/wtr-extract"
                 ]
               },
               {
                 "group": "주문",
+                "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "ko/api-reference/orders/list-orders",
-                  "ko/api-reference/orders/get-order",
-                  "ko/api-reference/orders/download-order",
-                  "ko/api-reference/orders/refresh-urls",
-                  "ko/api-reference/orders/recent-stats"
+                  "GET /api/v2/orders",
+                  "GET /api/v2/orders/{orderId}",
+                  "GET /api/v2/orders/{orderId}/download",
+                  "POST /api/v2/orders/{orderId}/refresh-urls",
+                  "GET /api/v2/orders/stats/recent"
                 ]
               },
               {
                 "group": "웹훅",
+                "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "ko/api-reference/webhooks/list-webhooks",
-                  "ko/api-reference/webhooks/create-webhook",
-                  "ko/api-reference/webhooks/get-webhook",
-                  "ko/api-reference/webhooks/update-webhook",
-                  "ko/api-reference/webhooks/delete-webhook",
-                  "ko/api-reference/webhooks/list-events"
+                  "GET /api/v2/orders/webhooks",
+                  "POST /api/v2/orders/webhooks",
+                  "GET /api/v2/orders/webhooks/{webhookId}",
+                  "PUT /api/v2/orders/webhooks/{webhookId}",
+                  "DELETE /api/v2/orders/webhooks/{webhookId}",
+                  "GET /api/v2/orders/webhooks/{webhookId}/events"
                 ]
               }
             ]
