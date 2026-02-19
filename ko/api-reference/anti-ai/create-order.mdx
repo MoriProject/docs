@@ -5,17 +5,13 @@ openapi: "POST /api/v2/orders/anti-ai"
 
 ## 주문 결과 다운로드
 
-주문이 `complete` 상태가 되면 처리된 파일을 다운로드할 수 있습니다.
+주문이 `complete` 상태가 되면 [다운로드 URL 발급](/ko/api-reference/orders/download-order) 엔드포인트를 사용하여 처리된 파일을 다운로드할 수 있습니다:
 
-<Accordion title="주문 결과 다운로드">
-  [다운로드 URL 발급](/ko/api-reference/orders/download-order) 엔드포인트를 사용하여 프리사인드 다운로드 URL을 받아오세요:
+```bash
+curl -X GET https://morimori.app/api/v2/orders/{orderId}/download \
+  -H "X-API-Key: YOUR_API_KEY"
+```
 
-  ```bash
-  curl -X GET https://morimori.app/api/v2/orders/{orderId}/download \
-    -H "X-API-Key: YOUR_API_KEY"
-  ```
-
-  <Warning>
-    주문 생성 후 **최대 7일**까지 파일을 다운로드할 수 있습니다. 7일이 경과하면 주문이 `expired` 상태로 전환되며, 이후 파일을 다운로드할 수 없습니다.
-  </Warning>
-</Accordion>
+<Warning>
+  주문 생성 후 **최대 7일**까지 파일을 다운로드할 수 있습니다. 7일이 경과하면 주문이 `expired` 상태로 전환되며, 이후 파일을 다운로드할 수 없습니다.
+</Warning>

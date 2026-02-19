@@ -5,17 +5,13 @@ openapi: "POST /api/v2/orders/anti-ai"
 
 ## Download order results
 
-Once your order reaches `complete` status, you can download the processed files.
+Once your order reaches `complete` status, use the [Get download URL](/api-reference/orders/download-order) endpoint to retrieve a presigned download URL:
 
-<Accordion title="Download order results">
-  Use the [Get download URL](/api-reference/orders/download-order) endpoint to retrieve a presigned download URL:
+```bash
+curl -X GET https://morimori.app/api/v2/orders/{orderId}/download \
+  -H "X-API-Key: YOUR_API_KEY"
+```
 
-  ```bash
-  curl -X GET https://morimori.app/api/v2/orders/{orderId}/download \
-    -H "X-API-Key: YOUR_API_KEY"
-  ```
-
-  <Warning>
-    Order files are available for download for **up to 7 days** after order creation. After 7 days, the order transitions to `expired` status and files can no longer be downloaded.
-  </Warning>
-</Accordion>
+<Warning>
+  Order files are available for download for **up to 7 days** after order creation. After 7 days, the order transitions to `expired` status and files can no longer be downloaded.
+</Warning>
