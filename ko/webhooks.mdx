@@ -1,14 +1,14 @@
 ---
 title: "웹훅"
-description: "주문 처리 시 실시간 알림 받기"
+description: "주문 완료 또는 실패 시 실시간 푸시 알림 받기"
 ---
 
-웹훅을 사용하면 주문 처리가 완료되거나 실패했을 때 HTTP 콜백을 받을 수 있어, 상태 업데이트를 위한 반복 폴링이 필요 없습니다.
+웹훅은 주문 처리가 완료되거나 실패할 때 서버에 HTTP `POST` 콜백을 전달합니다. [주문 조회](/ko/api-reference/orders/get-order) 엔드포인트를 반복 폴링하는 대신 웹훅을 사용하면 결과가 준비되는 즉시 알림을 받을 수 있습니다.
 
 ## 웹훅 설정
 
 <Steps>
-  <Step title="웹훅 등록">
+  <Step title="웹훅 엔드포인트 등록">
     [웹훅 생성](/ko/api-reference/webhooks/create-webhook) API를 사용하여 웹훅 엔드포인트를 생성합니다:
 
     ```bash
@@ -33,17 +33,17 @@ description: "주문 처리 시 실시간 알림 받기"
     ```
 
     <Warning>
-      `secret`을 안전하게 보관하세요 — 다시 조회할 수 없습니다. 웹훅 서명 검증에 필요합니다.
+      `secret`을 즉시 저장하세요 — **한 번만 표시되며** 다시 조회할 수 없습니다. 모든 수신 웹훅 서명 검증에 필요합니다.
     </Warning>
   </Step>
   <Step title="엔드포인트 구현">
-    웹훅 엔드포인트는 다음을 수행해야 합니다:
+    웹훅 핸들러는 다음을 수행해야 합니다:
     - JSON 본문으로 `POST` 요청을 수락
-    - 성공 시 `2xx` 상태 코드 반환
-    - 서명 헤더 검증
+    - **5초 이내**에 `2xx` 상태 코드로 응답
+    - 처리 전 `X-MoriBiz-Signature` 헤더 검증
   </Step>
   <Step title="서명 검증">
-    모든 웹훅 요청에는 검증을 위한 `X-MoriBiz-Signature` 헤더가 포함됩니다. 아래 [서명 검증](#서명-검증)을 참고하세요.
+    모든 요청에는 `X-MoriBiz-Signature` 헤더가 포함됩니다. 사용 중인 언어의 구현은 아래 [서명 검증](#서명-검증)을 참고하세요.
   </Step>
 </Steps>
 
@@ -114,52 +114,163 @@ description: "주문 처리 시 실시간 알림 받기"
 
 ## 서명 검증
 
-`X-MoriBiz-Signature` 헤더를 확인하여 웹훅 진위를 검증합니다:
+`X-MoriBiz-Signature` 헤더를 확인하여 웹훅 진위를 검증합니다. 이벤트 처리 **전에** 반드시 검증하세요.
 
 <CodeGroup>
 ```javascript Node.js
 const crypto = require('crypto');
 
-function verifyWebhookSignature(payload, signature, secret) {
-  const expectedSignature = crypto
+function verifyWebhookSignature(rawBody, signature, secret) {
+  const expected = crypto
     .createHmac('sha256', secret)
-    .update(JSON.stringify(payload))
+    .update(rawBody)          // 원시 요청 바디 문자열 사용
     .digest('hex');
 
   return crypto.timingSafeEqual(
     Buffer.from(signature),
-    Buffer.from(expectedSignature)
+    Buffer.from(expected)
   );
 }
 
-// 웹훅 핸들러에서
-app.post('/webhook', (req, res) => {
+// Express 핸들러
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   const signature = req.headers['x-moribiz-signature'];
 
-  if (!verifyWebhookSignature(req.body, signature, WEBHOOK_SECRET)) {
+  if (!verifyWebhookSignature(req.body.toString(), signature, process.env.WEBHOOK_SECRET)) {
     return res.status(401).send('Invalid signature');
   }
 
-  // 웹훅 이벤트 처리
-  const { eventType, data } = req.body;
+  const { eventType, data } = JSON.parse(req.body);
   console.log(`주문 ${data.orderId}의 ${eventType} 이벤트 수신`);
-
-  res.status(200).send('OK');
+  res.sendStatus(200);
 });
 ```
 
 ```python Python
 import hmac
 import hashlib
-import json
 
-def verify_webhook_signature(payload, signature, secret):
+def verify_webhook_signature(raw_body: str, signature: str, secret: str) -> bool:
     expected = hmac.new(
         secret.encode(),
-        json.dumps(payload).encode(),
+        raw_body.encode(),
         hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(signature, expected)
+
+# Flask 핸들러
+from flask import Flask, request, abort
+import json, os
+
+app = Flask(__name__)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    signature = request.headers.get('X-MoriBiz-Signature')
+    raw_body  = request.get_data(as_text=True)
+
+    if not verify_webhook_signature(raw_body, signature, os.environ['WEBHOOK_SECRET']):
+        abort(401)
+
+    event = json.loads(raw_body)
+    return '', 200
+```
+
+```php PHP
+<?php
+function verifyWebhookSignature(string $rawBody, string $signature, string $secret): bool {
+    $expected = hash_hmac('sha256', $rawBody, $secret);
+    return hash_equals($expected, $signature);
+}
+
+$signature = $_SERVER['HTTP_X_MORIBIZ_SIGNATURE'] ?? '';
+$rawBody   = file_get_contents('php://input');
+
+if (!verifyWebhookSignature($rawBody, $signature, getenv('WEBHOOK_SECRET'))) {
+    http_response_code(401);
+    exit('Unauthorized');
+}
+
+$event = json_decode($rawBody, true);
+http_response_code(200);
+```
+
+```ruby Ruby
+require 'openssl'
+require 'json'
+
+def verify_webhook_signature(raw_body, signature, secret)
+  expected = OpenSSL::HMAC.hexdigest('SHA256', secret, raw_body)
+  Rack::Utils.secure_compare(expected, signature)
+end
+
+# Sinatra / Rails
+post '/webhook' do
+  raw_body  = request.body.read
+  signature = request.env['HTTP_X_MORIBIZ_SIGNATURE']
+
+  halt 401, 'Unauthorized' unless
+    verify_webhook_signature(raw_body, signature, ENV['WEBHOOK_SECRET'])
+
+  event = JSON.parse(raw_body)
+  status 200
+end
+```
+
+```go Go
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
+	"net/http"
+	"os"
+)
+
+func verifySignature(rawBody []byte, signature, secret string) bool {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(rawBody)
+	expected := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(expected), []byte(signature))
+}
+
+func webhookHandler(w http.ResponseWriter, r *http.Request) {
+	body, _ := io.ReadAll(r.Body)
+	signature := r.Header.Get("X-MoriBiz-Signature")
+
+	if !verifySignature(body, signature, os.Getenv("WEBHOOK_SECRET")) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+```
+
+```java Java
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+
+public static boolean verifySignature(String rawBody, String signature, String secret)
+        throws Exception {
+    Mac mac = Mac.getInstance("HmacSHA256");
+    mac.init(new SecretKeySpec(secret.getBytes(), "HmacSHA256"));
+    String expected = HexFormat.of().formatHex(mac.doFinal(rawBody.getBytes()));
+    return MessageDigest.isEqual(expected.getBytes(), signature.getBytes());
+}
+
+// Spring Boot 핸들러
+@PostMapping("/webhook")
+public ResponseEntity<Void> handleWebhook(
+        @RequestBody String rawBody,
+        @RequestHeader("X-MoriBiz-Signature") String signature) throws Exception {
+
+    if (!verifySignature(rawBody, signature, webhookSecret)) {
+        return ResponseEntity.status(401).build();
+    }
+    return ResponseEntity.ok().build();
+}
 ```
 </CodeGroup>
 

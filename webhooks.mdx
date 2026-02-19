@@ -1,15 +1,15 @@
 ---
 title: "Webhooks"
-description: "Receive real-time notifications when orders are processed"
+description: "Receive real-time push notifications when orders complete or fail"
 ---
 
-Webhooks allow you to receive HTTP callbacks when order processing completes or fails, eliminating the need to poll for status updates.
+Webhooks deliver HTTP `POST` callbacks to your server when order processing completes or fails. Use webhooks instead of polling the [Get Order](/api-reference/orders/get-order) endpoint — your server gets notified the moment a result is ready.
 
 ## Setting up webhooks
 
 <Steps>
-  <Step title="Register a webhook">
-    Create a webhook endpoint using the [Create Webhook](/api-reference/webhooks/create-webhook) API:
+  <Step title="Register a webhook endpoint">
+    Create a webhook using the [Create Webhook](/api-reference/webhooks/create-webhook) API:
 
     ```bash
     curl -X POST https://morimori.app/api/v2/orders/webhooks \
@@ -33,17 +33,17 @@ Webhooks allow you to receive HTTP callbacks when order processing completes or 
     ```
 
     <Warning>
-      Store the `secret` securely — it cannot be retrieved again. You'll need it to verify webhook signatures.
+      Save the `secret` immediately — **it is shown only once** and cannot be retrieved again. You need it to verify every incoming webhook signature.
     </Warning>
   </Step>
   <Step title="Implement your endpoint">
-    Your webhook endpoint should:
-    - Accept `POST` requests with JSON body
-    - Return a `2xx` status code on success
-    - Verify the signature header
+    Your webhook handler must:
+    - Accept `POST` requests with a JSON body
+    - Respond with a `2xx` status code within **5 seconds**
+    - Verify the `X-MoriBiz-Signature` header before processing
   </Step>
   <Step title="Verify signatures">
-    Every webhook request includes an `X-MoriBiz-Signature` header for verification. See [Signature Verification](#signature-verification) below.
+    Every request includes an `X-MoriBiz-Signature` header. See [Signature Verification](#signature-verification) below for implementation in your language.
   </Step>
 </Steps>
 
@@ -114,52 +114,164 @@ For watermark extract orders, the completed event includes additional fields:
 
 ## Signature verification
 
-Verify webhook authenticity by checking the `X-MoriBiz-Signature` header:
+Verify webhook authenticity by checking the `X-MoriBiz-Signature` header. Always verify **before** processing the event.
 
 <CodeGroup>
 ```javascript Node.js
 const crypto = require('crypto');
 
-function verifyWebhookSignature(payload, signature, secret) {
-  const expectedSignature = crypto
+function verifyWebhookSignature(rawBody, signature, secret) {
+  const expected = crypto
     .createHmac('sha256', secret)
-    .update(JSON.stringify(payload))
+    .update(rawBody)          // use the raw request body string
     .digest('hex');
 
   return crypto.timingSafeEqual(
     Buffer.from(signature),
-    Buffer.from(expectedSignature)
+    Buffer.from(expected)
   );
 }
 
-// In your webhook handler
-app.post('/webhook', (req, res) => {
+// Express handler
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
   const signature = req.headers['x-moribiz-signature'];
 
-  if (!verifyWebhookSignature(req.body, signature, WEBHOOK_SECRET)) {
+  if (!verifyWebhookSignature(req.body.toString(), signature, process.env.WEBHOOK_SECRET)) {
     return res.status(401).send('Invalid signature');
   }
 
-  // Process the webhook event
-  const { eventType, data } = req.body;
+  const { eventType, data } = JSON.parse(req.body);
   console.log(`Received ${eventType} for order ${data.orderId}`);
-
-  res.status(200).send('OK');
+  res.sendStatus(200);
 });
 ```
 
 ```python Python
 import hmac
 import hashlib
-import json
 
-def verify_webhook_signature(payload, signature, secret):
+def verify_webhook_signature(raw_body: str, signature: str, secret: str) -> bool:
     expected = hmac.new(
         secret.encode(),
-        json.dumps(payload).encode(),
+        raw_body.encode(),
         hashlib.sha256
     ).hexdigest()
     return hmac.compare_digest(signature, expected)
+
+# Flask handler
+from flask import Flask, request, abort
+import json
+
+app = Flask(__name__)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    signature = request.headers.get('X-MoriBiz-Signature')
+    raw_body  = request.get_data(as_text=True)
+
+    if not verify_webhook_signature(raw_body, signature, os.environ['WEBHOOK_SECRET']):
+        abort(401)
+
+    event = json.loads(raw_body)
+    return '', 200
+```
+
+```php PHP
+<?php
+function verifyWebhookSignature(string $rawBody, string $signature, string $secret): bool {
+    $expected = hash_hmac('sha256', $rawBody, $secret);
+    return hash_equals($expected, $signature);
+}
+
+$signature = $_SERVER['HTTP_X_MORIBIZ_SIGNATURE'] ?? '';
+$rawBody   = file_get_contents('php://input');
+
+if (!verifyWebhookSignature($rawBody, $signature, getenv('WEBHOOK_SECRET'))) {
+    http_response_code(401);
+    exit('Unauthorized');
+}
+
+$event = json_decode($rawBody, true);
+http_response_code(200);
+```
+
+```ruby Ruby
+require 'openssl'
+require 'json'
+
+def verify_webhook_signature(raw_body, signature, secret)
+  expected = OpenSSL::HMAC.hexdigest('SHA256', secret, raw_body)
+  Rack::Utils.secure_compare(expected, signature)
+end
+
+# Sinatra / Rails
+post '/webhook' do
+  raw_body  = request.body.read
+  signature = request.env['HTTP_X_MORIBIZ_SIGNATURE']
+
+  halt 401, 'Unauthorized' unless
+    verify_webhook_signature(raw_body, signature, ENV['WEBHOOK_SECRET'])
+
+  event = JSON.parse(raw_body)
+  status 200
+end
+```
+
+```go Go
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
+	"net/http"
+	"os"
+)
+
+func verifySignature(rawBody []byte, signature, secret string) bool {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(rawBody)
+	expected := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(expected), []byte(signature))
+}
+
+func webhookHandler(w http.ResponseWriter, r *http.Request) {
+	body, _ := io.ReadAll(r.Body)
+	signature := r.Header.Get("X-MoriBiz-Signature")
+
+	if !verifySignature(body, signature, os.Getenv("WEBHOOK_SECRET")) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+```
+
+```java Java
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+
+public static boolean verifySignature(String rawBody, String signature, String secret)
+        throws Exception {
+    Mac mac = Mac.getInstance("HmacSHA256");
+    mac.init(new SecretKeySpec(secret.getBytes(), "HmacSHA256"));
+    String expected = HexFormat.of().formatHex(mac.doFinal(rawBody.getBytes()));
+    return MessageDigest.isEqual(expected.getBytes(), signature.getBytes());
+}
+
+// Spring Boot handler
+@PostMapping("/webhook")
+public ResponseEntity<Void> handleWebhook(
+        @RequestBody String rawBody,
+        @RequestHeader("X-MoriBiz-Signature") String signature) throws Exception {
+
+    if (!verifySignature(rawBody, signature, webhookSecret)) {
+        return ResponseEntity.status(401).build();
+    }
+    // process event...
+    return ResponseEntity.ok().build();
+}
 ```
 </CodeGroup>
 

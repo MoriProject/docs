@@ -95,6 +95,19 @@
                 ]
               }
             ]
+          },
+          {
+            "tab": "Legal",
+            "groups": [
+              {
+                "group": "Legal",
+                "pages": [
+                  "legal/terms",
+                  "legal/privacy",
+                  "legal/dpa"
+                ]
+              }
+            ]
           }
         ]
       },
@@ -160,6 +173,7 @@
                   "GET /api/v2/orders",
                   "GET /api/v2/orders/{orderId}",
                   "GET /api/v2/orders/{orderId}/download",
+                  "POST /api/v2/orders/{orderId}/refresh-urls",
                   "GET /api/v2/orders/stats/recent"
                 ]
               },
@@ -173,6 +187,19 @@
                   "PUT /api/v2/orders/webhooks/{webhookId}",
                   "DELETE /api/v2/orders/webhooks/{webhookId}",
                   "GET /api/v2/orders/webhooks/{webhookId}/events"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "법적 고지",
+            "groups": [
+              {
+                "group": "법적 고지",
+                "pages": [
+                  "ko/legal/terms",
+                  "ko/legal/privacy",
+                  "ko/legal/dpa"
                 ]
               }
             ]
@@ -215,7 +242,39 @@
   "footer": {
     "socials": {
       "website": "https://mori.art"
-    }
+    },
+    "links": [
+      {
+        "title": "Product",
+        "items": [
+          { "name": "Developer Center", "url": "https://developers.mori.art" },
+          { "name": "mori.art", "url": "https://mori.art" }
+        ]
+      },
+      {
+        "title": "Documentation",
+        "items": [
+          { "name": "Guides", "url": "/index" },
+          { "name": "API Reference", "url": "/api-reference/introduction" },
+          { "name": "Error Codes", "url": "/errors" },
+          { "name": "Webhooks", "url": "/webhooks" }
+        ]
+      },
+      {
+        "title": "Support",
+        "items": [
+          { "name": "Contact Support", "url": "mailto:mori@morimori.app" }
+        ]
+      },
+      {
+        "title": "Legal",
+        "items": [
+          { "name": "Terms of Service", "url": "/legal/terms" },
+          { "name": "Privacy Policy", "url": "/legal/privacy" },
+          { "name": "DPA", "url": "/legal/dpa" }
+        ]
+      }
+    ]
   },
   "api": {
     "baseUrl": "https://morimori.app",

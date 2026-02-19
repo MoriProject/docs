@@ -1,63 +1,73 @@
 ---
 title: "소개"
-description: "BIZ MORI API - 디지털 콘텐츠 보호 서비스"
+description: "BIZ MORI API — 이미지를 위한 프로그래매틱 디지털 콘텐츠 보호"
 ---
 
-BIZ MORI API는 디지털 콘텐츠를 무단 사용으로부터 보호하기 위한 세 가지 핵심 서비스를 제공합니다.
+**BIZ MORI API**는 디지털 콘텐츠 보호 서비스에 대한 프로그래매틱 접근을 제공합니다. 간단한 REST API를 통해 이미지를 무단 AI 학습으로부터 보호하고, 보이지 않는 소유권 워터마크를 삽입하며, 워터마크 진위를 검증하세요.
 
 ## 서비스
 
 <Columns cols={3}>
   <Card title="Anti-AI" icon="shield" href="/ko/api-reference/anti-ai/create-order">
-    이미지가 AI 모델 학습에 사용되지 않도록 보호합니다. AI 시스템이 이미지를 학습하지 못하도록 보이지 않는 보호막을 적용합니다.
+    AI 시스템이 모델 학습에 이미지를 사용하지 못하도록 보이지 않는 보호막을 적용합니다 — 눈에 띄는 변화 없이.
   </Card>
   <Card title="워터마크 삽입" icon="stamp" href="/ko/api-reference/watermark-embed/create-order">
-    이미지에 보이지 않는 디지털 워터마크를 삽입합니다. 눈에 보이는 변형 없이 소유권을 추적하고 진위를 증명합니다.
+    식별 불가능한 디지털 워터마크를 삽입하여 소유권을 추적하고 이미지 진위를 증명합니다.
   </Card>
   <Card title="워터마크 추출" icon="magnifying-glass" href="/ko/api-reference/watermark-extract/create-order">
-    이미지에서 워터마크를 추출하고 검증합니다. 삽입된 워터마크 데이터를 감지하여 이미지 출처를 확인합니다.
+    삽입된 워터마크를 감지하고 읽어 이미지 출처와 소유권을 검증합니다.
   </Card>
 </Columns>
 
-## 빠른 링크
+## 시작하기
 
 <Columns cols={2}>
   <Card title="인증" icon="key" href="/ko/authentication">
-    API 키를 사용하여 API 요청을 인증하는 방법을 알아보세요.
+    API 키를 발급받고 모든 요청에 인증하는 방법을 알아보세요.
   </Card>
   <Card title="빠른 시작" icon="rocket" href="/ko/quickstart">
-    단계별 가이드를 따라 첫 번째 API 호출을 해보세요.
+    단계별 가이드를 통해 몇 분 안에 첫 번째 API 호출을 해보세요.
   </Card>
   <Card title="오류 코드" icon="circle-exclamation" href="/ko/errors">
-    모든 오류 코드와 HTTP 상태 코드 매핑을 참고하세요.
+    오류 코드, HTTP 상태 및 문제 해결 가이드 전체 목록.
   </Card>
   <Card title="웹훅" icon="bell" href="/ko/webhooks">
-    실시간 알림을 받기 위해 웹훅을 설정하세요.
+    주문 처리 완료 또는 실패 시 푸시 알림을 받으세요.
   </Card>
 </Columns>
 
 ## 기본 URL
 
-모든 API 요청은 다음 주소로 보내야 합니다:
-
 ```
 https://morimori.app/api/v2
 ```
 
+모든 엔드포인트는 **HTTPS**로만 제공됩니다. HTTP 요청은 지원되지 않습니다.
+
+## 요청 형식
+
+`Content-Type: application/json`으로 요청을 보내고 `Authorization` 헤더에 API 키를 포함합니다:
+
+```
+Authorization: Bearer YOUR_API_TOKEN
+```
+
 ## 응답 형식
 
-**성공 응답:**
+모든 응답은 JSON을 반환합니다.
+
+**성공**
 ```json
 {
   "data": { ... }
 }
 ```
 
-**오류 응답:**
+**오류**
 ```json
 {
   "code": "ERROR_CODE"
 }
 ```
 
-HTTP 상태 코드가 오류 유형을 나타냅니다. 클라이언트는 i18n/로컬라이제이션에 오류 `code` 필드를 사용해야 합니다.
+HTTP 상태 코드로 오류 범주를 파악하고, `code` 필드로 프로그래매틱 처리 및 로컬라이제이션을 수행하세요. 전체 목록은 [오류 코드](/ko/errors)를 참고하세요.

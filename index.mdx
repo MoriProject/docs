@@ -1,63 +1,73 @@
 ---
 title: "Introduction"
-description: "BIZ MORI API - Digital content protection services"
+description: "BIZ MORI API — Programmatic digital content protection for images"
 ---
 
-BIZ MORI API provides three core services for protecting digital content from unauthorized use.
+The **BIZ MORI API** gives you programmatic access to digital content protection services. Protect images from unauthorized AI training, embed invisible ownership watermarks, and verify watermark authenticity — all via a simple REST API.
 
 ## Services
 
 <Columns cols={3}>
   <Card title="Anti-AI" icon="shield" href="/api-reference/anti-ai/create-order">
-    Protect images from being used for AI model training. Apply invisible protection that prevents AI systems from learning from your images.
+    Apply invisible protection that prevents AI systems from using your images for model training — without visible alteration.
   </Card>
   <Card title="Watermark Embed" icon="stamp" href="/api-reference/watermark-embed/create-order">
-    Embed invisible digital watermarks into images. Track ownership and prove authenticity without visible alterations.
+    Embed imperceptible digital watermarks to track ownership and prove image authenticity.
   </Card>
   <Card title="Watermark Extract" icon="magnifying-glass" href="/api-reference/watermark-extract/create-order">
-    Extract and verify watermarks from images. Detect embedded watermark data to confirm image origin.
+    Detect and read embedded watermarks to verify image origin and ownership.
   </Card>
 </Columns>
 
-## Quick links
+## Get started
 
 <Columns cols={2}>
   <Card title="Authentication" icon="key" href="/authentication">
-    Learn how to authenticate your API requests using API keys.
+    Obtain an API key and learn how to authenticate every request.
   </Card>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Follow a step-by-step guide to make your first API call.
+    Make your first API call in minutes with a step-by-step walkthrough.
   </Card>
   <Card title="Error Codes" icon="circle-exclamation" href="/errors">
-    Reference all error codes and their HTTP status mappings.
+    Full reference of error codes, HTTP statuses, and troubleshooting guidance.
   </Card>
   <Card title="Webhooks" icon="bell" href="/webhooks">
-    Set up webhooks to receive real-time notifications.
+    Receive push notifications when order processing completes or fails.
   </Card>
 </Columns>
 
 ## Base URL
 
-All API requests should be made to:
-
 ```
 https://morimori.app/api/v2
 ```
 
+All endpoints are served over **HTTPS**. HTTP requests are not supported.
+
+## Request format
+
+Send requests with `Content-Type: application/json` and include your API key in the `Authorization` header:
+
+```
+Authorization: Bearer YOUR_API_TOKEN
+```
+
 ## Response format
 
-**Success response:**
+All responses return JSON. The shape depends on whether the request succeeded.
+
+**Success**
 ```json
 {
   "data": { ... }
 }
 ```
 
-**Error response:**
+**Error**
 ```json
 {
   "code": "ERROR_CODE"
 }
 ```
 
-The HTTP status code conveys the error category. Clients should use the error `code` field for i18n/localization.
+Use the HTTP status code to identify the error category, and the `code` field for programmatic handling and localization. See [Error Codes](/errors) for the full list.
