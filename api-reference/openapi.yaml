@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  title: MORI API
+  title: BIZ MORI API
   version: 2.0.0
-  description: 'MORI API provides three core services for digital content protection:
+  description: 'BIZ MORI API provides three core services for digital content protection:
 
     - **Anti-AI**: Protect images from AI training
 
@@ -12,17 +12,16 @@ info:
 
     '
   contact:
-    name: MORI Support
+    name: BIZ MORI Support
     email: mori@morimori.app
 servers:
 - url: https://morimori.app
   description: Production
 components:
   securitySchemes:
-    ApiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
+    BearerAuth:
+      type: http
+      scheme: bearer
       description: API Key for external client access
   schemas:
     BaseResponse:
@@ -567,7 +566,7 @@ paths:
       tags:
       - Anti-AI
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -741,14 +740,14 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X POST https://morimori.app/api/v2/orders/anti-ai \\\n  -H\
-          \ \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
           \ \\\n  -d '{\n    \"idempotencyKey\": \"key-001\",\n    \"files\": [\n\
           \      {\"fileName\": \"image1.jpg\"},\n      {\"fileName\": \"image2.png\"\
           }\n    ],\n    \"options\": {\"strength\": \"high\"}\n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://morimori.app/api/v2/orders/anti-ai',\
-          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
           \    idempotencyKey: 'key-001',\n    files: [\n      { fileName: 'image1.jpg'\
           \ },\n      { fileName: 'image2.png' }\n    ],\n    options: { strength:\
@@ -756,7 +755,7 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/anti-ai',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
           \ 'key-001',\n        'files': [\n            {'fileName': 'image1.jpg'},\n\
           \            {'fileName': 'image2.png'}\n        ],\n        'options':\
           \ {'strength': 'high'}\n    }\n)\ndata = response.json()"
@@ -779,7 +778,7 @@ paths:
       tags:
       - Anti-AI
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -813,20 +812,20 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X POST https://morimori.app/api/v2/orders/anti-ai/confirm \\\
-          \n  -H \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
           \ \\\n  -d '{\n    \"idempotencyKey\": \"key-confirm-001\",\n    \"orderId\"\
           : \"ORDER_ID\"\n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://morimori.app/api/v2/orders/anti-ai/confirm',\
-          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
           \    idempotencyKey: 'key-confirm-001',\n    orderId: 'ORDER_ID'\n  })\n\
           });\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/anti-ai/confirm',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
           \ 'key-confirm-001',\n        'orderId': 'ORDER_ID'\n    }\n)\ndata = response.json()"
   /api/v2/orders/anti-ai/with-urls:
     post:
@@ -852,7 +851,7 @@ paths:
       tags:
       - Anti-AI
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -941,7 +940,7 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X POST https://morimori.app/api/v2/orders/anti-ai/with-urls\
-          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
           \ \\\n  -d '{\n    \"idempotencyKey\": \"key-url-001\",\n    \"files\":\
           \ [\n      {\n        \"fileName\": \"image1.jpg\",\n        \"imageUrl\"\
           : \"https://example.com/image1.jpg\"\n      }\n    ],\n    \"options\":\
@@ -949,7 +948,7 @@ paths:
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://morimori.app/api/v2/orders/anti-ai/with-urls',\
-          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
           \    idempotencyKey: 'key-url-001',\n    files: [\n      {\n        fileName:\
           \ 'image1.jpg',\n        imageUrl: 'https://example.com/image1.jpg'\n  \
@@ -958,7 +957,7 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/anti-ai/with-urls',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
           \ 'key-url-001',\n        'files': [\n            {\n                'fileName':\
           \ 'image1.jpg',\n                'imageUrl': 'https://example.com/image1.jpg'\n\
           \            }\n        ],\n        'options': {'strength': 'high'}\n  \
@@ -978,7 +977,7 @@ paths:
       tags:
       - Watermark Embed
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -1048,14 +1047,14 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X POST https://morimori.app/api/v2/orders/wtr-embed \\\n  -H\
-          \ \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
           \ \\\n  -d '{\n    \"idempotencyKey\": \"key-embed-001\",\n    \"files\"\
           : [\n      {\n        \"fileName\": \"image.jpg\",\n        \"watermarks\"\
           : [{\"text\": \"MORI_WATERMARK\"}]\n      }\n    ]\n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://morimori.app/api/v2/orders/wtr-embed',\
-          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
           \    idempotencyKey: 'key-embed-001',\n    files: [\n      {\n        fileName:\
           \ 'image.jpg',\n        watermarks: [{ text: 'MORI_WATERMARK' }]\n     \
@@ -1063,7 +1062,7 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/wtr-embed',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
           \ 'key-embed-001',\n        'files': [\n            {\n                'fileName':\
           \ 'image.jpg',\n                'watermarks': [{'text': 'MORI_WATERMARK'}]\n\
           \            }\n        ]\n    }\n)\ndata = response.json()"
@@ -1084,7 +1083,7 @@ paths:
       tags:
       - Watermark Extract
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -1213,20 +1212,20 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X POST https://morimori.app/api/v2/orders/wtr-extract \\\n\
-          \  -H \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
           \ \\\n  -d '{\n    \"idempotencyKey\": \"key-extract-001\",\n    \"file\"\
           : {\n      \"fileName\": \"watermarked.jpg\"\n    }\n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://morimori.app/api/v2/orders/wtr-extract',\
-          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
           \    idempotencyKey: 'key-extract-001',\n    file: {\n      fileName: 'watermarked.jpg'\n\
           \    }\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/wtr-extract',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'idempotencyKey':\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
           \ 'key-extract-001',\n        'file': {\n            'fileName': 'watermarked.jpg'\n\
           \        }\n    }\n)\ndata = response.json()"
   /api/v2/orders:
@@ -1244,7 +1243,7 @@ paths:
       tags:
       - Orders
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: query
         name: page
@@ -1324,17 +1323,17 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X GET \"https://morimori.app/api/v2/orders?page=1&limit=10&status=all\"\
-          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const params = new URLSearchParams({ page: 1, limit: 10, status:\
           \ 'all' });\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders?${params}`,\n\
-          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
           \ response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.get(\n    'https://morimori.app/api/v2/orders',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    params={'page': 1, 'limit':\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit':\
           \ 10, 'status': 'all'}\n)\ndata = response.json()"
   /api/v2/orders/stats/recent:
     get:
@@ -1343,7 +1342,7 @@ paths:
       tags:
       - Orders
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: query
         name: date
@@ -1367,23 +1366,23 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X GET https://morimori.app/api/v2/orders/stats/recent \\\n\
-          \  -H \"X-API-Key: YOUR_API_KEY\""
+          \  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch(\n  'https://morimori.app/api/v2/orders/stats/recent',\n\
-          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
           \ response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.get(\n    'https://morimori.app/api/v2/orders/stats/recent',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
   /api/v2/orders/{orderId}:
     get:
       summary: Get order details
       tags:
       - Orders
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: path
         name: orderId
@@ -1409,16 +1408,16 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X GET https://morimori.app/api/v2/orders/ORDER_ID \\\n  -H\
-          \ \"X-API-Key: YOUR_API_KEY\""
+          \ \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders/${orderId}`,\n\
-          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
           \ response.json();"
       - lang: python
         label: Python
         source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n\
-          \    f'https://morimori.app/api/v2/orders/{order_id}',\n    headers={'X-API-Key':\
+          \    f'https://morimori.app/api/v2/orders/{order_id}',\n    headers={'Authorization':\
           \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/{orderId}/download:
     get:
@@ -1438,7 +1437,7 @@ paths:
       tags:
       - Orders
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: path
         name: orderId
@@ -1473,17 +1472,17 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X GET https://morimori.app/api/v2/orders/ORDER_ID/download\
-          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders/${orderId}/download`,\n\
-          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
           \ response.json();\n// data.data.downloadUrl contains the presigned download\
           \ URL"
       - lang: python
         label: Python
         source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n\
-          \    f'https://morimori.app/api/v2/orders/{order_id}/download',\n    headers={'X-API-Key':\
+          \    f'https://morimori.app/api/v2/orders/{order_id}/download',\n    headers={'Authorization':\
           \ 'YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['downloadUrl']\
           \ contains the presigned download URL"
   /api/v2/orders/{orderId}/refresh-urls:
@@ -1497,7 +1496,7 @@ paths:
       tags:
       - Orders
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: path
         name: orderId
@@ -1528,17 +1527,17 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X POST https://morimori.app/api/v2/orders/ORDER_ID/refresh-urls\
-          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders/${orderId}/refresh-urls`,\n\
-          \  {\n    method: 'POST',\n    headers: { 'X-API-Key': 'YOUR_API_KEY' }\n\
+          \  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n\
           \  }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.post(\n\
           \    f'https://morimori.app/api/v2/orders/{order_id}/refresh-urls',\n  \
-          \  headers={'X-API-Key': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \  headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
   /api/v2/orders/webhook:
     post:
       summary: Register webhook (Legacy)
@@ -1553,7 +1552,7 @@ paths:
       tags:
       - Webhooks
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -1575,18 +1574,18 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X POST https://morimori.app/api/v2/orders/webhook \\\n  -H\
-          \ \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
           \ \\\n  -d '{\"url\": \"https://example.com/webhook\"}'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://morimori.app/api/v2/orders/webhook',\
-          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\
           \ url: 'https://example.com/webhook' })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/webhook',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={'url': 'https://example.com/webhook'}\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'url': 'https://example.com/webhook'}\n\
           )\ndata = response.json()"
     get:
       summary: Get webhook (Legacy)
@@ -1597,7 +1596,7 @@ paths:
       tags:
       - Webhooks
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       responses:
         '200':
           description: Success
@@ -1614,16 +1613,16 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X GET https://morimori.app/api/v2/orders/webhook \\\n  -H \"\
-          X-API-Key: YOUR_API_KEY\""
+          Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch(\n  'https://morimori.app/api/v2/orders/webhook',\n\
-          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
           \ response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.get(\n    'https://morimori.app/api/v2/orders/webhook',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
     delete:
       summary: Delete webhook (Legacy)
       deprecated: true
@@ -1633,7 +1632,7 @@ paths:
       tags:
       - Webhooks
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       responses:
         '200':
           description: Webhook deleted successfully
@@ -1647,16 +1646,16 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X DELETE https://morimori.app/api/v2/orders/webhook \\\n  -H\
-          \ \"X-API-Key: YOUR_API_KEY\""
+          \ \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://morimori.app/api/v2/orders/webhook',\
-          \ {\n  method: 'DELETE',\n  headers: { 'X-API-Key': 'YOUR_API_KEY' }\n});\n\
+          \ {\n  method: 'DELETE',\n  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n});\n\
           const data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.delete(\n    'https://morimori.app/api/v2/orders/webhook',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
   /api/v2/orders/webhooks:
     get:
       summary: List webhooks
@@ -1668,7 +1667,7 @@ paths:
       tags:
       - Webhooks
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: query
         name: page
@@ -1713,17 +1712,17 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X GET \"https://morimori.app/api/v2/orders/webhooks?page=1&limit=10\"\
-          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const params = new URLSearchParams({ page: 1, limit: 10 });\nconst\
           \ response = await fetch(\n  `https://morimori.app/api/v2/orders/webhooks?${params}`,\n\
-          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
           \ response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.get(\n    'https://morimori.app/api/v2/orders/webhooks',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    params={'page': 1, 'limit':\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit':\
           \ 10}\n)\ndata = response.json()"
     post:
       summary: Create webhook
@@ -1745,7 +1744,7 @@ paths:
       tags:
       - Webhooks
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -1785,13 +1784,13 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X POST https://morimori.app/api/v2/orders/webhooks \\\n  -H\
-          \ \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
           \ \\\n  -d '{\n    \"name\": \"My Webhook\",\n    \"url\": \"https://example.com/webhook\"\
           \n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://morimori.app/api/v2/orders/webhooks',\
-          \ {\n  method: 'POST',\n  headers: {\n    'X-API-Key': 'YOUR_API_KEY',\n\
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
           \    name: 'My Webhook',\n    url: 'https://example.com/webhook'\n  })\n\
           });\nconst data = await response.json();\n// Save data.data.secret securely\
@@ -1799,7 +1798,7 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://morimori.app/api/v2/orders/webhooks',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    json={\n        'name':\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'name':\
           \ 'My Webhook',\n        'url': 'https://example.com/webhook'\n    }\n)\n\
           data = response.json()\n# Save data['data']['secret'] securely — it won't\
           \ be shown again"
@@ -1810,7 +1809,7 @@ paths:
       tags:
       - Webhooks
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: path
         name: webhookId
@@ -1836,16 +1835,16 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X GET https://morimori.app/api/v2/orders/webhooks/WEBHOOK_ID\
-          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n\
           \  `https://morimori.app/api/v2/orders/webhooks/${webhookId}`,\n  { headers:\
-          \ { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await response.json();"
+          \ { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n\
-          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}',\n    headers={'X-API-Key':\
+          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}',\n    headers={'Authorization':\
           \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
     put:
       summary: Update webhook
@@ -1853,7 +1852,7 @@ paths:
       tags:
       - Webhooks
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: path
         name: webhookId
@@ -1900,21 +1899,21 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X PUT https://morimori.app/api/v2/orders/webhooks/WEBHOOK_ID\
-          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
           \ \\\n  -d '{\n    \"name\": \"Updated Webhook\",\n    \"url\": \"https://example.com/webhook-v2\"\
           \n  }'"
       - lang: javascript
         label: JavaScript
         source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n\
           \  `https://morimori.app/api/v2/orders/webhooks/${webhookId}`,\n  {\n  \
-          \  method: 'PUT',\n    headers: {\n      'X-API-Key': 'YOUR_API_KEY',\n\
+          \  method: 'PUT',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n\
           \      name: 'Updated Webhook',\n      url: 'https://example.com/webhook-v2'\n\
           \    })\n  }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.put(\n\
-          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}',\n    headers={'X-API-Key':\
+          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}',\n    headers={'Authorization':\
           \ 'YOUR_API_KEY'},\n    json={\n        'name': 'Updated Webhook',\n   \
           \     'url': 'https://example.com/webhook-v2'\n    }\n)\ndata = response.json()"
     delete:
@@ -1923,7 +1922,7 @@ paths:
       tags:
       - Webhooks
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: path
         name: webhookId
@@ -1946,17 +1945,17 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X DELETE https://morimori.app/api/v2/orders/webhooks/WEBHOOK_ID\
-          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n\
           \  `https://morimori.app/api/v2/orders/webhooks/${webhookId}`,\n  {\n  \
-          \  method: 'DELETE',\n    headers: { 'X-API-Key': 'YOUR_API_KEY' }\n  }\n\
+          \  method: 'DELETE',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n  }\n\
           );\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.delete(\n\
-          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}',\n    headers={'X-API-Key':\
+          \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}',\n    headers={'Authorization':\
           \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/webhooks/{webhookId}/events:
     get:
@@ -1969,7 +1968,7 @@ paths:
       tags:
       - Webhooks
       security:
-      - ApiKeyAuth: []
+      - BearerAuth: []
       parameters:
       - in: path
         name: webhookId
@@ -2017,16 +2016,16 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X GET \"https://morimori.app/api/v2/orders/webhooks/WEBHOOK_ID/events?page=1&limit=20\"\
-          \ \\\n  -H \"X-API-Key: YOUR_API_KEY\""
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const webhookId = 'WEBHOOK_ID';\nconst params = new URLSearchParams({\
           \ page: 1, limit: 20 });\nconst response = await fetch(\n  `https://morimori.app/api/v2/orders/webhooks/${webhookId}/events?${params}`,\n\
-          \  { headers: { 'X-API-Key': 'YOUR_API_KEY' } }\n);\nconst data = await\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
           \ response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n\
           \    f'https://morimori.app/api/v2/orders/webhooks/{webhook_id}/events',\n\
-          \    headers={'X-API-Key': 'YOUR_API_KEY'},\n    params={'page': 1, 'limit':\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit':\
           \ 20}\n)\ndata = response.json()"

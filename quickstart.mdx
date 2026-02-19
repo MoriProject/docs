@@ -1,13 +1,13 @@
 ---
 title: "Quickstart"
-description: "Make your first MORI API call in minutes"
+description: "Make your first BIZ MORI API call in minutes"
 ---
 
 This guide walks you through creating an Anti-AI protection order — the most common use case. The same flow applies to Watermark Embed orders.
 
 ## Prerequisites
 
-- A MORI API key ([get one here](https://developers.mori.art))
+- A BIZ MORI API key ([get one here](https://developers.mori.art))
 - An image file to protect (jpg, jpeg, png, or webp)
 
 ## Step 1: Create an order
@@ -20,7 +20,7 @@ Choose your preferred input mode:
 
     ```bash
     curl -X POST https://morimori.app/api/v2/orders/anti-ai \
-      -H "X-API-Key: sk_your_api_key" \
+      -H "Authorization: Bearer YOUR_API_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{
         "idempotencyKey": "my-first-order-001",
@@ -57,7 +57,7 @@ Choose your preferred input mode:
 
     ```bash
     curl -X POST https://morimori.app/api/v2/orders/anti-ai \
-      -H "X-API-Key: sk_your_api_key" \
+      -H "Authorization: Bearer YOUR_API_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{
         "idempotencyKey": "my-first-order-001",
@@ -117,7 +117,7 @@ After uploading all files, confirm the order to start processing:
 
 ```bash
 curl -X POST https://morimori.app/api/v2/orders/anti-ai/confirm \
-  -H "X-API-Key: sk_your_api_key" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "idempotencyKey": "my-confirm-001",
@@ -131,7 +131,7 @@ Poll the order status or set up a [webhook](/webhooks) to receive notifications.
 
 ```bash
 curl https://morimori.app/api/v2/orders/123456789 \
-  -H "X-API-Key: sk_your_api_key"
+  -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 The order goes through these statuses:
@@ -146,7 +146,7 @@ Once the status is `complete`, get the download URL:
 
 ```bash
 curl https://morimori.app/api/v2/orders/123456789/download \
-  -H "X-API-Key: sk_your_api_key"
+  -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 **Response:**

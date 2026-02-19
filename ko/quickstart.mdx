@@ -1,13 +1,13 @@
 ---
 title: "빠른 시작"
-description: "몇 분 안에 첫 번째 MORI API 호출 해보기"
+description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
 ---
 
 이 가이드는 가장 일반적인 사용 사례인 Anti-AI 보호 주문 생성을 안내합니다. 워터마크 삽입 주문에도 동일한 흐름이 적용됩니다.
 
 ## 사전 준비
 
-- MORI API 키 ([여기서 발급](https://developers.mori.art))
+- BIZ MORI API 키 ([여기서 발급](https://developers.mori.art))
 - 보호할 이미지 파일 (jpg, jpeg, png, 또는 webp)
 
 ## 1단계: 주문 생성
@@ -20,7 +20,7 @@ description: "몇 분 안에 첫 번째 MORI API 호출 해보기"
 
     ```bash
     curl -X POST https://morimori.app/api/v2/orders/anti-ai \
-      -H "X-API-Key: sk_your_api_key" \
+      -H "Authorization: Bearer YOUR_API_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{
         "idempotencyKey": "my-first-order-001",
@@ -57,7 +57,7 @@ description: "몇 분 안에 첫 번째 MORI API 호출 해보기"
 
     ```bash
     curl -X POST https://morimori.app/api/v2/orders/anti-ai \
-      -H "X-API-Key: sk_your_api_key" \
+      -H "Authorization: Bearer YOUR_API_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{
         "idempotencyKey": "my-first-order-001",
@@ -117,7 +117,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 
 ```bash
 curl -X POST https://morimori.app/api/v2/orders/anti-ai/confirm \
-  -H "X-API-Key: sk_your_api_key" \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "idempotencyKey": "my-confirm-001",
@@ -131,7 +131,7 @@ curl -X POST https://morimori.app/api/v2/orders/anti-ai/confirm \
 
 ```bash
 curl https://morimori.app/api/v2/orders/123456789 \
-  -H "X-API-Key: sk_your_api_key"
+  -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 주문은 다음 상태를 거칩니다:
@@ -146,7 +146,7 @@ curl https://morimori.app/api/v2/orders/123456789 \
 
 ```bash
 curl https://morimori.app/api/v2/orders/123456789/download \
-  -H "X-API-Key: sk_your_api_key"
+  -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 **응답:**

@@ -1,6 +1,6 @@
 ---
 title: "API 레퍼런스"
-description: "MORI API 엔드포인트 전체 레퍼런스"
+description: "BIZ MORI API 엔드포인트 전체 레퍼런스"
 ---
 
 ## 기본 URL
@@ -11,10 +11,10 @@ https://morimori.app/api/v2
 
 ## 인증
 
-모든 엔드포인트는 `X-API-Key` 헤더를 통한 API 키 인증이 필요합니다:
+모든 엔드포인트는 `Authorization` 헤더에 Bearer 형식으로 API 키 인증이 필요합니다:
 
 ```
-X-API-Key: sk_your_api_key_here
+Authorization: Bearer YOUR_API_TOKEN
 ```
 
 자세한 내용은 [인증](/ko/authentication) 가이드를 참고하세요.

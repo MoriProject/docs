@@ -13,7 +13,7 @@ Webhooks allow you to receive HTTP callbacks when order processing completes or 
 
     ```bash
     curl -X POST https://morimori.app/api/v2/orders/webhooks \
-      -H "X-API-Key: sk_your_api_key" \
+      -H "Authorization: Bearer YOUR_API_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{
         "name": "My Webhook",
@@ -165,7 +165,7 @@ def verify_webhook_signature(payload, signature, secret):
 
 ## Retry policy
 
-If your endpoint doesn't return a `2xx` status code, MORI retries the delivery:
+If your endpoint doesn't return a `2xx` status code, BIZ MORI retries the delivery:
 
 | Attempt | Delay |
 |---------|-------|

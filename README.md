@@ -1,6 +1,6 @@
-# MORI API Documentation
+# BIZ MORI API Documentation
 
-Public API documentation for [MORI BIZ](https://developers.mori.art), built with [Mintlify](https://mintlify.com).
+Public API documentation for [BIZ MORI](https://developers.mori.art), built with [Mintlify](https://mintlify.com).
 
 ## Local development
 
