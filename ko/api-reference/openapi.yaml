@@ -1,0 +1,1608 @@
+openapi: 3.0.0
+info:
+  title: MORI API
+  version: 2.0.0
+  description: |
+    MORI API는 디지털 콘텐츠 보호를 위한 세 가지 핵심 서비스를 제공합니다:
+    - **Anti-AI**: 이미지를 AI 학습으로부터 보호
+    - **Watermark Embed**: 이미지에 보이지 않는 디지털 워터마크 삽입
+    - **Watermark Extract**: 이미지에서 워터마크 추출 및 검증
+  contact:
+    name: MORI 지원
+    email: mori@morimori.app
+servers:
+  - url: https://morimori.app
+    description: 프로덕션
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: 외부 클라이언트 접근을 위한 API 키
+  schemas:
+    BaseResponse:
+      type: object
+      properties:
+        data:
+          nullable: true
+          description: 응답 데이터 (데이터 없을 경우 null)
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: 에러 코드
+
+    PageInfo:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+          description: 전체 항목 수
+        totalPages:
+          type: integer
+          description: 전체 페이지 수
+        currentPage:
+          type: integer
+          description: 현재 페이지 번호
+        itemsPerPage:
+          type: integer
+          description: 페이지당 항목 수
+
+    OrderOptions:
+      type: object
+      properties:
+        strength:
+          type: string
+          enum: [low, standard, high]
+          default: high
+          description: |
+            보호 강도 레벨
+            * low - 낮은 보호 강도
+            * standard - 표준 보호 강도
+            * high - 높은 보호 강도
+
+    OrderFile:
+      type: object
+      properties:
+        fileId:
+          type: string
+          description: 파일 ID
+        fileName:
+          type: string
+          description: 파일 이름
+        uploadUrl:
+          type: string
+          format: uri
+          description: 업로드 URL (프리사인드 URL)
+        fileKey:
+          type: string
+          description: S3 파일 키
+
+    AntiAiOrderFile:
+      type: object
+      description: |
+        Anti-AI 주문 파일 정보 (파일 모드에 따라 필드가 다름)
+        - 업로드 모드: fileId, fileName, uploadUrl, fileKey
+        - URL 모드: fileId, fileName, originalFileUrl
+      properties:
+        fileId:
+          type: string
+          description: 파일 ID
+        fileName:
+          type: string
+          description: 파일 이름
+        uploadUrl:
+          type: string
+          format: uri
+          description: 업로드 URL (프리사인드 URL) — 업로드 모드 파일만 해당
+        fileKey:
+          type: string
+          description: S3 파일 키 — 업로드 모드 파일만 해당
+        originalFileUrl:
+          type: string
+          format: uri
+          description: 원본 이미지 URL — URL 모드 파일만 해당
+
+    WtrExtractOrderFile:
+      type: object
+      description: 워터마크 추출 주문 파일 정보
+      properties:
+        fileId:
+          type: integer
+          description: 파일 ID
+        fileName:
+          type: string
+          description: 파일 이름
+        uploadUrl:
+          type: string
+          format: uri
+          description: 업로드 URL (프리사인드 URL)
+        fileKey:
+          type: string
+          description: S3 파일 키
+        fileFormat:
+          type: string
+          description: 파일 형식
+          example: JPG
+        fileType:
+          type: string
+          enum: [IMG, DOCUMENT]
+          description: 파일 타입 (이미지 또는 PDF)
+        role:
+          type: string
+          enum: [watermarked]
+          description: 파일 역할 (항상 watermarked)
+        sequence:
+          type: integer
+          description: 파일 순서 (항상 1)
+          example: 1
+        originalFile:
+          type: object
+          nullable: true
+          description: 원본 파일 정보 (includeOriginal이 true일 때만 포함)
+          properties:
+            fileId:
+              type: integer
+              description: 파일 ID
+            fileName:
+              type: string
+              description: 파일 이름
+            uploadUrl:
+              type: string
+              format: uri
+              description: 업로드 URL (프리사인드 URL)
+            fileKey:
+              type: string
+              description: S3 파일 키
+            fileFormat:
+              type: string
+              description: 파일 형식
+            fileType:
+              type: string
+              enum: [IMG]
+              description: 파일 타입 (이미지만 해당)
+            role:
+              type: string
+              enum: [original]
+              description: 파일 역할 (항상 original)
+            sequence:
+              type: integer
+              description: 파일 순서 (항상 1)
+              example: 1
+
+    Order:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: 주문 ID
+        orderName:
+          type: string
+          description: 주문 이름
+        type:
+          type: string
+          enum: [antiAi, watermarkEmbed, watermarkExtract]
+          description: 주문 타입
+        channel:
+          type: string
+          enum: [api, web]
+          description: 주문 채널
+        status:
+          type: string
+          enum: [pending, inProgress, complete, failed, detected, undetected]
+          description: |
+            주문 상태
+            * pending - 대기 중
+            * inProgress - 처리 중
+            * complete - 완료
+            * failed - 실패
+            * detected - 워터마크 감지됨 (wtr-extract 전용)
+            * undetected - 워터마크 미감지 (wtr-extract 전용)
+        fileCount:
+          type: integer
+          description: 파일 수
+        thumbnailImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 썸네일 이미지 URL (프리사인드 URL)
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 시각
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정 시각
+
+    OrderDetail:
+      type: object
+      description: 주문 상세 정보
+      properties:
+        orderId:
+          type: string
+          description: 주문 ID
+        orderName:
+          type: string
+          description: 주문 이름
+        type:
+          type: string
+          enum: [antiAi, watermarkEmbed, watermarkExtract]
+          description: 주문 타입
+        channel:
+          type: string
+          enum: [api, web]
+          description: 주문 채널
+        status:
+          type: string
+          enum: [pending, inProgress, complete, failed, detected, undetected]
+          description: 주문 상태
+        fileCount:
+          type: integer
+          description: 파일 수
+        thumbnailImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 썸네일 이미지 URL (프리사인드 URL)
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 시각
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정 시각
+        errors:
+          type: string
+          nullable: true
+          description: 에러 메시지 (실패 시)
+        watermarks:
+          type: array
+          items:
+            type: string
+          description: 워터마크 텍스트 목록 (watermarkEmbed 주문 전용)
+        watermarkText:
+          type: string
+          nullable: true
+          description: 추출된 워터마크 텍스트 (watermarkExtract 주문 전용)
+
+    UsageStats:
+      type: object
+      properties:
+        dailyStats:
+          type: array
+          items:
+            type: object
+            properties:
+              usageDate:
+                type: string
+                description: 사용 날짜 (MM.DD)
+              usageCount:
+                type: integer
+                description: 사용 횟수
+        domain:
+          type: array
+          items:
+            type: integer
+          description: 차트 Y축 범위 [최솟값, 최댓값]
+        ticks:
+          type: array
+          items:
+            type: integer
+          description: 차트 Y축 눈금 값
+
+    WebhookRegisterRequest:
+      type: object
+      required:
+        - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: 웹훅 엔드포인트 URL
+          example: 'https://example.com/webhook'
+
+    WebhookInfo:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          nullable: true
+          description: 등록된 웹훅 URL
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 생성 시각
+
+    WebhookCreateRequest:
+      type: object
+      required:
+        - url
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: 웹훅 이름 (식별용)
+        url:
+          type: string
+          format: uri
+          description: 웹훅 엔드포인트 URL
+          example: 'https://example.com/webhook'
+
+    WebhookUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: 웹훅 이름
+        url:
+          type: string
+          format: uri
+          description: 웹훅 URL
+          example: 'https://example.com/webhook'
+
+    WebhookListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 웹훅 ID
+        name:
+          type: string
+          description: 웹훅 이름
+        url:
+          type: string
+          format: uri
+          description: 웹훅 URL
+        isActive:
+          type: boolean
+          description: 활성화 상태
+        lastSentAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 마지막 전송 시각
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 시각
+
+    WebhookDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 웹훅 ID
+        name:
+          type: string
+          description: 웹훅 이름
+        url:
+          type: string
+          format: uri
+          description: 웹훅 URL
+        secret:
+          type: string
+          description: 웹훅 서명 시크릿
+        isActive:
+          type: boolean
+          description: 활성화 상태
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 시각
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정 시각
+
+    WebhookEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 이벤트 DB ID
+        eventId:
+          type: string
+          format: uuid
+          description: 이벤트 UUID
+        eventType:
+          type: string
+          description: 이벤트 타입
+          example: 'order.antiAi.completed'
+        status:
+          type: string
+          enum: [PENDING, SENT, RETRYING, FAILED]
+          description: 전송 상태
+        retries:
+          type: integer
+          description: 재시도 횟수
+        lastSentAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 마지막 전송 시각
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 시각
+
+    WebhookPagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: 현재 페이지
+        limit:
+          type: integer
+          description: 페이지당 항목 수
+        total:
+          type: integer
+          description: 전체 항목 수
+        totalPages:
+          type: integer
+          description: 전체 페이지 수
+
+  responses:
+    BadRequest:
+      description: 잘못된 요청
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: VALIDATION_FAILED
+
+    Unauthorized:
+      description: 인증 실패
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: AUTH_NOT_AUTHENTICATED
+
+    NotFound:
+      description: 리소스를 찾을 수 없음
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: RESOURCE_NOT_FOUND
+
+    UsageLimitExceeded:
+      description: 사용량 한도 초과
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: USAGE_LIMIT_EXCEEDED
+
+    InternalError:
+      description: 내부 서버 오류
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: SERVER_INTERNAL_ERROR
+
+tags:
+  - name: Anti-AI
+    description: AI 학습 방지 이미지 보호 주문
+  - name: Watermark Embed
+    description: 워터마크 삽입 주문
+  - name: Watermark Extract
+    description: 워터마크 추출 주문
+  - name: Orders
+    description: 주문 조회 및 관리
+  - name: Webhooks
+    description: 웹훅 설정 및 이벤트
+
+paths:
+  # ===== Anti-AI =====
+  /api/v2/orders/anti-ai:
+    post:
+      summary: Anti-AI 주문 생성
+      description: |
+        AI 감지 방지 처리를 위한 주문을 생성합니다.
+
+        ## 입력 모드 (업로드 / URL / 혼합)
+        입력 모드는 각 파일 객체에 `originalFileUrl` 포함 여부로 결정됩니다:
+        - **업로드 모드** (`originalFileUrl` 없음): 프리사인드 URL 발급 → 클라이언트가 S3에 업로드 → `/confirm` 호출
+        - **URL 모드** (`originalFileUrl` 제공): URL에서 이미지를 다운로드하여 즉시 처리
+        - **혼합 모드**: 일부 파일은 업로드 모드, 나머지는 URL 모드로 동시 처리
+
+        ### 동작 방식
+        | 조건 | 주문 상태 | Confirm 필요 |
+        |------|-----------|-------------|
+        | 모든 파일에 `originalFileUrl` 있음 | `inProgress` | 불필요 (즉시 처리) |
+        | `originalFileUrl` 없는 파일 포함 | `pending` | 필요 (업로드 후 confirm) |
+
+        ## Zero Copy 모드
+        `mode.zeroCopy: true`로 설정하면, 처리 결과가 고객이 제공한 프리사인드 URL로 직접 업로드됩니다.
+        이 경우 `outputTargets` 배열이 필수이며 `files` 배열과 동일한 길이여야 합니다.
+      tags: [Anti-AI]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 중복 요청 방지를 위한 멱등성 키
+                orderName:
+                  type: string
+                  maxLength: 64
+                  description: 주문 이름 (미입력 시 자동 생성)
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required:
+                      - fileName
+                    properties:
+                      fileName:
+                        type: string
+                        description: 파일 이름 (확장자 포함)
+                        example: image.jpg
+                      originalFileUrl:
+                        type: string
+                        format: uri
+                        description: |
+                          원본 이미지 URL (선택)
+                          - 제공 시: URL 모드 (프리사인드 URL 미발급, 즉시 처리)
+                          - 미제공 시: 업로드 모드 (프리사인드 URL 발급, confirm 필요)
+                        example: https://example.com/image.jpg
+                mode:
+                  type: object
+                  description: 처리 모드 설정
+                  properties:
+                    zeroCopy:
+                      type: boolean
+                      default: false
+                      description: Zero Copy 모드 활성화
+                outputTargets:
+                  type: array
+                  description: Zero Copy 모드 결과 업로드 대상 (mode.zeroCopy가 true일 때 필수)
+                  items:
+                    type: object
+                    required:
+                      - fileKey
+                      - url
+                      - presignedUrlExpiresAt
+                    properties:
+                      fileKey:
+                        type: string
+                        description: 파일 키 (식별자)
+                      url:
+                        type: string
+                        format: uri
+                        description: 결과 업로드를 위한 프리사인드 URL
+                      presignedUrlExpiresAt:
+                        type: string
+                        format: date-time
+                        description: 프리사인드 URL 만료 시각 (ISO 8601)
+                options:
+                  $ref: '#/components/schemas/OrderOptions'
+            examples:
+              uploadMode:
+                summary: 업로드 모드 (기본)
+                value:
+                  idempotencyKey: "key-upload-001"
+                  files:
+                    - fileName: "image1.jpg"
+                    - fileName: "image2.png"
+                  options:
+                    strength: "high"
+              urlMode:
+                summary: URL 모드 (즉시 처리)
+                value:
+                  idempotencyKey: "key-url-001"
+                  files:
+                    - fileName: "image1.jpg"
+                      originalFileUrl: "https://example.com/image1.jpg"
+                    - fileName: "image2.png"
+                      originalFileUrl: "https://example.com/image2.png"
+                  options:
+                    strength: "high"
+              mixedMode:
+                summary: 혼합 모드
+                value:
+                  idempotencyKey: "key-mixed-001"
+                  files:
+                    - fileName: "upload-file.jpg"
+                    - fileName: "url-file.png"
+                      originalFileUrl: "https://example.com/image.png"
+                  options:
+                    strength: "standard"
+      responses:
+        '200':
+          description: 주문 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                      orderId:
+                        type: string
+                      status:
+                        type: string
+                        enum: [pending, inProgress]
+                        description: |
+                          주문 상태
+                          - `pending`: 업로드 파일 포함 (confirm 필요)
+                          - `inProgress`: 모든 파일이 URL 모드 (즉시 처리)
+                      files:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AntiAiOrderFile'
+              examples:
+                uploadModeResponse:
+                  summary: 업로드 모드 응답
+                  value:
+                    data:
+                      orderName: "anti_ai_2026-02-09"
+                      orderId: "123456789"
+                      status: "pending"
+                      files:
+                        - fileId: 1
+                          fileName: "image1.jpg"
+                          uploadUrl: "https://s3.amazonaws.com/..."
+                          fileKey: "temp/123456789/0/image1.jpg"
+                urlModeResponse:
+                  summary: URL 모드 응답
+                  value:
+                    data:
+                      orderName: "anti_ai_2026-02-09"
+                      orderId: "123456789"
+                      status: "inProgress"
+                      files:
+                        - fileId: 1
+                          fileName: "image1.jpg"
+                          originalFileUrl: "https://example.com/image1.jpg"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/v2/orders/anti-ai/confirm:
+    post:
+      summary: Anti-AI 주문 확인
+      description: |
+        파일 업로드 완료 후 처리를 시작하기 위해 호출합니다.
+        - 모든 업로드 파일이 S3에 업로드된 후 호출
+        - 처리가 시작되면 상태가 `inProgress`로 변경
+        - 혼합 모드에서는 업로드 파일만 S3 존재 여부를 확인하며, URL 파일은 이미 준비됨
+        - 모든 파일이 URL 모드인 주문은 이미 `inProgress` 상태이므로 confirm 불필요
+      tags: [Anti-AI]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - orderId
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 멱등성 키
+                orderId:
+                  type: string
+                  description: 주문 ID
+      responses:
+        '200':
+          description: 주문 확인 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v2/orders/anti-ai/with-urls:
+    post:
+      summary: URL로 Anti-AI 주문 생성
+      deprecated: true
+      description: |
+        **사용 중단**: 대신 `originalFileUrl` 필드를 사용한 `/anti-ai` 엔드포인트를 사용하세요.
+
+        이미지 URL을 직접 제공하여 처리합니다.
+        - 프리사인드 URL 발급 없이 즉시 처리 시작
+        - 제공된 URL에서 이미지를 다운로드하여 처리
+
+        ## Zero Copy 모드
+        `mode.zeroCopy: true`로 설정하면, 처리 결과가 고객이 제공한 프리사인드 URL로 직접 업로드됩니다.
+      tags: [Anti-AI]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 멱등성 키
+                orderName:
+                  type: string
+                  maxLength: 64
+                  description: 주문 이름 (선택)
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required:
+                      - fileName
+                      - imageUrl
+                    properties:
+                      fileName:
+                        type: string
+                        description: 파일 이름 (확장자 포함)
+                        example: image.jpg
+                      imageUrl:
+                        type: string
+                        format: uri
+                        description: 이미지 URL
+                mode:
+                  type: object
+                  properties:
+                    zeroCopy:
+                      type: boolean
+                      default: false
+                outputTargets:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - fileKey
+                      - url
+                      - presignedUrlExpiresAt
+                    properties:
+                      fileKey:
+                        type: string
+                      url:
+                        type: string
+                        format: uri
+                      presignedUrlExpiresAt:
+                        type: string
+                        format: date-time
+                options:
+                  $ref: '#/components/schemas/OrderOptions'
+      responses:
+        '200':
+          description: 주문 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                      orderId:
+                        type: string
+                      status:
+                        type: string
+                        example: inProgress
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+
+  # ===== Watermark Embed =====
+  /api/v2/orders/wtr-embed:
+    post:
+      summary: 워터마크 삽입 주문 생성
+      description: |
+        워터마크 삽입 주문을 생성합니다.
+        - 이미지당 최대 10개의 워터마크 텍스트
+        - 주문당 최대 100개의 이미지
+        - 지원 형식: jpg, jpeg, png, webp
+      tags: [Watermark Embed]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 멱등성 키
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required:
+                      - fileName
+                      - watermarks
+                    properties:
+                      fileName:
+                        type: string
+                        description: 파일 이름
+                        example: image.jpg
+                      watermarks:
+                        type: array
+                        minItems: 1
+                        maxItems: 10
+                        items:
+                          type: object
+                          required:
+                            - text
+                          properties:
+                            text:
+                              type: string
+                              maxLength: 1000
+                              description: 워터마크 텍스트
+      responses:
+        '200':
+          description: 주문 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                      orderId:
+                        type: string
+                      files:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OrderFile'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+
+  # ===== Watermark Extract =====
+  /api/v2/orders/wtr-extract:
+    post:
+      summary: 워터마크 추출 주문 생성
+      description: |
+        워터마크 추출 주문을 생성합니다.
+        - 주문당 파일 1개
+        - 이미지 (jpg, jpeg, png, gif, webp, bmp, tiff) 또는 PDF 파일 지원
+        - 이미지의 경우 `includeOriginal: true`로 원본 파일도 함께 업로드 가능
+        - PDF는 `includeOriginal` 미지원
+      tags: [Watermark Extract]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - idempotencyKey
+                - file
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 멱등성 키
+                file:
+                  type: object
+                  required:
+                    - fileName
+                  properties:
+                    fileName:
+                      type: string
+                      description: 워터마크된 파일 이름 (확장자 포함)
+                      example: watermarked.jpg
+                    includeOriginal:
+                      type: boolean
+                      default: false
+                      description: |
+                        원본 파일 포함 (이미지 전용)
+                        - true: 원본 파일 업로드 URL도 발급
+                        - PDF 파일에는 사용 불가
+                    originalFile:
+                      type: object
+                      description: 원본 파일 정보 (includeOriginal이 true일 때 필수)
+                      required:
+                        - fileName
+                      properties:
+                        fileName:
+                          type: string
+                          description: 원본 파일 이름
+                          example: original.jpg
+            examples:
+              imageOnly:
+                summary: 단일 이미지 (워터마크만)
+                value:
+                  idempotencyKey: "key-001"
+                  file:
+                    fileName: "watermarked.jpg"
+              imageWithOriginal:
+                summary: 이미지 + 원본 포함
+                value:
+                  idempotencyKey: "key-002"
+                  file:
+                    fileName: "watermarked.jpg"
+                    includeOriginal: true
+                    originalFile:
+                      fileName: "original.jpg"
+              pdfOnly:
+                summary: PDF 파일
+                value:
+                  idempotencyKey: "key-003"
+                  file:
+                    fileName: "document.pdf"
+      responses:
+        '200':
+          description: 주문 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                        description: 주문 이름 (자동 생성)
+                      orderId:
+                        type: string
+                        description: 주문 ID
+                      file:
+                        $ref: '#/components/schemas/WtrExtractOrderFile'
+              examples:
+                imageOnlyResponse:
+                  summary: 단일 이미지 응답
+                  value:
+                    data:
+                      orderName: "wtr_extract_2026-02-13"
+                      orderId: "123456789"
+                      file:
+                        fileId: 1
+                        fileName: "watermarked.jpg"
+                        uploadUrl: "https://s3.amazonaws.com/..."
+                        fileKey: "123/456/watermarked.jpg"
+                        fileFormat: "JPG"
+                        fileType: "IMG"
+                        role: "watermarked"
+                        sequence: 1
+                imageWithOriginalResponse:
+                  summary: 이미지 + 원본 응답
+                  value:
+                    data:
+                      orderName: "wtr_extract_2026-02-13"
+                      orderId: "123456789"
+                      file:
+                        fileId: 1
+                        fileName: "watermarked.jpg"
+                        uploadUrl: "https://s3.amazonaws.com/..."
+                        fileKey: "123/456/watermarked.jpg"
+                        fileFormat: "JPG"
+                        fileType: "IMG"
+                        role: "watermarked"
+                        sequence: 1
+                        originalFile:
+                          fileId: 2
+                          fileName: "original.jpg"
+                          uploadUrl: "https://s3.amazonaws.com/..."
+                          fileKey: "123/456/original.jpg"
+                          fileFormat: "JPG"
+                          fileType: "IMG"
+                          role: "original"
+                          sequence: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+
+  # ===== Order Query =====
+  /api/v2/orders:
+    get:
+      summary: 주문 목록 조회
+      description: |
+        페이지네이션을 포함한 주문 목록을 조회합니다.
+        - 상태, 타입, 채널로 필터링 가능
+        - 키워드 검색 지원
+        - 최신순 정렬
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: 페이지 번호
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 100
+          description: 페이지당 항목 수 (-1은 전체 조회)
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          description: 검색 키워드
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, inProgress, complete, failed, detected, undetected, all]
+            default: all
+          description: 상태 필터
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [antiAi, watermarkEmbed, watermarkExtract, all]
+          description: 주문 타입 필터
+        - in: query
+          name: channel
+          schema:
+            type: string
+            enum: [api, web, all]
+            default: all
+          description: 채널 필터
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orders:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Order'
+                      pageInfo:
+                        $ref: '#/components/schemas/PageInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v2/orders/stats/recent:
+    get:
+      summary: 최근 사용 통계
+      description: 최근 7일간의 사용 통계
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          description: 기준 날짜 (ISO String)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UsageStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v2/orders/{orderId}:
+    get:
+      summary: 주문 상세 조회
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+          description: 주문 ID
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OrderDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v2/orders/{orderId}/download:
+    get:
+      summary: 다운로드 URL 발급
+      description: |
+        완료된 주문 파일의 다운로드 URL을 발급합니다.
+        - `complete` 상태의 주문에서만 사용 가능
+        - URL 유효 시간: 1시간
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+          description: 주문 ID
+      responses:
+        '200':
+          description: URL 발급 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      downloadUrl:
+                        type: string
+                        format: uri
+                        description: 다운로드 URL (프리사인드)
+                      expiresIn:
+                        type: integer
+                        description: URL 만료 시간 (초)
+                        example: 3600
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v2/orders/{orderId}/refresh-urls:
+    post:
+      summary: 프리사인드 URL 갱신
+      description: |
+        만료된 업로드 URL을 재발급합니다.
+        - `pending` 상태의 주문에서만 사용 가능
+      tags: [Orders]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+          description: 주문 ID
+      responses:
+        '200':
+          description: URL 갱신 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      files:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OrderFile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ===== Webhooks (Legacy) =====
+  /api/v2/orders/webhook:
+    post:
+      summary: 웹훅 등록 (구버전)
+      deprecated: true
+      description: |
+        **사용 중단**: 이 API는 `/webhooks`로 대체되었습니다.
+
+        주문 처리 완료 또는 실패 시 알림을 받을 웹훅 URL을 등록합니다.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookRegisterRequest'
+      responses:
+        '200':
+          description: 웹훅 등록 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    get:
+      summary: 웹훅 조회 (구버전)
+      deprecated: true
+      description: |
+        **사용 중단**: 이 API는 `/webhooks`로 대체되었습니다.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/WebhookInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    delete:
+      summary: 웹훅 삭제 (구버전)
+      deprecated: true
+      description: |
+        **사용 중단**: 이 API는 `/webhooks/{webhookId}`로 대체되었습니다.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: 웹훅 삭제 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ===== Webhooks (New) =====
+  /api/v2/orders/webhooks:
+    get:
+      summary: 웹훅 목록 조회
+      description: |
+        페이지네이션을 포함한 등록된 웹훅 목록을 조회합니다.
+        - 이름, URL, 활성화 상태, 마지막 전송 시각 포함
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          description: 페이지당 항목 수
+        - in: query
+          name: keyword
+          schema:
+            type: string
+          description: 검색 키워드 (웹훅 이름 또는 URL 검색)
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      webhooks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WebhookListItem'
+                      pagination:
+                        $ref: '#/components/schemas/WebhookPagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: 웹훅 생성
+      description: |
+        새 웹훅을 등록합니다.
+        - 여러 웹훅 등록 가능
+        - 등록 시 서명 시크릿이 반환됩니다
+
+        **중요**: 시크릿은 이 응답에서만 확인 가능합니다. 안전하게 보관하세요.
+
+        ## 웹훅 이벤트 타입
+
+        | 이벤트 타입 | 설명 |
+        |------------|------|
+        | `order.antiAi.completed` | Anti-AI 처리 완료 |
+        | `order.antiAi.failed` | Anti-AI 처리 실패 |
+        | `order.watermarkEmbed.completed` | 워터마크 삽입 완료 |
+        | `order.watermarkEmbed.failed` | 워터마크 삽입 실패 |
+        | `order.watermarkExtract.completed` | 워터마크 추출 완료 |
+        | `order.watermarkExtract.failed` | 워터마크 추출 실패 |
+
+        ## 서명 검증
+
+        웹훅 요청에는 `X-MoriBiz-Signature` 헤더가 포함됩니다.
+        서명은 등록 시 발급된 시크릿으로 HMAC-SHA256을 사용하여 생성됩니다.
+
+        ```javascript
+        const crypto = require('crypto');
+        const signature = crypto.createHmac('sha256', secret)
+          .update(JSON.stringify(payload))
+          .digest('hex');
+        ```
+
+        ## 재시도 정책
+
+        - 최대 3회 재시도
+        - 지수 백오프 (1초, 2초, 4초)
+        - 성공 응답: 2xx 상태 코드
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCreateRequest'
+      responses:
+        '200':
+          description: 웹훅 생성 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: 웹훅 ID
+                      name:
+                        type: string
+                        description: 웹훅 이름
+                      secret:
+                        type: string
+                        description: |
+                          웹훅 서명 시크릿.
+                          **주의**: 이 값은 다시 조회할 수 없습니다. 안전하게 보관하세요.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v2/orders/webhooks/{webhookId}:
+    get:
+      summary: 웹훅 상세 조회
+      description: 특정 웹훅의 상세 정보를 조회합니다.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: webhookId
+          required: true
+          schema:
+            type: integer
+          description: 웹훅 ID
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/WebhookDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: 웹훅 수정
+      description: 웹훅 정보를 수정합니다.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: webhookId
+          required: true
+          schema:
+            type: integer
+          description: 웹훅 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookUpdateRequest'
+      responses:
+        '200':
+          description: 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      url:
+                        type: string
+                        format: uri
+                      isActive:
+                        type: boolean
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: 웹훅 삭제
+      description: 웹훅을 삭제합니다.
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: webhookId
+          required: true
+          schema:
+            type: integer
+          description: 웹훅 ID
+      responses:
+        '200':
+          description: 삭제 성공
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v2/orders/webhooks/{webhookId}/events:
+    get:
+      summary: 웹훅 이벤트 목록 조회
+      description: |
+        특정 웹훅의 전송 이벤트 목록을 페이지네이션으로 조회합니다.
+        - 상태, 이벤트 타입, 전송 시각 포함
+      tags: [Webhooks]
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: webhookId
+          required: true
+          schema:
+            type: integer
+          description: 웹훅 ID
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: 페이지 번호
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: 페이지당 항목 수
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WebhookEvent'
+                      pagination:
+                        $ref: '#/components/schemas/WebhookPagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
