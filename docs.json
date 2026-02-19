@@ -247,31 +247,31 @@
       {
         "title": "Product",
         "items": [
-          { "name": "Developer Center", "url": "https://developers.mori.art" },
-          { "name": "mori.art", "url": "https://mori.art" }
+          { "label": "Developer Center", "href": "https://developers.mori.art" },
+          { "label": "mori.art", "href": "https://mori.art" }
         ]
       },
       {
         "title": "Documentation",
         "items": [
-          { "name": "Guides", "url": "/index" },
-          { "name": "API Reference", "url": "/api-reference/introduction" },
-          { "name": "Error Codes", "url": "/errors" },
-          { "name": "Webhooks", "url": "/webhooks" }
+          { "label": "Guides", "href": "/index" },
+          { "label": "API Reference", "href": "/api-reference/introduction" },
+          { "label": "Error Codes", "href": "/errors" },
+          { "label": "Webhooks", "href": "/webhooks" }
         ]
       },
       {
         "title": "Support",
         "items": [
-          { "name": "Contact Support", "url": "mailto:mori@morimori.app" }
+          { "label": "Contact Support", "href": "mailto:mori@morimori.app" }
         ]
       },
       {
         "title": "Legal",
         "items": [
-          { "name": "Terms of Service", "url": "/legal/terms" },
-          { "name": "Privacy Policy", "url": "/legal/privacy" },
-          { "name": "DPA", "url": "/legal/dpa" }
+          { "label": "Terms of Service", "href": "/legal/terms" },
+          { "label": "Privacy Policy", "href": "/legal/privacy" },
+          { "label": "DPA", "href": "/legal/dpa" }
         ]
       }
     ]
