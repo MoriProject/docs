@@ -13,7 +13,8 @@
       "Bash(curl:*)",
       "Bash(kill:*)",
       "Bash(pkill:*)",
-      "Bash(mintlify dev:*)"
+      "Bash(mintlify dev:*)",
+      "Bash(xargs sed:*)"
     ]
   }
 }

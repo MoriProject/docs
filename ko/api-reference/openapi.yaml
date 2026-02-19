@@ -13,7 +13,7 @@ info:
     '
   contact:
     name: BIZ MORI 지원
-    email: mori@morimori.app
+    email: mori@mori-corp.io
 servers:
 - url: https://morimori.app
   description: 프로덕션

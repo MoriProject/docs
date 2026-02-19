@@ -216,7 +216,7 @@
         },
         {
           "anchor": "Support",
-          "href": "mailto:mori@morimori.app",
+          "href": "mailto:mori@mori-corp.io",
           "icon": "envelope"
         }
       ]
@@ -230,7 +230,7 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:mori@morimori.app"
+        "href": "mailto:mori@mori-corp.io"
       }
     ],
     "primary": {
@@ -263,7 +263,7 @@
       {
         "title": "Support",
         "items": [
-          { "label": "Contact Support", "href": "mailto:mori@morimori.app" }
+          { "label": "Contact Support", "href": "mailto:mori@mori-corp.io" }
         ]
       },
       {
