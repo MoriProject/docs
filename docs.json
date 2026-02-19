@@ -134,38 +134,37 @@
                 "group": "Anti-AI",
                 "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "ko/api-reference/anti-ai/create-order",
+                  "POST /api/v2/orders/anti-ai",
                   "POST /api/v2/orders/anti-ai/confirm",
                   "POST /api/v2/orders/anti-ai/with-urls"
                 ]
               },
               {
-                "group": "워터마크 삽입",
+                "group": "Watermark-Embed",
                 "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "ko/api-reference/watermark-embed/create-order"
+                  "POST /api/v2/orders/wtr-embed"
                 ]
               },
               {
-                "group": "워터마크 추출",
+                "group": "Watermark-Extract",
                 "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
                   "POST /api/v2/orders/wtr-extract"
                 ]
               },
               {
-                "group": "주문",
+                "group": "Orders",
                 "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
                   "GET /api/v2/orders",
                   "GET /api/v2/orders/{orderId}",
                   "GET /api/v2/orders/{orderId}/download",
-                  "POST /api/v2/orders/{orderId}/refresh-urls",
                   "GET /api/v2/orders/stats/recent"
                 ]
               },
               {
-                "group": "웹훅",
+                "group": "Webhooks",
                 "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
                   "GET /api/v2/orders/webhooks",
