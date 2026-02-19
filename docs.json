@@ -134,7 +134,7 @@
                 "group": "Anti-AI",
                 "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "POST /api/v2/orders/anti-ai",
+                  "ko/api-reference/anti-ai/create-order",
                   "POST /api/v2/orders/anti-ai/confirm",
                   "POST /api/v2/orders/anti-ai/with-urls"
                 ]
@@ -143,7 +143,7 @@
                 "group": "워터마크 삽입",
                 "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "POST /api/v2/orders/wtr-embed"
+                  "ko/api-reference/watermark-embed/create-order"
                 ]
               },
               {

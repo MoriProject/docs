@@ -141,15 +141,6 @@ components:
           - IMG
           - DOCUMENT
           description: 파일 타입 (이미지 또는 PDF)
-        role:
-          type: string
-          enum:
-          - watermarked
-          description: 파일 역할 (항상 watermarked)
-        sequence:
-          type: integer
-          description: 파일 순서 (항상 1)
-          example: 1
         originalFile:
           type: object
           nullable: true
@@ -176,15 +167,6 @@ components:
               enum:
               - IMG
               description: 파일 타입 (이미지만 해당)
-            role:
-              type: string
-              enum:
-              - original
-              description: 파일 역할 (항상 original)
-            sequence:
-              type: integer
-              description: 파일 순서 (항상 1)
-              example: 1
     Order:
       type: object
       properties:
@@ -216,6 +198,7 @@ components:
           - failed
           - detected
           - undetected
+          - expired
           description: '주문 상태
 
             * pending - 대기 중
@@ -229,6 +212,8 @@ components:
             * detected - 워터마크 감지됨 (wtr-extract 전용)
 
             * undetected - 워터마크 미감지 (wtr-extract 전용)
+
+            * expired - 만료됨 (주문 생성 후 7일이 지나면 파일 다운로드 불가)
 
             '
         fileCount:
@@ -279,6 +264,7 @@ components:
           - failed
           - detected
           - undetected
+          - expired
           description: 주문 상태
         fileCount:
           type: integer
@@ -1183,8 +1169,6 @@ paths:
                         fileKey: 123/456/watermarked.jpg
                         fileFormat: JPG
                         fileType: IMG
-                        role: watermarked
-                        sequence: 1
                 imageWithOriginalResponse:
                   summary: 이미지 + 원본 응답
                   value:
@@ -1198,8 +1182,6 @@ paths:
                         fileKey: 123/456/watermarked.jpg
                         fileFormat: JPG
                         fileType: IMG
-                        role: watermarked
-                        sequence: 1
                         originalFile:
                           fileId: 2
                           fileName: original.jpg
@@ -1207,8 +1189,6 @@ paths:
                           fileKey: 123/456/original.jpg
                           fileFormat: JPG
                           fileType: IMG
-                          role: original
-                          sequence: 1
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1283,6 +1263,7 @@ paths:
           - failed
           - detected
           - undetected
+          - expired
           - all
           default: all
         description: 상태 필터
@@ -1433,6 +1414,10 @@ paths:
         - `complete` 상태의 주문에서만 사용 가능
 
         - URL 유효 시간: 1시간
+
+        - 주문 생성 후 최대 7일까지 파일 다운로드 가능
+
+        - 7일이 경과하면 주문이 `expired` 상태로 전환되며, 이후 파일을 다운로드할 수 없습니다
 
         '
       tags:

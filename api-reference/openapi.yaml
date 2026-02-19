@@ -141,15 +141,6 @@ components:
           - IMG
           - DOCUMENT
           description: File type (image or PDF)
-        role:
-          type: string
-          enum:
-          - watermarked
-          description: File role (always watermarked)
-        sequence:
-          type: integer
-          description: File sequence (always 1)
-          example: 1
         originalFile:
           type: object
           nullable: true
@@ -176,15 +167,6 @@ components:
               enum:
               - IMG
               description: File type (image only)
-            role:
-              type: string
-              enum:
-              - original
-              description: File role (always original)
-            sequence:
-              type: integer
-              description: File sequence (always 1)
-              example: 1
     Order:
       type: object
       properties:
@@ -216,6 +198,7 @@ components:
           - failed
           - detected
           - undetected
+          - expired
           description: 'Order status
 
             * pending - Waiting
@@ -229,6 +212,8 @@ components:
             * detected - Watermark detected (wtr-extract only)
 
             * undetected - Watermark not detected (wtr-extract only)
+
+            * expired - Expired (order files unavailable after 7 days)
 
             '
         fileCount:
@@ -279,6 +264,7 @@ components:
           - failed
           - detected
           - undetected
+          - expired
           description: Order status
         fileCount:
           type: integer
@@ -1197,8 +1183,6 @@ paths:
                         fileKey: 123/456/watermarked.jpg
                         fileFormat: JPG
                         fileType: IMG
-                        role: watermarked
-                        sequence: 1
                 imageWithOriginalResponse:
                   summary: Image + original response
                   value:
@@ -1212,8 +1196,6 @@ paths:
                         fileKey: 123/456/watermarked.jpg
                         fileFormat: JPG
                         fileType: IMG
-                        role: watermarked
-                        sequence: 1
                         originalFile:
                           fileId: 2
                           fileName: original.jpg
@@ -1221,8 +1203,6 @@ paths:
                           fileKey: 123/456/original.jpg
                           fileFormat: JPG
                           fileType: IMG
-                          role: original
-                          sequence: 1
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1297,6 +1277,7 @@ paths:
           - failed
           - detected
           - undetected
+          - expired
           - all
           default: all
         description: Status filter
@@ -1447,6 +1428,11 @@ paths:
         - Only available for orders with `complete` status
 
         - URL is valid for 1 hour
+
+        - Order files are available for download for up to 7 days after order creation
+
+        - After 7 days, the order transitions to `expired` status and files can no longer
+        be downloaded
 
         '
       tags:
