@@ -104,7 +104,10 @@
                 "pages": [
                   "legal/terms",
                   "legal/privacy",
-                  "legal/dpa"
+                  "legal/dpa",
+                  "legal/aup",
+                  "legal/cross-border-transfer",
+                  "legal/sub-processors"
                 ]
               }
             ]
@@ -199,7 +202,10 @@
                 "pages": [
                   "ko/legal/terms",
                   "ko/legal/privacy",
-                  "ko/legal/dpa"
+                  "ko/legal/dpa",
+                  "ko/legal/aup",
+                  "ko/legal/cross-border-transfer",
+                  "ko/legal/sub-processors"
                 ]
               }
             ]
@@ -211,7 +217,7 @@
       "anchors": [
         {
           "anchor": "Developer Center",
-          "href": "https://developers.mori.art",
+          "href": "https://app.bizmori.com",
           "icon": "code"
         },
         {
@@ -236,18 +242,18 @@
     "primary": {
       "type": "button",
       "label": "Developer Center",
-      "href": "https://developers.mori.art"
+      "href": "https://app.bizmori.com"
     }
   },
   "footer": {
     "socials": {
-      "website": "https://developers.mori.art"
+      "website": "https://app.bizmori.com"
     },
     "links": [
       {
         "title": "Product",
         "items": [
-          { "label": "Developer Center", "href": "https://developers.mori.art" }
+          { "label": "Developer Center", "href": "https://app.bizmori.com" }
         ]
       },
       {
@@ -257,6 +263,12 @@
           { "label": "API Reference", "href": "/api-reference/introduction" },
           { "label": "Error Codes", "href": "/errors" },
           { "label": "Webhooks", "href": "/webhooks" }
+        ]
+      },
+      {
+        "title": "Company",
+        "items": [
+          { "label": "MORI Corp.", "href": "https://www.mori-corp.io" }
         ]
       },
       {
@@ -270,13 +282,15 @@
         "items": [
           { "label": "Terms of Service", "href": "/legal/terms" },
           { "label": "Privacy Policy", "href": "/legal/privacy" },
-          { "label": "DPA", "href": "/legal/dpa" }
+          { "label": "DPA", "href": "/legal/dpa" },
+          { "label": "Acceptable Use", "href": "/legal/aup" },
+          { "label": "Sub-processors", "href": "/legal/sub-processors" }
         ]
       }
     ]
   },
   "api": {
-    "baseUrl": "https://morimori.app",
+    "baseUrl": "https://api.bizmori.com",
     "auth": {
       "method": "bearer"
     }

@@ -1,0 +1,207 @@
+---
+title: "Cross-Border Data Transfer Addendum"
+description: "Terms governing international transfer of Personal Data in connection with BIZ MORI"
+---
+
+**Effective Date:** February 27, 2026
+**Last Updated:** February 27, 2026
+
+---
+
+This Cross-Border Data Transfer Addendum ("Addendum") supplements the BizMORI Data Processing Agreement ("DPA") and Privacy Policy. It sets forth the specific terms governing the international transfer of Personal Data in connection with the BizMORI service, in compliance with the Korea Personal Information Protection Act ("PIPA") and the EU General Data Protection Regulation ("GDPR").
+
+---
+
+## 1. Definitions
+
+Terms used in this Addendum shall have the meanings defined in the DPA unless otherwise specified below.
+
+- **"Data Exporter"** means the party transferring Personal Data to a recipient in another country.
+- **"Data Importer"** means the party receiving Personal Data from a Data Exporter in another country.
+- **"PIPA"** means the Korean Personal Information Protection Act (개인정보 보호법), as amended.
+- **"PIPA Article 28-8"** means Article 28-8 of PIPA, governing the cross-border transfer of personal information.
+- **"SCCs"** means the Standard Contractual Clauses approved by European Commission Implementing Decision (EU) 2021/914.
+- **"UK Addendum"** means the International Data Transfer Addendum to the EU Commission Standard Contractual Clauses, issued by the UK ICO.
+
+---
+
+## 2. Data Transfers Overview
+
+### 2.1 Transfer Flows
+
+| Transfer | Data Exporter | Data Importer | Purpose | Legal Basis |
+|----------|--------------|---------------|---------|-------------|
+| Korea → Korea | Customer (Korea) | MORI Corp. (Korea) | Service operations, data processing | PIPA Art. 26 (위탁) |
+| Korea → U.S. | MORI Corp. (Korea) | MORI SOLUTION, Inc. (U.S.) | Contracting entity, billing, account management | PIPA Art. 28-8 |
+| Korea → U.S. | MORI Corp. (Korea) | Clerk, Sentry (U.S.) | Authentication, error monitoring | PIPA Art. 28-8 |
+| Korea → U.S. | MORI Corp. (Korea) | Stripe, Inc. (U.S.) | Payment processing | PIPA Art. 28-8 |
+| EEA/UK → Korea | Customer (EEA/UK) | MORI Corp. (Korea) | Service operations | SCCs Module 2 + EU Adequacy Decision (Korea) |
+| EEA/UK → U.S. | Customer (EEA/UK) | MORI SOLUTION, Inc. (U.S.) | Contracting entity, billing | SCCs Module 2 |
+| EEA/UK → U.S. | Customer (EEA/UK) | Clerk, Sentry, Stripe, Inc. (U.S.) | Sub-processor services | SCCs Module 2 (via MORI) |
+
+Stripe, Inc..
+
+---
+
+## 3. PIPA Article 28-8 Compliance (한국 개인정보의 국외이전)
+
+### 3.1 Legal Basis for Transfer
+
+Under PIPA Article 28-8, cross-border transfers of personal information are permitted where:
+- The data subject has been informed and has given consent; or
+- The transfer is necessary for the performance of a contract with the data subject or for the data subject's benefit; or
+- The transfer is made pursuant to a contract that includes safeguards for the data subject's rights (위탁 계약).
+
+MORI relies on the contractual safeguards basis under PIPA Article 28-8(1)(3) and Article 26 (위탁) for transfers from Korea, in accordance with the Personal Information Protection Commission's Guidelines on Cross-Border Transfer of Personal Information (개인정보의 국외 이전에 관한 고시).
+
+**Distinction Between Delegation (위탁) and Third-Party Provision (제3자 제공):** Transfers to MORI SOLUTION, Inc. and AWS are categorized as delegation (위탁) under PIPA Article 26, as these entities process data on behalf of and under the instructions of MORI Corp. Transfers to Clerk, Sentry, and the payment processor are also categorized as delegation (위탁), as these sub-processors process data solely for the specific purposes delegated by MORI Corp. in connection with the Service.
+
+### 3.2 Data Subject Notification
+
+In accordance with PIPA Article 28-8(2), the following information is disclosed to data subjects:
+
+| Item | Details |
+|------|---------|
+| **Items of personal information transferred** | Name, email address, company name, IP address, API request metadata, images uploaded for processing |
+| **Country to which personal information is transferred** | United States |
+| **Date, time, and method of transfer** | Continuous; automated transfer via encrypted API (TLS 1.2+) |
+| **Name of the recipient** | MORI SOLUTION, Inc.; Clerk, Inc.; Functional Software, Inc. (Sentry); Stripe, Inc. |
+| **Purpose of use by the recipient** | MORI SOLUTION, Inc.: contracting, billing, account management; Clerk: user authentication; Sentry: error monitoring; [Payment processor]: payment processing |
+| **Retention and use period** | Per the data retention schedule in the Terms of Service (see Section 5.3 of Terms) |
+| **Data subject's right to refuse and consequences** | Data subjects may refuse consent to the cross-border transfer. Refusal may limit the ability to use certain features of the Service. |
+
+### 3.3 Security Measures by Recipients
+
+Each recipient of cross-border transfers shall maintain the following security measures:
+
+| Measure | Description |
+|---------|-------------|
+| **Encryption in transit** | TLS 1.2+ on all connections |
+| **Encryption at rest** | AES-256 or equivalent |
+| **Access control** | Role-based access control; principle of least privilege |
+| **Authentication** | Multi-factor authentication for administrative access |
+| **Monitoring** | Continuous security monitoring and logging |
+| **Incident response** | Documented incident response procedures; notification within 72 hours |
+| **Contractual safeguards** | Written data processing agreement with each Sub-processor |
+
+### 3.4 Contractual Safeguards
+
+The Intercompany Service Agreement between MORI SOLUTION, Inc. and MORI Corp. includes the following safeguards for cross-border transfers:
+- Processing only within the scope of the delegated purpose
+- Technical and managerial security measures per PIPA Article 29
+- Prohibition on sub-delegation without consent
+- Indemnification for damages caused by violations
+- Regular auditing and compliance verification
+
+---
+
+## 4. GDPR Compliance (EEA/UK Transfers)
+
+### 4.1 Transfer Mechanisms
+
+**Transfers to Korea:** South Korea has been granted an adequacy decision by the European Commission (Commission Implementing Decision of December 17, 2021, effective under GDPR Article 45). The UK has also recognized Korea's adequate level of data protection. Accordingly, transfers of Personal Data from the EEA to MORI Corp. in Korea do not require additional safeguards under GDPR Article 46.
+
+**Transfers to the United States:** The SCCs apply to transfers from the EEA to the United States: (a) Module 2 (Controller to Processor) between Customer and MORI SOLUTION, Inc.; (b) Module 3 (Processor to Sub-processor) between MORI SOLUTION, Inc. and its U.S.-based sub-processors. The specific terms are set forth in Annex I of the DPA.
+
+**Transfers from the UK:** The UK Addendum to the EU SCCs applies in addition to the SCCs for transfers from the United Kingdom, as detailed in Annex III of the DPA.
+
+### 4.2 Transfer Impact Assessment
+
+In accordance with the Schrems II decision (CJEU, Case C-311/18) and EDPB Recommendations 01/2020, MORI has assessed the level of data protection in the United States:
+
+| Factor | Assessment |
+|--------|-----------|
+| **Nature of data transferred** | API metadata, account information, images for processing. Images are processed and deleted per retention schedule; not stored long-term. |
+| **Transfer mechanism** | SCCs Module 2 (Controller to Processor) |
+| **Legal framework of destination** | U.S. law; EU-U.S. Data Privacy Framework (DPF) established by European Commission adequacy decision of July 10, 2023. Sub-processor DPF certification status: Clerk, Sentry, and Stripe are DPF certified. Current certification details are available at docs.bizmori.com/legal/sub-processors. MORI monitors DPF adequacy decision stability. |
+| **U.S. surveillance laws** | FISA §702 and Executive Order 12333 may permit U.S. government access to data. Risk is mitigated by: (a) BizMORI processes B2B image data, which is unlikely to be a target of national security surveillance; (b) data is encrypted in transit and at rest; (c) MORI commits to challenging overbroad or unlawful access requests; (d) EO 14086 provides proportionality and necessity safeguards. |
+| **Supplementary measures** | Encryption in transit (TLS 1.2+) and at rest (AES-256); pseudonymization where possible; access controls; contractual commitments; minimal data retention |
+
+### 4.3 Supplementary Measures
+
+The following supplementary measures are implemented for transfers to the United States:
+- End-to-end encryption of all data in transit using TLS 1.2+
+- Encryption at rest using industry-standard encryption algorithms
+- Minimization of Personal Data transferred (only what is necessary for the service)
+- Short retention periods (processing files deleted immediately; logs retained for 90 days maximum)
+- Contractual commitments from all Sub-processors to challenge disproportionate access requests
+- Transparency reporting: MORI will disclose the existence and nature of government access requests (to the extent permitted by law) in an annual transparency summary
+
+---
+
+## 5. Data Subject Consent Form (정보주체 동의서 양식)
+
+Where consent is required under PIPA Article 28-8 for the cross-border transfer of personal information, the following consent form shall be used:
+
+---
+
+### 개인정보 국외이전 동의서
+
+본인은 아래의 내용을 충분히 확인한 후, 개인정보의 국외이전에 동의합니다.
+
+**1. 이전되는 개인정보 항목**
+이름, 이메일 주소, 회사명, IP 주소, API 요청 메타데이터, 처리를 위해 업로드된 이미지
+
+**2. 이전되는 국가, 이전일시 및 이전방법**
+- 이전 국가: 미국
+- 이전 일시: 서비스 이용 시 수시
+- 이전 방법: 암호화된 네트워크(TLS 1.2+)를 통한 자동 전송
+
+**3. 개인정보를 이전받는 자**
+- MORI SOLUTION, Inc. (미국)
+- Clerk, Inc. (미국)
+- Functional Software, Inc. (Sentry) (미국)
+- Stripe, Inc. (미국)
+
+**4. 개인정보를 이전받는 자의 이용 목적**
+- MORI SOLUTION, Inc.: 계약 체결, 청구, 계정 관리
+- Clerk: 사용자 인증
+- Sentry: 오류 모니터링
+- [Payment processor]: 결제 처리
+
+**5. 보유 및 이용 기간**
+이용약관 제5조 제3항의 데이터 보관 일정에 따름
+
+**6. 동의 거부 권리 및 불이익**
+정보주체는 국외이전에 대한 동의를 거부할 수 있습니다. 다만, 동의를 거부하는 경우 서비스의 일부 기능 이용이 제한될 수 있습니다.
+
+☐ 위 내용을 확인하였으며, 개인정보의 국외이전에 동의합니다.
+
+성명: ___________________
+날짜: ___________________
+서명: ___________________
+
+---
+
+## 6. Ongoing Monitoring and Review
+
+6.1. MORI shall monitor developments in data protection laws in all relevant jurisdictions and update this Addendum as necessary.
+
+6.2. The transfer impact assessment (Section 4.2) shall be reviewed at least annually or upon any material change in the legal framework of the destination country.
+
+6.3. If MORI determines that it can no longer ensure an adequate level of protection for transferred Personal Data, MORI shall promptly notify affected Customers and, if necessary, suspend or modify the relevant transfers.
+
+6.4. **Encryption Key Location.** Encryption keys used for data protection are managed within secure key management infrastructure in South Korea. MORI does not transfer encryption keys to jurisdictions outside of Korea unless strictly necessary and subject to equivalent security measures.
+
+6.5. **Fallback Mechanism.** In the event that a transfer mechanism (e.g., SCCs, adequacy decision, DPF) is invalidated by a court or regulatory authority, MORI shall: (a) promptly notify affected Customers; (b) within 30 days, implement an alternative lawful transfer mechanism; (c) if no alternative mechanism is available, minimize the data transferred and, if necessary, suspend transfers until a lawful mechanism can be established.
+
+6.6. **Transparency Report.** MORI will publish an annual transparency summary by March 31 of each year, covering the prior calendar year. The summary will include: (a) the number and types of government data access requests received; (b) the jurisdictions from which requests originated; (c) the number of requests complied with; (d) any challenges to government requests. The summary will be published at docs.bizmori.com/legal/transparency.
+
+6.7. **Data Subject Remedies.** Data subjects whose personal information has been transferred internationally and who believe their rights have been violated may: (a) contact MORI at mori@mori-corp.io; (b) lodge a complaint with the relevant supervisory authority (개인정보보호위원회 for Korea, relevant DPA for EU/UK); (c) seek remedies through the dispute resolution mechanisms in the DPA and Terms of Service.
+
+---
+
+## 7. Contact
+
+For questions regarding cross-border data transfers:
+
+**MORI SOLUTION, Inc.**
+Email: mori@mori-corp.io
+Website: https://bizmori.com
+
+**MORI Corp.**
+Email: mori@mori-corp.io
+
+---
+
+*This Cross-Border Data Transfer Addendum is part of the BizMORI DPA and Terms of Service.*
