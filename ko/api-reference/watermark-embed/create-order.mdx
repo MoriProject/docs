@@ -8,7 +8,7 @@ openapi: "POST /api/v2/orders/wtr-embed"
 주문이 `complete` 상태가 되면 [다운로드 URL 발급](/ko/api-reference/orders/download-order) 엔드포인트를 사용하여 처리된 파일을 다운로드할 수 있습니다:
 
 ```bash
-curl -X GET https://morimori.app/api/v2/orders/{orderId}/download \
+curl -X GET https://api.bizmori.com/api/v2/orders/{orderId}/download \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 

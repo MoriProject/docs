@@ -8,7 +8,7 @@ openapi: "POST /api/v2/orders/wtr-embed"
 Once your order reaches `complete` status, use the [Get download URL](/api-reference/orders/download-order) endpoint to retrieve a presigned download URL:
 
 ```bash
-curl -X GET https://morimori.app/api/v2/orders/{orderId}/download \
+curl -X GET https://api.bizmori.com/api/v2/orders/{orderId}/download \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 

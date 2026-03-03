@@ -20,7 +20,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
 
     <CodeGroup>
     ```bash cURL
-    curl -X POST https://morimori.app/api/v2/orders/anti-ai \
+    curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
       -H "Authorization: Bearer YOUR_API_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{
@@ -31,7 +31,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
     ```
 
     ```javascript Node.js
-    const response = await fetch('https://morimori.app/api/v2/orders/anti-ai', {
+    const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer YOUR_API_TOKEN',
@@ -50,7 +50,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
     import requests
 
     res = requests.post(
-        'https://morimori.app/api/v2/orders/anti-ai',
+        'https://api.bizmori.com/api/v2/orders/anti-ai',
         headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
         json={
             'idempotencyKey': 'my-first-order-001',
@@ -63,7 +63,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
 
     ```php PHP
     <?php
-    $ch = curl_init('https://morimori.app/api/v2/orders/anti-ai');
+    $ch = curl_init('https://api.bizmori.com/api/v2/orders/anti-ai');
     curl_setopt_array($ch, [
         CURLOPT_POST           => true,
         CURLOPT_RETURNTRANSFER => true,
@@ -85,7 +85,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
     require 'net/http'
     require 'json'
 
-    uri  = URI('https://morimori.app/api/v2/orders/anti-ai')
+    uri  = URI('https://api.bizmori.com/api/v2/orders/anti-ai')
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
 
@@ -117,7 +117,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
     })
 
     req, _ := http.NewRequest("POST",
-    	"https://morimori.app/api/v2/orders/anti-ai",
+    	"https://api.bizmori.com/api/v2/orders/anti-ai",
     	bytes.NewBuffer(body),
     )
     req.Header.Set("Authorization", "Bearer YOUR_API_TOKEN")
@@ -136,7 +136,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
                "\"options\":{\"strength\":\"high\"}}";
 
     HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create("https://morimori.app/api/v2/orders/anti-ai"))
+        .uri(URI.create("https://api.bizmori.com/api/v2/orders/anti-ai"))
         .header("Authorization", "Bearer YOUR_API_TOKEN")
         .header("Content-Type", "application/json")
         .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -171,7 +171,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
 
     <CodeGroup>
     ```bash cURL
-    curl -X POST https://morimori.app/api/v2/orders/anti-ai \
+    curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
       -H "Authorization: Bearer YOUR_API_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{
@@ -187,7 +187,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
     ```
 
     ```javascript Node.js
-    const response = await fetch('https://morimori.app/api/v2/orders/anti-ai', {
+    const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer YOUR_API_TOKEN',
@@ -209,7 +209,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
     import requests
 
     res = requests.post(
-        'https://morimori.app/api/v2/orders/anti-ai',
+        'https://api.bizmori.com/api/v2/orders/anti-ai',
         headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
         json={
             'idempotencyKey': 'my-first-order-001',
@@ -225,7 +225,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
 
     ```php PHP
     <?php
-    $ch = curl_init('https://morimori.app/api/v2/orders/anti-ai');
+    $ch = curl_init('https://api.bizmori.com/api/v2/orders/anti-ai');
     curl_setopt_array($ch, [
         CURLOPT_POST           => true,
         CURLOPT_RETURNTRANSFER => true,
@@ -250,7 +250,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
     require 'net/http'
     require 'json'
 
-    uri  = URI('https://morimori.app/api/v2/orders/anti-ai')
+    uri  = URI('https://api.bizmori.com/api/v2/orders/anti-ai')
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = true
 
@@ -280,7 +280,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
     })
 
     req, _ := http.NewRequest("POST",
-    	"https://morimori.app/api/v2/orders/anti-ai",
+    	"https://api.bizmori.com/api/v2/orders/anti-ai",
     	bytes.NewBuffer(body),
     )
     req.Header.Set("Authorization", "Bearer YOUR_API_TOKEN")
@@ -297,7 +297,7 @@ description: "몇 분 안에 첫 번째 BIZ MORI API 호출 해보기"
                "\"options\":{\"strength\":\"high\"}}";
 
     HttpRequest request = HttpRequest.newBuilder()
-        .uri(URI.create("https://morimori.app/api/v2/orders/anti-ai"))
+        .uri(URI.create("https://api.bizmori.com/api/v2/orders/anti-ai"))
         .header("Authorization", "Bearer YOUR_API_TOKEN")
         .header("Content-Type", "application/json")
         .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -349,14 +349,14 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 
 <CodeGroup>
 ```bash cURL
-curl -X POST https://morimori.app/api/v2/orders/anti-ai/confirm \
+curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/confirm \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"idempotencyKey": "my-confirm-001", "orderId": "123456789"}'
 ```
 
 ```javascript Node.js
-await fetch('https://morimori.app/api/v2/orders/anti-ai/confirm', {
+await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm', {
   method: 'POST',
   headers: {
     'Authorization': 'Bearer YOUR_API_TOKEN',
@@ -371,7 +371,7 @@ await fetch('https://morimori.app/api/v2/orders/anti-ai/confirm', {
 
 ```python Python
 requests.post(
-    'https://morimori.app/api/v2/orders/anti-ai/confirm',
+    'https://api.bizmori.com/api/v2/orders/anti-ai/confirm',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
     json={'idempotencyKey': 'my-confirm-001', 'orderId': '123456789'},
 )
@@ -379,7 +379,7 @@ requests.post(
 
 ```php PHP
 <?php
-$ch = curl_init('https://morimori.app/api/v2/orders/anti-ai/confirm');
+$ch = curl_init('https://api.bizmori.com/api/v2/orders/anti-ai/confirm');
 curl_setopt_array($ch, [
     CURLOPT_POST           => true,
     CURLOPT_RETURNTRANSFER => true,
@@ -397,7 +397,7 @@ curl_close($ch);
 ```
 
 ```ruby Ruby
-req = Net::HTTP::Post.new(URI('https://morimori.app/api/v2/orders/anti-ai/confirm'))
+req = Net::HTTP::Post.new(URI('https://api.bizmori.com/api/v2/orders/anti-ai/confirm'))
 req['Authorization'] = 'Bearer YOUR_API_TOKEN'
 req['Content-Type']  = 'application/json'
 req.body = JSON.generate(idempotencyKey: 'my-confirm-001', orderId: '123456789')
@@ -410,7 +410,7 @@ body, _ := json.Marshal(map[string]string{
 	"orderId":        "123456789",
 })
 req, _ := http.NewRequest("POST",
-	"https://morimori.app/api/v2/orders/anti-ai/confirm",
+	"https://api.bizmori.com/api/v2/orders/anti-ai/confirm",
 	bytes.NewBuffer(body),
 )
 req.Header.Set("Authorization", "Bearer YOUR_API_TOKEN")
@@ -421,7 +421,7 @@ http.DefaultClient.Do(req)
 ```java Java
 var body = "{\"idempotencyKey\":\"my-confirm-001\",\"orderId\":\"123456789\"}";
 HttpRequest request = HttpRequest.newBuilder()
-    .uri(URI.create("https://morimori.app/api/v2/orders/anti-ai/confirm"))
+    .uri(URI.create("https://api.bizmori.com/api/v2/orders/anti-ai/confirm"))
     .header("Authorization", "Bearer YOUR_API_TOKEN")
     .header("Content-Type", "application/json")
     .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -436,12 +436,12 @@ HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
 
 <CodeGroup>
 ```bash cURL
-curl https://morimori.app/api/v2/orders/123456789 \
+curl https://api.bizmori.com/api/v2/orders/123456789 \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://morimori.app/api/v2/orders/123456789', {
+const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
@@ -450,7 +450,7 @@ const { data } = await res.json();
 
 ```python Python
 res = requests.get(
-    'https://morimori.app/api/v2/orders/123456789',
+    'https://api.bizmori.com/api/v2/orders/123456789',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
 status = res.json()['data']['status']
@@ -458,7 +458,7 @@ status = res.json()['data']['status']
 
 ```php PHP
 <?php
-$ch = curl_init('https://morimori.app/api/v2/orders/123456789');
+$ch = curl_init('https://api.bizmori.com/api/v2/orders/123456789');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER     => ['Authorization: Bearer YOUR_API_TOKEN'],
@@ -468,14 +468,14 @@ curl_close($ch);
 ```
 
 ```ruby Ruby
-req = Net::HTTP::Get.new(URI('https://morimori.app/api/v2/orders/123456789'))
+req = Net::HTTP::Get.new(URI('https://api.bizmori.com/api/v2/orders/123456789'))
 req['Authorization'] = 'Bearer YOUR_API_TOKEN'
 data = JSON.parse(http.request(req).body)['data']
 ```
 
 ```go Go
 req, _ := http.NewRequest("GET",
-	"https://morimori.app/api/v2/orders/123456789", nil)
+	"https://api.bizmori.com/api/v2/orders/123456789", nil)
 req.Header.Set("Authorization", "Bearer YOUR_API_TOKEN")
 resp, _ := http.DefaultClient.Do(req)
 defer resp.Body.Close()
@@ -483,7 +483,7 @@ defer resp.Body.Close()
 
 ```java Java
 HttpRequest request = HttpRequest.newBuilder()
-    .uri(URI.create("https://morimori.app/api/v2/orders/123456789"))
+    .uri(URI.create("https://api.bizmori.com/api/v2/orders/123456789"))
     .header("Authorization", "Bearer YOUR_API_TOKEN")
     .GET()
     .build();
@@ -507,12 +507,12 @@ var response = HttpClient.newHttpClient()
 
 <CodeGroup>
 ```bash cURL
-curl https://morimori.app/api/v2/orders/123456789/download \
+curl https://api.bizmori.com/api/v2/orders/123456789/download \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://morimori.app/api/v2/orders/123456789/download', {
+const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789/download', {
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
@@ -521,7 +521,7 @@ const { data } = await res.json();
 
 ```python Python
 res = requests.get(
-    'https://morimori.app/api/v2/orders/123456789/download',
+    'https://api.bizmori.com/api/v2/orders/123456789/download',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
 download_url = res.json()['data']['downloadUrl']
@@ -529,7 +529,7 @@ download_url = res.json()['data']['downloadUrl']
 
 ```php PHP
 <?php
-$ch = curl_init('https://morimori.app/api/v2/orders/123456789/download');
+$ch = curl_init('https://api.bizmori.com/api/v2/orders/123456789/download');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HTTPHEADER     => ['Authorization: Bearer YOUR_API_TOKEN'],
@@ -540,7 +540,7 @@ curl_close($ch);
 
 ```ruby Ruby
 req = Net::HTTP::Get.new(
-  URI('https://morimori.app/api/v2/orders/123456789/download')
+  URI('https://api.bizmori.com/api/v2/orders/123456789/download')
 )
 req['Authorization'] = 'Bearer YOUR_API_TOKEN'
 data = JSON.parse(http.request(req).body)['data']
@@ -548,7 +548,7 @@ data = JSON.parse(http.request(req).body)['data']
 
 ```go Go
 req, _ := http.NewRequest("GET",
-	"https://morimori.app/api/v2/orders/123456789/download", nil)
+	"https://api.bizmori.com/api/v2/orders/123456789/download", nil)
 req.Header.Set("Authorization", "Bearer YOUR_API_TOKEN")
 resp, _ := http.DefaultClient.Do(req)
 defer resp.Body.Close()
@@ -556,7 +556,7 @@ defer resp.Body.Close()
 
 ```java Java
 HttpRequest request = HttpRequest.newBuilder()
-    .uri(URI.create("https://morimori.app/api/v2/orders/123456789/download"))
+    .uri(URI.create("https://api.bizmori.com/api/v2/orders/123456789/download"))
     .header("Authorization", "Bearer YOUR_API_TOKEN")
     .GET()
     .build();
