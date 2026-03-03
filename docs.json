@@ -107,8 +107,7 @@
                 "pages": [
                   "legal/terms",
                   "legal/privacy",
-                  "legal/aup",
-                  "legal/sub-processors"
+                  "legal/aup"
                 ]
               }
             ]
@@ -203,8 +202,7 @@
                 "pages": [
                   "ko/legal/terms",
                   "ko/legal/privacy",
-                  "ko/legal/aup",
-                  "ko/legal/sub-processors"
+                  "ko/legal/aup"
                 ]
               }
             ]
