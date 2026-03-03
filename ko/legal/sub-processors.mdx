@@ -1,87 +1,89 @@
 ---
-title: "Sub-processors"
-description: "BIZ MORI 서비스 제공을 위한 제3자 수탁업체 목록"
+title: "서브프로세서 목록"
+description: "BizMORI 서브프로세서 현황"
 ---
 
-**최종 수정일:** 2026년 3월 3일
+# BizMORI Sub-processors List
 
----
-
-본 페이지는 MORI SOLUTION, Inc. 및 MORI Corp.가 BizMORI 서비스 제공을 위하여 관여시킨 제3자 수탁업체(Sub-processor)를 나열합니다. 수탁업체는 데이터 처리 계약(DPA)에 따라 MORI를 대신하여 개인정보를 처리합니다.
-
-MORI는 수탁업체가 추가 또는 변경될 때 본 목록을 업데이트합니다. 고객은 DPA 제6조 제3항에 따라 중요한 변경 사항에 대하여 최소 30일 전에 이메일로 통지를 받습니다.
+**Last Updated:** March 3, 2026
 
 ---
 
-## 현재 수탁업체
+This page lists the third-party Sub-processors engaged by MORI SOLUTION, Inc. and MORI Corp. to provide the BizMORI service. Sub-processors process Personal Data on behalf of MORI in accordance with the Data Processing Agreement (DPA).
 
-| 수탁업체 | 목적 | 소재지 | 처리되는 데이터 |
-|---------|------|--------|---------------|
-| **MORI Corp.** (주식회사 모리) | 서비스 운영, 인프라 관리, 기술 지원 | 한국 | 서비스를 통해 처리되는 모든 고객 데이터 |
-| **Amazon Web Services (AWS)** | 클라우드 인프라(컴퓨팅, 스토리지, 데이터베이스, 네트워킹) | 한국 | 서비스를 통해 저장 및 처리되는 모든 고객 데이터 |
-| **Clerk, Inc.** | 사용자 인증 및 아이덴티티 관리 | 미국 | 계정 정보(이름, 이메일, 인증 자격 증명) |
-| **Functional Software, Inc. (Sentry)** | 오류 모니터링 및 애플리케이션 성능 추적 | 미국 | 오류 로그, 스택 트레이스, API 요청 메타데이터(IP 주소, 사용자 에이전트) |
-| **Stripe, Inc.** | 결제 처리 및 청구 | 미국 | 결제 정보, 청구 주소, 거래 기록 |
+MORI will update this list as Sub-processors are added or removed. Customers will be notified of material changes at least 30 days in advance via email, in accordance with Section 6.3 of the DPA.
 
 ---
 
-## 보안 및 준수
+## Current Sub-processors
 
-모든 수탁업체는 BizMORI DPA에 규정된 것 이상의 데이터 보호 의무를 유지하도록 계약적으로 구속되며, 이에는 다음이 포함됩니다:
-
-- **암호화:** 전송 시(TLS 1.2+) 및 저장 시(AES-256 또는 동등 수준) 데이터 암호화
-- **접근 통제:** 역할 기반 접근 제어 및 최소 권한 원칙
-- **보안 모니터링:** 지속적 모니터링 및 사고 대응 절차
-- **준수:** 적용 데이터 보호법(GDPR, CCPA, PIPA) 준수
-- **감사:** 보안 감사 및 준수 확인 대상
-
----
-
-## 데이터 보호 프레임워크 인증
-
-다음 수탁업체는 EU-미국 데이터 프라이버시 프레임워크(DPF)에 따라 인증되었습니다:
-
-| 수탁업체 | DPF 인증 | 인증 세부 사항 |
-|---------|----------|--------------|
-| **Clerk, Inc.** | ✅ 예 | 인증 완료 |
-| **Functional Software, Inc. (Sentry)** | ✅ 예 | 인증 완료 |
-| **Stripe, Inc.** | ✅ 예 | 인증 완료 |
-
-DPF 인증 상태는 미국 상무부가 관리하는 공식 데이터 프라이버시 프레임워크 목록을 통해 확인됩니다. 현재 인증 세부 사항은 [dataprivacyframework.gov](https://www.dataprivacyframework.gov/s/)에서 확인할 수 있습니다.
+| Sub-processor | Purpose | Location | Data Processed |
+|---------------|---------|----------|----------------|
+| **MORI Corp.** (주식회사 모리) | Service operations, infrastructure management, technical support | South Korea | All Customer Data processed through the Service |
+| **Amazon Web Services (AWS)** | Cloud infrastructure (compute, storage, database, networking) | South Korea (ap-northeast-2) | All Customer Data stored and processed through the Service |
+| **Clerk, Inc.** | User authentication and identity management | United States | Account information (name, email, authentication credentials) |
+| **Functional Software, Inc. (Sentry)** | Error monitoring and application performance tracking | United States | Error logs, stack traces, API request metadata (IP addresses, user agents) |
+| **Stripe, Inc.** | Payment processing and billing | United States | Payment information, billing address, transaction records |
 
 ---
 
-## 국외 데이터 이전
+## Security and Compliance
 
-수탁업체로의 국외 데이터 이전에 대한 정보는 [데이터 국외이전 부속서](/ko/legal/cross-border-transfer)를 참조하십시오.
+All Sub-processors are contractually bound to maintain data protection obligations no less protective than those in the BizMORI DPA, including:
 
-**주요 이전 메커니즘:**
-- **한국으로의 이전:** EU 적정성 결정 (GDPR 제45조)
-- **미국으로의 이전:** 표준계약조항(SCCs) 및 보충적 조치
-- **한국 PIPA 준수:** 개인정보 보호법 제28조의8에 따른 계약적 안전장치
-
----
-
-## 본 목록의 변경
-
-MORI는 서비스 제공 및 개선에 필요한 경우 수탁업체를 추가, 제거 또는 교체할 권리를 보유합니다. 중요한 변경 사항은 다음을 통해 최소 30일 전에 고객에게 통지됩니다:
-
-1. 등록된 이메일 주소로 이메일 통지
-2. 수정 날짜와 함께 본 페이지 업데이트
-3. BizMORI 대시보드 내 공지(해당하는 경우)
-
-새로운 수탁업체에 이의가 있는 고객은 DPA 제6조 제3항에 따라 이의를 제기할 수 있습니다.
+- **Encryption:** Data encryption in transit (TLS 1.2+) and at rest (AES-256 or equivalent)
+- **Access Control:** Role-based access control and principle of least privilege
+- **Security Monitoring:** Continuous monitoring and incident response procedures
+- **Compliance:** Adherence to applicable data protection laws (GDPR, CCPA, PIPA)
+- **Audits:** Subject to security audits and compliance verification
 
 ---
 
-## 연락처
+## Data Protection Framework Certifications
 
-수탁업체에 관한 문의 또는 이의권 행사:
+The following Sub-processors are certified under the EU-U.S. Data Privacy Framework (DPF):
 
-**MORI SOLUTION, Inc.**
-이메일: mori@mori-corp.io
-웹사이트: https://bizmori.com
+| Sub-processor | DPF Certified | Certification Details |
+|---------------|---------------|----------------------|
+| **Clerk, Inc.** | ✅ Yes | Certified as of February 22, 2024 |
+| **Functional Software, Inc. (Sentry)** | ✅ Yes | Certified |
+| **Stripe, Inc.** | ✅ Yes | Certified |
+
+DPF certification status is verified through the official Data Privacy Framework List maintained by the U.S. Department of Commerce. Current certification details are available at [dataprivacyframework.gov](https://www.dataprivacyframework.gov/s/).
 
 ---
 
-*본 수탁업체 목록은 BizMORI 개인정보처리방침 및 데이터 처리 계약의 일부입니다.*
+## International Data Transfers
+
+For information about cross-border data transfers to Sub-processors, please refer to the [Cross-Border Data Transfer Addendum](docs.bizmori.com/legal/cross-border-transfer).
+
+**Key Transfer Mechanisms:**
+- **Transfers to South Korea:** EU adequacy decision (GDPR Article 45)
+- **Transfers to United States:** Standard Contractual Clauses (SCCs) and supplementary measures
+- **Korea PIPA compliance:** Contractual safeguards under PIPA Article 28-8
+
+---
+
+## Changes to This List
+
+MORI reserves the right to add, remove, or replace Sub-processors as necessary to provide and improve the Service. Material changes will be communicated to Customers at least 30 days in advance via:
+
+1. Email notification to the address on file
+2. Update to this page with revision date
+3. Notice in the BizMORI dashboard (where applicable)
+
+Customers who object to a new Sub-processor may do so in accordance with Section 6.3 of the DPA.
+
+---
+
+## Contact
+
+For questions about Sub-processors or to exercise your objection rights:
+
+**MORI SOLUTION, Inc.**  
+Email: mori@mori-corp.io  
+Website: https://bizmori.com
+
+---
+
+*This Sub-processors List is part of the BizMORI Privacy Policy and Data Processing Agreement.*

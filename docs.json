@@ -107,9 +107,7 @@
                 "pages": [
                   "legal/terms",
                   "legal/privacy",
-                  "legal/dpa",
                   "legal/aup",
-                  "legal/cross-border-transfer",
                   "legal/sub-processors"
                 ]
               }
@@ -205,9 +203,7 @@
                 "pages": [
                   "ko/legal/terms",
                   "ko/legal/privacy",
-                  "ko/legal/dpa",
                   "ko/legal/aup",
-                  "ko/legal/cross-border-transfer",
                   "ko/legal/sub-processors"
                 ]
               }
