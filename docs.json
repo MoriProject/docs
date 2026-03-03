@@ -8,7 +8,10 @@
     "dark": "#4F46E5"
   },
   "favicon": "/favicon.svg",
-  "openapi": ["/api-reference/openapi.yaml", "/ko/api-reference/openapi.yaml"],
+  "openapi": [
+    "/api-reference/openapi.yaml",
+    "/ko/api-reference/openapi.yaml"
+  ],
   "languages": [
     {
       "language": "en",
@@ -253,38 +256,64 @@
       {
         "title": "Product",
         "items": [
-          { "label": "Developer Center", "href": "https://app.bizmori.com" }
+          {
+            "label": "Developer Center",
+            "href": "https://app.bizmori.com"
+          },
+          {
+            "label": "MORI Corp.",
+            "href": "https://www.mori-corp.io"
+          },
+          {
+            "label": "Contact Support",
+            "href": "mailto:mori@mori-corp.io"
+          }
         ]
       },
       {
         "title": "Documentation",
         "items": [
-          { "label": "Guides", "href": "/index" },
-          { "label": "API Reference", "href": "/api-reference/introduction" },
-          { "label": "Error Codes", "href": "/errors" },
-          { "label": "Webhooks", "href": "/webhooks" }
-        ]
-      },
-      {
-        "title": "Company",
-        "items": [
-          { "label": "MORI Corp.", "href": "https://www.mori-corp.io" }
-        ]
-      },
-      {
-        "title": "Support",
-        "items": [
-          { "label": "Contact Support", "href": "mailto:mori@mori-corp.io" }
+          {
+            "label": "Guides",
+            "href": "/index"
+          },
+          {
+            "label": "API Reference",
+            "href": "/api-reference/introduction"
+          },
+          {
+            "label": "Error Codes",
+            "href": "/errors"
+          },
+          {
+            "label": "Webhooks",
+            "href": "/webhooks"
+          }
         ]
       },
       {
         "title": "Legal",
         "items": [
-          { "label": "Terms of Service", "href": "/legal/terms" },
-          { "label": "Privacy Policy", "href": "/legal/privacy" },
-          { "label": "DPA", "href": "/legal/dpa" },
-          { "label": "Acceptable Use", "href": "/legal/aup" },
-          { "label": "Sub-processors", "href": "/legal/sub-processors" }
+          {
+            "label": "Terms of Service",
+            "href": "/legal/terms"
+          },
+          {
+            "label": "Privacy Policy",
+            "href": "/legal/privacy"
+          },
+          {
+            "label": "DPA",
+            "href": "/legal/dpa"
+          },
+          {
+            "label": "Acceptable Use",
+            "href": "/legal/aup"
+          },
+          {
+            "label": "Sub-processors",
+            "href": "/legal/sub-processors"
+          }
         ]
       }
     ]
