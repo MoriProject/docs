@@ -101,7 +101,9 @@
                   "api-reference/webhooks/get-webhook",
                   "api-reference/webhooks/update-webhook",
                   "api-reference/webhooks/delete-webhook",
-                  "api-reference/webhooks/list-events"
+                  "api-reference/webhooks/list-events",
+                  "api-reference/webhooks/retry-event",
+                  "api-reference/webhooks/retry-failed-events"
                 ]
               }
             ]
@@ -204,7 +206,9 @@
                   "GET /api/v2/orders/webhooks/{webhookId}",
                   "PUT /api/v2/orders/webhooks/{webhookId}",
                   "DELETE /api/v2/orders/webhooks/{webhookId}",
-                  "GET /api/v2/orders/webhooks/{webhookId}/events"
+                  "GET /api/v2/orders/webhooks/{webhookId}/events",
+                  "POST /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry",
+                  "POST /api/v2/orders/webhooks/{webhookId}/events/retry-failed"
                 ]
               }
             ]

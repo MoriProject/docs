@@ -2,13 +2,15 @@ openapi: 3.0.0
 info:
   title: BIZ MORI API
   version: 2.0.0
-  description: 'BIZ MORI API는 디지털 콘텐츠 보호를 위한 세 가지 핵심 서비스를 제공합니다:
+  description: 'BIZ MORI API는 디지털 콘텐츠 보호를 위한 네 가지 핵심 서비스를 제공합니다:
 
     - **Anti-AI**: 이미지를 AI 학습으로부터 보호
 
     - **Watermark Embed**: 이미지에 보이지 않는 디지털 워터마크 삽입
 
     - **Watermark Extract**: 이미지에서 워터마크 추출 및 검증
+
+    - **AI Detection**: 이미지가 AI로 생성되었는지 감지
 
     '
   contact:
@@ -181,6 +183,7 @@ components:
           - antiAi
           - watermarkEmbed
           - watermarkExtract
+          - aiDetection
           description: 주문 타입
         channel:
           type: string
@@ -227,10 +230,29 @@ components:
           type: string
           format: date-time
           description: 생성 시각
-        updatedAt:
+        probability:
+          type: number
+          nullable: true
+          description: AI 감지 확률 (aiDetection 주문 전용)
+        statusCode:
           type: string
-          format: date-time
-          description: 수정 시각
+          nullable: true
+          enum:
+          - likely_real
+          - uncertain_real
+          - uncertain_ai
+          - likely_ai
+          description: 'AI 감지 결과 코드 (aiDetection 주문 전용)
+
+            * likely_real - 실제 콘텐츠일 가능성 높음
+
+            * uncertain_real - 불확실, 실제 콘텐츠 쪽에 가까움
+
+            * uncertain_ai - 불확실, AI 생성 쪽에 가까움
+
+            * likely_ai - AI 생성 콘텐츠일 가능성 높음
+
+            '
     OrderDetail:
       type: object
       description: 주문 상세 정보
@@ -247,6 +269,7 @@ components:
           - antiAi
           - watermarkEmbed
           - watermarkExtract
+          - aiDetection
           description: 주문 타입
         channel:
           type: string
@@ -294,6 +317,29 @@ components:
           type: string
           nullable: true
           description: 추출된 워터마크 텍스트 (watermarkExtract 주문 전용)
+        probability:
+          type: number
+          nullable: true
+          description: AI 감지 확률 (aiDetection 주문 전용)
+        statusCode:
+          type: string
+          nullable: true
+          enum:
+          - likely_real
+          - uncertain_real
+          - uncertain_ai
+          - likely_ai
+          description: 'AI 감지 결과 코드 (aiDetection 주문 전용)
+
+            * likely_real - 실제 콘텐츠일 가능성 높음
+
+            * uncertain_real - 불확실, 실제 콘텐츠 쪽에 가까움
+
+            * uncertain_ai - 불확실, AI 생성 쪽에 가까움
+
+            * likely_ai - AI 생성 콘텐츠일 가능성 높음
+
+            '
     UsageStats:
       type: object
       properties:
@@ -1472,6 +1518,7 @@ paths:
           - antiAi
           - watermarkEmbed
           - watermarkExtract
+          - aiDetection
           - all
         description: 주문 타입 필터
       - in: query
@@ -2205,3 +2252,177 @@ paths:
           \    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit':\
           \ 20}\n)\ndata = response.json()"
+  /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry:
+    post:
+      summary: 웹훅 이벤트 재전송
+      description: '실패한 단일 웹훅 이벤트를 수동으로 재전송합니다.
+
+        - `FAILED` 상태의 이벤트만 재전송할 수 있습니다
+
+        - 성공 시 이벤트 상태가 `SENT`로 변경됩니다
+
+        - 재전송 실패 시 이벤트는 `FAILED` 상태를 유지하며, 30분 후 스케줄러 기반 재시도가 등록됩니다
+
+        '
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: 웹훅 ID
+      - in: path
+        name: eventId
+        required: true
+        schema:
+          type: integer
+        description: 웹훅 이벤트 ID
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      event_id:
+                        type: string
+                        description: 원본 이벤트 UUID
+                      success:
+                        type: boolean
+                        description: 재전송 성공 여부
+                      status_code:
+                        type: integer
+                        description: 웹훅 엔드포인트의 HTTP 응답 코드 (성공 시)
+                      status:
+                        type: string
+                        description: 이벤트 상태 (재전송 실패 시)
+                        example: FAILED
+                      error:
+                        type: string
+                        description: 오류 메시지 (재전송 실패 시)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 재전송 불가능한 이벤트
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID/events/EVENT_ID/retry\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events/${eventId}/retry`,\n\
+          \  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN'\
+          \ }\n  }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events/{event_id}/retry',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+  /api/v2/orders/webhooks/{webhookId}/events/retry-failed:
+    post:
+      summary: 실패한 웹훅 이벤트 일괄 재전송
+      description: '지정된 기간 내 실패한 모든 웹훅 이벤트를 재전송합니다.
+
+        - 요청당 최대 50개의 실패 이벤트를 재전송합니다
+
+        - 날짜 범위는 최대 7일을 초과할 수 없습니다
+
+        - 각 이벤트는 개별적으로 재전송됩니다
+
+        '
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: 웹훅 ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - fromDate
+              - toDate
+              properties:
+                fromDate:
+                  type: string
+                  format: date
+                  description: 시작 날짜 (ISO 8601 형식, 예시 2026-01-01)
+                  example: '2026-01-01'
+                toDate:
+                  type: string
+                  format: date
+                  description: 종료 날짜 (ISO 8601 형식, 예시 2026-01-07). fromDate로부터
+                    최대 7일까지 지정 가능합니다.
+                  example: '2026-01-07'
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: 해당 기간 내 발견된 실패 이벤트 총 수
+                      succeeded:
+                        type: integer
+                        description: 재전송 성공한 이벤트 수
+                      failed:
+                        type: integer
+                        description: 재전송 실패한 이벤트 수
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 잘못된 날짜 범위
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID/events/retry-failed\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type:\
+          \ application/json\" \\\n  -d '{\n    \"fromDate\": \"2026-01-01\",\n    \"\
+          toDate\": \"2026-01-07\"\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events/retry-failed`,\n\
+          \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
+          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n\
+          \      fromDate: '2026-01-01',\n      toDate: '2026-01-07'\n    })\n  }\n);\n\
+          const data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events/retry-failed',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n     \
+          \   'fromDate': '2026-01-01',\n        'toDate': '2026-01-07'\n    }\n)\ndata\
+          \ = response.json()"

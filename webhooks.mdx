@@ -277,7 +277,11 @@ public ResponseEntity<Void> handleWebhook(
 
 ## Retry policy
 
-If your endpoint doesn't return a `2xx` status code, BIZ MORI retries the delivery:
+BIZ MORI uses a multi-layered retry system to ensure reliable webhook delivery.
+
+### Initial retry
+
+If your endpoint doesn't return a `2xx` status code, BIZ MORI immediately retries:
 
 | Attempt | Delay |
 |---------|-------|
@@ -285,7 +289,43 @@ If your endpoint doesn't return a `2xx` status code, BIZ MORI retries the delive
 | 2nd retry | 2 seconds |
 | 3rd retry | 4 seconds |
 
-After 3 failed retries, the event is marked as `FAILED`. You can view failed events using the [List Webhook Events](/api-reference/webhooks/list-events) endpoint.
+### Scheduler-based retry
+
+If all initial retries fail, the event enters a scheduler-based retry queue with increasing intervals:
+
+| Attempt | Delay |
+|---------|-------|
+| 4th retry | 30 minutes |
+| 5th retry | 2 hours |
+| 6th retry | 4 hours |
+
+After all scheduler-based retries are exhausted, the event is marked as `FAILED`. You can view failed events using the [List Webhook Events](/api-reference/webhooks/list-events) endpoint.
+
+### Manual resend API
+
+Regardless of the automatic retry process, you can manually resend webhooks at any time using the resend APIs:
+
+- **Single event resend**: Retry a specific failed event using the [Retry Webhook Event](/api-reference/webhooks/retry-event) endpoint.
+- **Bulk resend**: Retry all failed events within a date range (up to 7 days) using the [Retry Failed Webhook Events](/api-reference/webhooks/retry-failed-events) endpoint.
+
+```bash
+# Retry a single event
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+
+# Retry all failed events in a date range
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/{webhookId}/events/retry-failed \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fromDate": "2026-01-01",
+    "toDate": "2026-01-07"
+  }'
+```
+
+### Failure notification email
+
+When initial webhook delivery fails, BIZ MORI sends a failure notification email to the account owner. This email is sent at most **once per day** to avoid excessive notifications.
 
 ## Managing webhooks
 
@@ -297,3 +337,5 @@ After 3 failed retries, the event is marked as `FAILED`. You can view failed eve
 | Update a webhook | [PUT /webhooks/{id}](/api-reference/webhooks/update-webhook) |
 | Delete a webhook | [DELETE /webhooks/{id}](/api-reference/webhooks/delete-webhook) |
 | View delivery events | [GET /webhooks/{id}/events](/api-reference/webhooks/list-events) |
+| Retry a single event | [POST /webhooks/{id}/events/{eventId}/retry](/api-reference/webhooks/retry-event) |
+| Retry failed events | [POST /webhooks/{id}/events/retry-failed](/api-reference/webhooks/retry-failed-events) |

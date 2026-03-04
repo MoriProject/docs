@@ -276,7 +276,11 @@ public ResponseEntity<Void> handleWebhook(
 
 ## 재시도 정책
 
-엔드포인트가 `2xx` 상태 코드를 반환하지 않으면 BIZ MORI가 재시도합니다:
+BIZ MORI는 안정적인 웹훅 전송을 보장하기 위해 다단계 재시도 시스템을 사용합니다.
+
+### 초기 재시도
+
+엔드포인트가 `2xx` 상태 코드를 반환하지 않으면 BIZ MORI가 즉시 재시도합니다:
 
 | 시도 | 지연 |
 |------|------|
@@ -284,7 +288,43 @@ public ResponseEntity<Void> handleWebhook(
 | 2차 재시도 | 2초 |
 | 3차 재시도 | 4초 |
 
-3번의 재시도가 모두 실패하면 이벤트가 `FAILED`로 표시됩니다. [웹훅 이벤트 목록](/ko/api-reference/webhooks/list-events) 엔드포인트를 사용하여 실패한 이벤트를 확인할 수 있습니다.
+### 스케줄러 기반 재시도
+
+초기 재시도가 모두 실패하면, 이벤트는 점차 간격이 늘어나는 스케줄러 기반 재시도 큐에 등록됩니다:
+
+| 시도 | 지연 |
+|------|------|
+| 4차 재시도 | 30분 |
+| 5차 재시도 | 2시간 |
+| 6차 재시도 | 4시간 |
+
+스케줄러 기반 재시도가 모두 소진되면 이벤트가 `FAILED`로 표시됩니다. [웹훅 이벤트 목록](/ko/api-reference/webhooks/list-events) 엔드포인트를 사용하여 실패한 이벤트를 확인할 수 있습니다.
+
+### 수동 재전송 API
+
+자동 재시도 프로세스와 관계없이, 재전송 API를 통해 언제든지 수동으로 웹훅을 재전송할 수 있습니다:
+
+- **단일 이벤트 재전송**: [웹훅 이벤트 재전송](/api-reference/webhooks/retry-event) 엔드포인트를 사용하여 특정 실패 이벤트를 재시도합니다.
+- **일괄 재전송**: [실패한 웹훅 이벤트 일괄 재전송](/api-reference/webhooks/retry-failed-events) 엔드포인트를 사용하여 특정 기간(최대 7일) 내 실패한 모든 이벤트를 재시도합니다.
+
+```bash
+# 단일 이벤트 재전송
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+
+# 특정 기간 내 실패한 이벤트 일괄 재전송
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/{webhookId}/events/retry-failed \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fromDate": "2026-01-01",
+    "toDate": "2026-01-07"
+  }'
+```
+
+### 실패 알림 이메일
+
+초기 웹훅 전송이 실패하면 계정 소유자에게 웹훅 전송 실패 알림 이메일을 발송합니다. 과도한 알림을 방지하기 위해 이 이메일은 **하루 최대 1회**만 발송됩니다.
 
 ## 웹훅 관리
 
@@ -296,3 +336,5 @@ public ResponseEntity<Void> handleWebhook(
 | 웹훅 수정 | [PUT /webhooks/{id}](/ko/api-reference/webhooks/update-webhook) |
 | 웹훅 삭제 | [DELETE /webhooks/{id}](/ko/api-reference/webhooks/delete-webhook) |
 | 전송 이벤트 조회 | [GET /webhooks/{id}/events](/ko/api-reference/webhooks/list-events) |
+| 단일 이벤트 재전송 | [POST /webhooks/{id}/events/{eventId}/retry](/api-reference/webhooks/retry-event) |
+| 실패 이벤트 일괄 재전송 | [POST /webhooks/{id}/events/retry-failed](/api-reference/webhooks/retry-failed-events) |

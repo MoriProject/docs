@@ -2,13 +2,15 @@ openapi: 3.0.0
 info:
   title: BIZ MORI API
   version: 2.0.0
-  description: 'BIZ MORI API provides three core services for digital content protection:
+  description: 'BIZ MORI API provides four core services for digital content protection:
 
     - **Anti-AI**: Protect images from AI training
 
     - **Watermark Embed**: Embed invisible digital watermarks into images
 
     - **Watermark Extract**: Extract and verify watermarks from images
+
+    - **AI Detection**: Detect whether an image is AI-generated
 
     '
   contact:
@@ -181,6 +183,7 @@ components:
           - antiAi
           - watermarkEmbed
           - watermarkExtract
+          - aiDetection
           description: Order type
         channel:
           type: string
@@ -227,10 +230,29 @@ components:
           type: string
           format: date-time
           description: Created at
-        updatedAt:
+        probability:
+          type: number
+          nullable: true
+          description: AI detection probability (aiDetection orders only)
+        statusCode:
           type: string
-          format: date-time
-          description: Updated at
+          nullable: true
+          enum:
+          - likely_real
+          - uncertain_real
+          - uncertain_ai
+          - likely_ai
+          description: 'AI detection result code (aiDetection orders only)
+
+            * likely_real - Likely real content
+
+            * uncertain_real - Uncertain, leaning real
+
+            * uncertain_ai - Uncertain, leaning AI
+
+            * likely_ai - Likely AI-generated content
+
+            '
     OrderDetail:
       type: object
       description: Order detail info
@@ -247,6 +269,7 @@ components:
           - antiAi
           - watermarkEmbed
           - watermarkExtract
+          - aiDetection
           description: Order type
         channel:
           type: string
@@ -294,6 +317,29 @@ components:
           type: string
           nullable: true
           description: Extracted watermark text (watermarkExtract orders only)
+        probability:
+          type: number
+          nullable: true
+          description: AI detection probability (aiDetection orders only)
+        statusCode:
+          type: string
+          nullable: true
+          enum:
+          - likely_real
+          - uncertain_real
+          - uncertain_ai
+          - likely_ai
+          description: 'AI detection result code (aiDetection orders only)
+
+            * likely_real - Likely real content
+
+            * uncertain_real - Uncertain, leaning real
+
+            * uncertain_ai - Uncertain, leaning AI
+
+            * likely_ai - Likely AI-generated content
+
+            '
     UsageStats:
       type: object
       properties:
@@ -1491,6 +1537,7 @@ paths:
           - antiAi
           - watermarkEmbed
           - watermarkExtract
+          - aiDetection
           - all
         description: Order type filter
       - in: query
@@ -2232,3 +2279,179 @@ paths:
           \    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit':\
           \ 20}\n)\ndata = response.json()"
+  /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry:
+    post:
+      summary: Retry webhook event
+      description: 'Manually retry sending a single failed webhook event.
+
+        - Only events with `FAILED` status can be retried
+
+        - On success, the event status changes to `SENT`
+
+        - If the retry fails, the event remains `FAILED` and a scheduler-based retry is queued for 30 minutes later
+
+        '
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
+      - in: path
+        name: eventId
+        required: true
+        schema:
+          type: integer
+        description: Webhook event ID
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      event_id:
+                        type: string
+                        description: Original event UUID
+                      success:
+                        type: boolean
+                        description: Whether the retry was successful
+                      status_code:
+                        type: integer
+                        description: HTTP response code from the webhook endpoint (when
+                          success is true)
+                      status:
+                        type: string
+                        description: Event status (when retry fails)
+                        example: FAILED
+                      error:
+                        type: string
+                        description: Error message (when retry fails)
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Event is not retryable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID/events/EVENT_ID/retry\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events/${eventId}/retry`,\n\
+          \  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN'\
+          \ }\n  }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events/{event_id}/retry',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+  /api/v2/orders/webhooks/{webhookId}/events/retry-failed:
+    post:
+      summary: Retry failed webhook events
+      description: 'Retry all failed webhook events within a specified date range.
+
+        - Retries up to 50 failed events per request
+
+        - Date range must not exceed 7 days
+
+        - Each event is retried individually
+
+        '
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - fromDate
+              - toDate
+              properties:
+                fromDate:
+                  type: string
+                  format: date
+                  description: Start date (ISO 8601 format, e.g. 2026-01-01)
+                  example: '2026-01-01'
+                toDate:
+                  type: string
+                  format: date
+                  description: End date (ISO 8601 format, e.g. 2026-01-07). Must be
+                    within 7 days of fromDate.
+                  example: '2026-01-07'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: Total number of failed events found in the date
+                          range
+                      succeeded:
+                        type: integer
+                        description: Number of events successfully resent
+                      failed:
+                        type: integer
+                        description: Number of events that failed to resend
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Invalid date range
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID/events/retry-failed\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type:\
+          \ application/json\" \\\n  -d '{\n    \"fromDate\": \"2026-01-01\",\n    \"\
+          toDate\": \"2026-01-07\"\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events/retry-failed`,\n\
+          \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
+          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n\
+          \      fromDate: '2026-01-01',\n      toDate: '2026-01-07'\n    })\n  }\n);\n\
+          const data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events/retry-failed',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n     \
+          \   'fromDate': '2026-01-01',\n        'toDate': '2026-01-07'\n    }\n)\ndata\
+          \ = response.json()"
