@@ -1,0 +1,49 @@
+---
+title: "Create AI Detection order"
+openapi: "POST /api/v2/orders/ai-detection/upload"
+---
+
+## How to upload the image
+
+After receiving the `uploadUrl` from the response, upload your image directly to S3 using a `PUT` request:
+
+```bash
+curl -X PUT "UPLOAD_URL" \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @photo.jpg
+```
+
+<Note>
+  The presigned upload URL expires after **10 minutes**. Upload your image before it expires, then call the [Confirm order](/api-reference/ai-detection/confirm-order) endpoint.
+</Note>
+
+## Getting the detection result
+
+Once you confirm the upload, the order status changes to `inProgress`. When detection completes, the result is available via:
+
+1. **Webhook** — Subscribe to `order.aiDetection.completed` or `order.aiDetection.failed` events
+2. **Polling** — Call the [Get order](/api-reference/orders/get-order) endpoint until status is `complete` or `failed`
+
+The detection result is included in the order detail response under `aiDetection`:
+
+```json
+{
+  "data": {
+    "orderId": "...",
+    "status": "complete",
+    "aiDetection": {
+      "probability": 0.97,
+      "statusCode": 1
+    }
+  }
+}
+```
+
+### Status Codes
+
+| `statusCode` | Meaning |
+|---|---|
+| `1` | Highly likely AI-generated |
+| `2` | Likely AI-generated |
+| `3` | Likely human-created |
+| `4` | Highly likely human-created |

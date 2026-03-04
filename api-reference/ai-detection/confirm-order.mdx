@@ -1,0 +1,8 @@
+---
+title: "Confirm AI Detection order"
+openapi: "POST /api/v2/orders/ai-detection/{orderId}/confirm"
+---
+
+<Note>
+  Call this endpoint only **after** uploading the image to the presigned URL from the [Create order](/api-reference/ai-detection/create-order) step. If the file has not been uploaded yet, the request will return an error.
+</Note>
