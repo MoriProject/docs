@@ -2,7 +2,7 @@
 
 ## About this project
 
-- This is the public API documentation for [BIZ MORI](https://developers.mori.art), built on [Mintlify](https://mintlify.com)
+- This is the public API documentation for [BIZ MORI](https://app.bizmori.com), built on [Mintlify](https://mintlify.com)
 - Pages are MDX files with YAML frontmatter
 - Configuration lives in `docs.json`
 - API reference is auto-generated from `api-reference/openapi.yaml` (OpenAPI 3.0 spec)

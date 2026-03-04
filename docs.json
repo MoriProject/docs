@@ -219,8 +219,13 @@
         },
         {
           "anchor": "Support",
-          "href": "mailto:mori@mori-corp.io",
+          "href": "mailto:support@bizmori.com",
           "icon": "envelope"
+        },
+        {
+          "anchor": "Status",
+          "href": "https://status.bizmori.com",
+          "icon": "signal-bars"
         }
       ]
     }
@@ -233,7 +238,7 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:mori@mori-corp.io"
+        "href": "mailto:support@bizmori.com"
       }
     ],
     "primary": {
@@ -260,7 +265,11 @@
           },
           {
             "label": "Contact Support",
-            "href": "mailto:mori@mori-corp.io"
+            "href": "mailto:support@bizmori.com"
+          },
+          {
+            "label": "Status",
+            "href": "https://status.bizmori.com"
           }
         ]
       },

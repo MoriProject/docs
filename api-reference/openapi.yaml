@@ -13,7 +13,7 @@ info:
     '
   contact:
     name: BIZ MORI Support
-    email: mori@mori-corp.io
+    email: support@bizmori.com
 servers:
 - url: https://api.bizmori.com
   description: Production

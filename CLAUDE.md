@@ -6,7 +6,7 @@ This file provides guidance to Claude Code for the MORI API documentation projec
 
 MORI BIZ public API documentation built with [Mintlify](https://mintlify.com).
 
-- **Site**: https://developers.mori.art
+- **Site**: https://app.bizmori.com
 - **Framework**: Mintlify
 - **Languages**: English (default) + Korean (`ko/`)
 
