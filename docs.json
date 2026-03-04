@@ -65,6 +65,13 @@
                 ]
               },
               {
+                "group": "AI Detection",
+                "pages": [
+                  "api-reference/ai-detection/create-order",
+                  "api-reference/ai-detection/confirm-order"
+                ]
+              },
+              {
                 "group": "Watermark Embed",
                 "pages": [
                   "api-reference/watermark-embed/create-order"
@@ -153,6 +160,14 @@
                   "POST /api/v2/orders/anti-ai",
                   "POST /api/v2/orders/anti-ai/confirm",
                   "POST /api/v2/orders/anti-ai/with-urls"
+                ]
+              },
+              {
+                "group": "AI Detection",
+                "openapi": "/ko/api-reference/openapi.yaml",
+                "pages": [
+                  "POST /api/v2/orders/ai-detection",
+                  "POST /api/v2/orders/ai-detection/{orderId}/confirm"
                 ]
               },
               {
