@@ -213,7 +213,7 @@
     "global": {
       "anchors": [
         {
-          "anchor": "Developer Center",
+          "anchor": "Dashboard",
           "href": "https://app.bizmori.com",
           "icon": "code"
         },
@@ -243,7 +243,7 @@
     ],
     "primary": {
       "type": "button",
-      "label": "Developer Center",
+      "label": "Dashboard",
       "href": "https://app.bizmori.com"
     }
   },
@@ -256,7 +256,7 @@
         "title": "Product",
         "items": [
           {
-            "label": "Developer Center",
+            "label": "Dashboard",
             "href": "https://app.bizmori.com"
           },
           {
