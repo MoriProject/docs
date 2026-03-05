@@ -63,7 +63,7 @@ English API pages use individual **MDX wrapper files** registered by file path:
 ```
 
 Each MDX file (e.g., `api-reference/anti-ai/create-order.mdx`) must include:
-- `openapi: "METHOD /path"` frontmatter to bind the OpenAPI operation
+- `openapi: "/api-reference/openapi.yaml METHOD /path"` frontmatter to bind the OpenAPI operation. **IMPORTANT**: Always prefix with the spec file path `/api-reference/openapi.yaml` to prevent Mintlify from resolving to the Korean spec when multiple OpenAPI files are registered.
 - Additional documentation below the generated block (code snippets, warnings, notes) as needed
 
 ### Korean API Reference (`language: "ko"`)
