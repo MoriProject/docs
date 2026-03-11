@@ -14,7 +14,19 @@
       "Bash(kill:*)",
       "Bash(pkill:*)",
       "Bash(mintlify dev:*)",
-      "Bash(xargs sed:*)"
+      "Bash(xargs sed:*)",
+      "Bash(LC_ALL=C find .:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(gh api repos/mintlify/docs/contents --jq '.[].name')",
+      "Bash(gh api repos/mintlify/docs/contents/create --jq '.[].name')",
+      "Bash(gh api repos/mintlify/docs/contents/create/list-table.mdx --jq '.content')",
+      "Bash(gh api repos/mintlify/docs/contents/customize --jq '.[].name')",
+      "Bash(gh api repos/mintlify/docs/contents/customize/custom-scripts.mdx --jq '.content')",
+      "Bash(gh api:*)",
+      "WebFetch(domain:gist.github.com)",
+      "WebFetch(domain:community.mintlify.com)",
+      "Bash(git push:*)",
+      "Bash(git:*)"
     ]
   }
 }
