@@ -57,6 +57,8 @@ Webhooks deliver HTTP `POST` callbacks to your server when order processing comp
 | `order.watermarkEmbed.failed` | Watermark embedding failed |
 | `order.watermarkExtract.completed` | Watermark extraction completed successfully |
 | `order.watermarkExtract.failed` | Watermark extraction failed |
+| `order.aiDetection.completed` | AI Detection completed successfully |
+| `order.aiDetection.failed` | AI Detection failed |
 
 ## Webhook payload
 
@@ -70,6 +72,7 @@ All webhook payloads follow this structure:
     "orderId": "123456789",
     "orderName": "anti_ai_2026-02-19",
     "createdAt": "2026-02-19T11:50:00.000Z",
+    "updatedAt": "2026-02-19T12:00:00.000Z",
     "completedAt": "2026-02-19T12:00:00.000Z",
     "status": "complete",
     "fileCount": 3,
@@ -78,39 +81,53 @@ All webhook payloads follow this structure:
 }
 ```
 
-### Completed event data
+### Completed event — common fields
 
 | Field | Type | Description |
 |-------|------|-------------|
 | `orderId` | string | Order ID |
 | `orderName` | string | Order name |
 | `createdAt` | string | Order creation time (ISO 8601) |
+| `updatedAt` | string | Order last updated time (ISO 8601) |
 | `completedAt` | string | Processing completion time (ISO 8601) |
-| `status` | string | `complete`, `detected`, or `undetected` |
+| `status` | string | Always `complete` |
+
+### Failed event — common fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `orderId` | string | Order ID |
+| `orderName` | string | Order name |
+| `createdAt` | string | Order creation time (ISO 8601) |
+| `updatedAt` | string | Order last updated time (ISO 8601) |
+| `failedAt` | string | Processing failure time (ISO 8601) |
+| `status` | string | Always `failed` |
+| `errorCode` | string | Error code |
+| `errorMessage` | string | Error message |
+
+### Anti-AI / Watermark Embed — additional fields (completed)
+
+| Field | Type | Description |
+|-------|------|-------------|
 | `fileCount` | integer | Number of processed files |
 | `downloadUrl` | string | Result file download URL (valid for 1 hour) |
 
-### Failed event data
+### Watermark Extract — additional fields (completed)
+
+The `status` field is always `complete`. Use `statusCode` to determine the detection result.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `orderId` | string | Order ID |
-| `orderName` | string | Order name |
-| `createdAt` | string | Order creation time (ISO 8601) |
-| `failedAt` | string | Processing failure time (ISO 8601) |
-| `status` | string | Always `failed` |
-| `error.code` | string | Error code |
-| `error.message` | string | Error message |
-
-### Watermark extract completed
-
-For watermark extract orders, the completed event includes additional fields:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `status` | string | `detected` or `undetected` |
+| `statusCode` | string | `detected` or `undetected` |
 | `watermarkFound` | boolean | Whether a watermark was detected |
-| `watermarkInfo.text` | string | Detected watermark text (only when `watermarkFound` is true) |
+| `watermarkInfo.text` | string | Detected watermark text (only when `watermarkFound` is `true`) |
+
+### AI Detection — additional fields (completed)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `probability` | number | Probability of being AI-generated (0.0–1.0) |
+| `statusCode` | integer | Detection result code (1: AI-generated, 2: likely AI, 3: likely human, 4: human-generated) |
 
 ## Signature verification
 
