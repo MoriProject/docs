@@ -127,7 +127,8 @@ description: "주문 완료 또는 실패 시 실시간 푸시 알림 받기"
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `probability` | number | AI 생성 확률 (0.0–1.0) |
-| `statusCode` | integer | 판정 결과 코드 (1: AI 생성, 2: AI 생성 추정, 3: 인간 생성 추정, 4: 인간 생성) |
+| `heatmapUrl` | string \| null | AI 판별 히트맵 이미지 다운로드 URL (`generateHeatmap` 옵션 사용 시에만 반환) |
+| `overlayUrl` | string \| null | 원본 위 히트맵 오버레이 이미지 다운로드 URL (`generateOverlay` 옵션 사용 시에만 반환) |
 
 ## 서명 검증
 

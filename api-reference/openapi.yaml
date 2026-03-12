@@ -295,7 +295,8 @@ components:
           type: string
           format: uri
           nullable: true
-          description: Thumbnail image URL (presigned URL)
+          description: Thumbnail image URL (presigned URL). For aiDetection orders
+            with generateThumbnail option, replaced with the generated thumbnail URL.
         createdAt:
           type: string
           format: date-time
@@ -329,17 +330,30 @@ components:
           - uncertain_real
           - uncertain_ai
           - likely_ai
-          description: 'AI detection result code (aiDetection orders only)
+          description: 'AI detection result code (aiDetection orders only, computed
+            from probability)
 
-            * likely_real - Likely real content
+            * likely_real - probability < 0.25
 
-            * uncertain_real - Uncertain, leaning real
+            * uncertain_real - 0.25 <= probability < 0.5
 
-            * uncertain_ai - Uncertain, leaning AI
+            * uncertain_ai - 0.5 <= probability < 0.75
 
-            * likely_ai - Likely AI-generated content
+            * likely_ai - probability >= 0.75
 
             '
+        heatmapUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: AI detection heatmap image download URL (aiDetection orders
+            only, when generateHeatmap option is used)
+        overlayUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Heatmap overlay on original image download URL (aiDetection
+            orders only, when generateOverlay option is used)
     UsageStats:
       type: object
       properties:
@@ -1346,6 +1360,23 @@ paths:
                   description: 'Image file name with extension. Supported: jpg, jpeg,
                     png, webp, bmp, tiff'
                   example: photo.jpg
+                options:
+                  type: object
+                  description: Output options (optional). Generated files are included
+                    in the order detail response.
+                  properties:
+                    generateHeatmap:
+                      type: boolean
+                      default: false
+                      description: Generate AI detection heatmap image
+                    generateOverlay:
+                      type: boolean
+                      default: false
+                      description: Generate heatmap overlay on original image
+                    generateThumbnail:
+                      type: boolean
+                      default: false
+                      description: Generate thumbnail image
       responses:
         '200':
           description: Order created successfully
