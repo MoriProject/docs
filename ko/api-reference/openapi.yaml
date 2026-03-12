@@ -1660,6 +1660,72 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/OrderDetail'
+              examples:
+                antiAi:
+                  summary: Anti-AI 주문
+                  value:
+                    data:
+                      type: antiAi
+                      orderId: '1234567890123456789'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: anti_ai_2026-03-12
+                      fileCount: 3
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:05:00.000Z'
+                      errors: null
+                watermarkEmbed:
+                  summary: 워터마크 삽입 주문
+                  value:
+                    data:
+                      type: watermarkEmbed
+                      orderId: '1234567890123456790'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: wtr_embed_2026-03-12
+                      fileCount: 2
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:03:00.000Z'
+                      errors: null
+                      watermarks:
+                      - MORI-WTR-001
+                      - MORI-WTR-002
+                watermarkExtract:
+                  summary: 워터마크 추출 주문
+                  value:
+                    data:
+                      type: watermarkExtract
+                      orderId: '1234567890123456791'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: detected
+                      orderName: wtr_extract_2026-03-12
+                      fileCount: 1
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:02:00.000Z'
+                      errors: null
+                      statusCode: detected
+                      watermarkText: MORI-WTR-001
+                aiDetection:
+                  summary: AI Detection 주문
+                  value:
+                    data:
+                      type: aiDetection
+                      orderId: '1234567890123456792'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: ai_detection_2026-03-12
+                      fileCount: 1
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:01:00.000Z'
+                      errors: null
+                      probability: 0.92
+                      statusCode: likely_ai
+                      heatmapUrl: https://s3.amazonaws.com/...
+                      overlayUrl: https://s3.amazonaws.com/...
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
