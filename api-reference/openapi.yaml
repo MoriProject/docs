@@ -295,7 +295,14 @@ components:
           type: string
           format: uri
           nullable: true
-          description: Thumbnail image URL (presigned URL)
+          description: Thumbnail image URL (presigned URL, 1-hour expiry). For aiDetection
+            orders, only returned when generateThumbnail option is used. null when expired.
+        originalImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: Original input image download URL (presigned URL, 1-hour expiry).
+            aiDetection orders only. null when expired.
         createdAt:
           type: string
           format: date-time
@@ -1434,9 +1441,23 @@ paths:
       - in: path
         name: orderId
         required: true
-        schema:
-          type: string
-        description: Order ID
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - orderId
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: Unique key to prevent duplicate requests. If the same
+                    key is used in a retry, the current order status is returned without
+                    reprocessing.
+                  example: 01950c7e-f6b2-7000-8000-abcdef123456
+                orderId:
+                  type: string
+                  description: Order ID
       responses:
         '200':
           description: Processing started
@@ -1465,18 +1486,22 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST \"https://api.bizmori.com/api/v2/orders/ai-detection/ORDER_ID/confirm\"\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X POST \"https://api.bizmori.com/api/v2/orders/ai-detection/confirm\"\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type:\
+          \ application/json\" \\\n  -d '{\"idempotencyKey\": \"YOUR_IDEMPOTENCY_KEY\"\
+          , \"orderId\": \"ORDER_ID\"}'"
       - lang: javascript
         label: JavaScript
-        source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/ai-detection/${orderId}/confirm`,\n\
-          \  { method: 'POST', headers: { 'Authorization': 'Bearer YOUR_API_TOKEN'\
-          \ } }\n);\nconst data = await response.json();"
+        source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
+          \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer\
+          \ YOUR_API_TOKEN',\n      'Content-Type': 'application/json'\n    },\n \
+          \   body: JSON.stringify({ idempotencyKey: 'YOUR_IDEMPOTENCY_KEY', orderId:\
+          \ 'ORDER_ID' })\n  }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
-        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.post(\n\
-          \    f'https://api.bizmori.com/api/v2/orders/ai-detection/{order_id}/confirm',\n\
-          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey':\
+          \ 'YOUR_IDEMPOTENCY_KEY', 'orderId': 'ORDER_ID'}\n)\ndata = response.json()"
   /api/v2/orders:
     get:
       summary: List orders
@@ -1650,6 +1675,73 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/OrderDetail'
+              examples:
+                antiAi:
+                  summary: Anti-AI order
+                  value:
+                    data:
+                      type: antiAi
+                      orderId: '1234567890123456789'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: anti_ai_2026-03-12
+                      fileCount: 3
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:05:00.000Z'
+                      errors: null
+                watermarkEmbed:
+                  summary: Watermark Embed order
+                  value:
+                    data:
+                      type: watermarkEmbed
+                      orderId: '1234567890123456790'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: wtr_embed_2026-03-12
+                      fileCount: 2
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:03:00.000Z'
+                      errors: null
+                      watermarks:
+                      - MORI-WTR-001
+                      - MORI-WTR-002
+                watermarkExtract:
+                  summary: Watermark Extract order
+                  value:
+                    data:
+                      type: watermarkExtract
+                      orderId: '1234567890123456791'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: detected
+                      orderName: wtr_extract_2026-03-12
+                      fileCount: 1
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:02:00.000Z'
+                      errors: null
+                      statusCode: detected
+                      watermarkText: MORI-WTR-001
+                aiDetection:
+                  summary: AI Detection order
+                  value:
+                    data:
+                      type: aiDetection
+                      orderId: '1234567890123456792'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      originalImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: ai_detection_2026-03-12
+                      fileCount: 1
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:01:00.000Z'
+                      errors: null
+                      probability: 0.92
+                      statusCode: likely_ai
+                      heatmapUrl: https://s3.amazonaws.com/...
+                      overlayUrl: https://s3.amazonaws.com/...
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':

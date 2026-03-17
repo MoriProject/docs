@@ -35,7 +35,11 @@
                 "pages": [
                   "index",
                   "authentication",
-                  "quickstart"
+                  "quickstart",
+                  "quickstart/anti-ai",
+                  "quickstart/watermark-embed",
+                  "quickstart/watermark-extract",
+                  "quickstart/ai-detection"
                 ]
               },
               {
@@ -134,7 +138,11 @@
                 "pages": [
                   "ko/index",
                   "ko/authentication",
-                  "ko/quickstart"
+                  "ko/quickstart",
+                  "ko/quickstart/anti-ai",
+                  "ko/quickstart/watermark-embed",
+                  "ko/quickstart/watermark-extract",
+                  "ko/quickstart/ai-detection"
                 ]
               },
               {

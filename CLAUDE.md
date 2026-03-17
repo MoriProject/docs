@@ -39,6 +39,10 @@ mintlify dev
 └── ko/                          # Korean translations (mirrors root structure)
 ```
 
+## Related Repositories
+
+- **mori-biz-was**: `/Users/jimin/Documents/GitHub/was/mori-biz-was` — API 서버 소스코드. 엔드포인트 스펙 원본 확인 시 참조 (orderRouter.js, orderController.js, orderSchemas.js, orderQueryService.js 등)
+
 ## Key Conventions
 
 - **OpenAPI spec** (`api-reference/openapi.yaml`) is derived from `mori-biz-was` Swagger files. Only `x-public: true` endpoints are included. Do not manually add endpoints that are not marked public.

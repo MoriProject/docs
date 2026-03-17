@@ -1,0 +1,203 @@
+---
+title: "AI Detection Quickstart"
+description: "Detect AI-generated images with probability scoring"
+---
+
+This guide walks you through detecting whether an image is AI-generated — from uploading an image to reading the detection result.
+
+## Prerequisites
+
+- A BIZ MORI API key ([get one here](https://app.bizmori.com/keys))
+- An image file to analyze (`jpeg`, `jpg`, `png`, `webp`, `bmp`, or `tiff`)
+
+## Step 1: Create an order
+
+Create an AI Detection order with your image file name.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "idempotencyKey": "my-detection-001",
+    "fileName": "photo.jpg"
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://api.bizmori.com/api/v2/orders/ai-detection', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    idempotencyKey: 'my-detection-001',
+    fileName: 'photo.jpg',
+  }),
+});
+const { data } = await response.json();
+```
+
+```python Python
+import requests
+
+res = requests.post(
+    'https://api.bizmori.com/api/v2/orders/ai-detection',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    json={
+        'idempotencyKey': 'my-detection-001',
+        'fileName': 'photo.jpg',
+    },
+)
+data = res.json()['data']
+```
+</CodeGroup>
+
+**Response:**
+```json
+{
+  "data": {
+    "orderId": "123456789",
+    "orderName": "ai_detection_2026-03-18",
+    "status": "pending",
+    "file": {
+      "fileId": 1,
+      "fileName": "photo.jpg",
+      "uploadUrl": "https://s3.amazonaws.com/...",
+      "fileKey": "ai-detection/123456789/1/photo.jpg"
+    }
+  }
+}
+```
+
+<Tip>
+  You can optionally request heatmap and overlay images by adding `"options": { "generateHeatmap": true, "generateOverlay": true }` to the request body. These will be available in the order detail once processing completes.
+</Tip>
+
+## Step 2: Upload the file
+
+PUT your file to the presigned `uploadUrl` from Step 1. This is a direct S3 upload — **no Authorization header needed**.
+
+```bash cURL
+curl -X PUT "https://s3.amazonaws.com/..." \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @photo.jpg
+```
+
+<Note>
+  The presigned upload URL expires after **10 minutes**. Upload your image before it expires.
+</Note>
+
+## Step 3: Confirm the order
+
+After uploading, call confirm to start detection processing:
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection/confirm \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"idempotencyKey": "YOUR_IDEMPOTENCY_KEY", "orderId": "123456789"}'
+```
+
+```javascript Node.js
+await fetch('https://api.bizmori.com/api/v2/orders/ai-detection/confirm', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    idempotencyKey: 'YOUR_IDEMPOTENCY_KEY',
+    orderId: '123456789',
+  }),
+});
+```
+
+```python Python
+requests.post(
+    'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    json={'idempotencyKey': 'YOUR_IDEMPOTENCY_KEY', 'orderId': '123456789'},
+)
+```
+</CodeGroup>
+
+## Step 4: Check the result
+
+Poll the order or use [webhooks](/webhooks) to receive a push notification when detection completes. The detection result is included directly in the order detail — there is no separate download step.
+
+<CodeGroup>
+```bash cURL
+curl https://api.bizmori.com/api/v2/orders/123456789 \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript Node.js
+const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
+  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
+});
+const { data } = await res.json();
+// data.probability: 0-1
+// data.statusCode: 'likely_ai' | 'uncertain_ai' | 'uncertain_real' | 'likely_real'
+```
+
+```python Python
+res = requests.get(
+    'https://api.bizmori.com/api/v2/orders/123456789',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+)
+data = res.json()['data']
+probability = data['probability']
+status_code = data['statusCode']
+```
+</CodeGroup>
+
+**Response:**
+```json
+{
+  "data": {
+    "type": "aiDetection",
+    "orderId": "123456789",
+    "status": "complete",
+    "probability": 0.92,
+    "statusCode": "likely_ai",
+    "heatmapUrl": "https://s3.amazonaws.com/...",
+    "overlayUrl": "https://s3.amazonaws.com/..."
+  }
+}
+```
+
+### Reading the result
+
+The `probability` field (0–1) indicates how likely the image is AI-generated. The `statusCode` provides a human-readable interpretation:
+
+| `statusCode` | Probability range | Meaning |
+|---|---|---|
+| `likely_real` | < 0.25 | Highly likely human-created |
+| `uncertain_real` | 0.25 – 0.5 | Likely human-created |
+| `uncertain_ai` | 0.5 – 0.75 | Likely AI-generated |
+| `likely_ai` | ≥ 0.75 | Highly likely AI-generated |
+
+<Note>
+  `heatmapUrl` and `overlayUrl` are only present if you requested them via `options.generateHeatmap` and `options.generateOverlay` in Step 1.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Anti-AI" icon="shield" href="/quickstart/anti-ai">
+    Protect images from AI training and generation.
+  </Card>
+  <Card title="Watermark Embed" icon="stamp" href="/quickstart/watermark-embed">
+    Embed invisible watermarks into images.
+  </Card>
+  <Card title="Watermark Extract" icon="magnifying-glass" href="/quickstart/watermark-extract">
+    Detect and extract watermarks from images.
+  </Card>
+  <Card title="Webhooks" icon="bell" href="/webhooks">
+    Set up webhooks to get notified when processing completes.
+  </Card>
+</CardGroup>
