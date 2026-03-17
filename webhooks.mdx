@@ -127,7 +127,8 @@ The `status` field is always `complete`. Use `statusCode` to determine the detec
 | Field | Type | Description |
 |-------|------|-------------|
 | `probability` | number | Probability of being AI-generated (0.0–1.0) |
-| `statusCode` | integer | Detection result code (1: AI-generated, 2: likely AI, 3: likely human, 4: human-generated) |
+| `heatmapUrl` | string \| null | AI detection heatmap image download URL (only when `generateHeatmap` option was used) |
+| `overlayUrl` | string \| null | Heatmap overlay on original image download URL (only when `generateOverlay` option was used) |
 
 ## Signature verification
 

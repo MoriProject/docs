@@ -336,17 +336,29 @@ components:
           - uncertain_real
           - uncertain_ai
           - likely_ai
-          description: 'AI 감지 결과 코드 (aiDetection 주문 전용)
+          description: 'AI 감지 결과 코드 (aiDetection 주문 전용, probability 기반 자동 계산)
 
-            * likely_real - 실제 콘텐츠일 가능성 높음
+            * likely_real - probability < 0.25
 
-            * uncertain_real - 불확실, 실제 콘텐츠 쪽에 가까움
+            * uncertain_real - 0.25 <= probability < 0.5
 
-            * uncertain_ai - 불확실, AI 생성 쪽에 가까움
+            * uncertain_ai - 0.5 <= probability < 0.75
 
-            * likely_ai - AI 생성 콘텐츠일 가능성 높음
+            * likely_ai - probability >= 0.75
 
             '
+        heatmapUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: AI 판별 히트맵 이미지 다운로드 URL (aiDetection 주문 전용, generateHeatmap
+            옵션 사용 시 반환)
+        overlayUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 원본 위 히트맵 오버레이 이미지 다운로드 URL (aiDetection 주문 전용, generateOverlay
+            옵션 사용 시 반환)
     UsageStats:
       type: object
       properties:
@@ -1336,6 +1348,22 @@ paths:
                   type: string
                   description: '이미지 파일명 (확장자 포함). 지원 형식: jpg, jpeg, png, webp, bmp, tiff'
                   example: photo.jpg
+                options:
+                  type: object
+                  description: 출력 옵션 (선택사항). 생성된 파일은 주문 상세 조회 응답에 포함됩니다.
+                  properties:
+                    generateHeatmap:
+                      type: boolean
+                      default: false
+                      description: AI 판별 히트맵 이미지 생성 여부
+                    generateOverlay:
+                      type: boolean
+                      default: false
+                      description: 원본 위 히트맵 오버레이 이미지 생성 여부
+                    generateThumbnail:
+                      type: boolean
+                      default: false
+                      description: 썸네일 이미지 생성 여부
       responses:
         '200':
           description: 주문 생성 성공
