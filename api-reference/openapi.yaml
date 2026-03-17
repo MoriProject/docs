@@ -142,6 +142,15 @@ components:
           - IMG
           - DOCUMENT
           description: File type (image or PDF)
+        role:
+          type: string
+          enum:
+          - watermarked
+          description: File role (always "watermarked" for the main file)
+        sequence:
+          type: integer
+          description: File sequence number (always 1)
+          example: 1
         originalFile:
           type: object
           nullable: true
@@ -168,6 +177,15 @@ components:
               enum:
               - IMG
               description: File type (image only)
+            role:
+              type: string
+              enum:
+              - original
+              description: File role (always "original")
+            sequence:
+              type: integer
+              description: File sequence number (always 1)
+              example: 1
     Order:
       type: object
       properties:
@@ -230,6 +248,10 @@ components:
           type: string
           format: date-time
           description: Created at
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last updated at
         probability:
           type: number
           nullable: true
@@ -331,13 +353,15 @@ components:
         statusCode:
           type: string
           nullable: true
-          enum:
-          - likely_real
-          - uncertain_real
-          - uncertain_ai
-          - likely_ai
-          description: 'AI detection result code (aiDetection orders only, computed
-            from probability)
+          description: 'Status code by order type.
+
+            **watermarkExtract orders:**
+
+            * detected - Watermark detected
+
+            * undetected - Watermark not detected
+
+            **aiDetection orders** (computed from probability):
 
             * likely_real - probability < 0.25
 
@@ -347,7 +371,26 @@ components:
 
             * likely_ai - probability >= 0.75
 
+            Not returned for other order types.
+
             '
+        options:
+          type: object
+          nullable: true
+          description: Options set at order creation (aiDetection orders only)
+          properties:
+            generateHeatmap:
+              type: boolean
+              description: Whether heatmap image was requested
+              example: true
+            generateOverlay:
+              type: boolean
+              description: Whether overlay image was requested
+              example: true
+            generateThumbnail:
+              type: boolean
+              description: Whether thumbnail image was requested
+              example: true
         heatmapUrl:
           type: string
           format: uri
@@ -1037,9 +1080,43 @@ paths:
 
         - Up to 10 watermark texts per image
 
-        - Up to 100 images per order
+        - Up to 100 files per order
 
-        - Supported formats: jpg, jpeg, png, webp
+        - Supported image formats (IMG): jpg, jpeg, png, webp, bmp, tiff
+
+        - Supported document formats (DOCUMENT): pdf
+
+
+        ## Input Modes (Upload / URL / Mixed)
+
+        The input mode is determined by the presence of `originalFileUrl` in each
+        file object:
+
+        - **Upload mode** (no `originalFileUrl`): Presigned URL issued → Client uploads
+        to S3 → Processing starts automatically
+
+        - **URL mode** (`originalFileUrl` provided): Image downloaded from the URL
+        and processed immediately
+
+        - **Mixed mode**: Some files in Upload mode, others in URL mode simultaneously
+
+
+        ### Behavior
+
+        | Condition | Order Status | Confirm Required |
+
+        |-----------|-------------|-----------------|
+
+        | All files have `originalFileUrl` | `pending` | No (auto-starts after
+        server downloads) |
+
+        | Any file without `originalFileUrl` | `pending` | No (auto-starts after
+        upload) |
+
+
+        <Note>Unlike Anti-AI and AI Detection, Watermark Embed does not require
+        a separate confirm step. Processing starts automatically after file upload
+        completes.</Note>
 
         '
       tags:
@@ -1073,6 +1150,18 @@ paths:
                         type: string
                         description: File name
                         example: image.jpg
+                      originalFileUrl:
+                        type: string
+                        format: uri
+                        description: 'Original image URL (optional)
+
+                          - Provided: URL mode (no presigned URL issued, immediate
+                          processing)
+
+                          - Not provided: Upload mode (presigned URL issued)
+
+                          '
+                        example: https://example.com/image.jpg
                       watermarks:
                         type: array
                         minItems: 1
@@ -1086,6 +1175,43 @@ paths:
                               type: string
                               maxLength: 1000
                               description: Watermark text
+            examples:
+              uploadMode:
+                summary: Upload mode (traditional)
+                value:
+                  idempotencyKey: key-embed-001
+                  files:
+                  - fileName: image1.jpg
+                    watermarks:
+                    - text: MORI_WATERMARK
+                  - fileName: image2.png
+                    watermarks:
+                    - text: MORI_WATERMARK
+              urlMode:
+                summary: URL mode (immediate processing)
+                value:
+                  idempotencyKey: key-embed-url-001
+                  files:
+                  - fileName: image1.jpg
+                    originalFileUrl: https://example.com/image1.jpg
+                    watermarks:
+                    - text: MORI_WATERMARK
+                  - fileName: image2.png
+                    originalFileUrl: https://example.com/image2.png
+                    watermarks:
+                    - text: MORI_WATERMARK
+              mixedMode:
+                summary: Mixed mode
+                value:
+                  idempotencyKey: key-embed-mixed-001
+                  files:
+                  - fileName: upload-file.jpg
+                    watermarks:
+                    - text: MORI_WATERMARK
+                  - fileName: url-file.png
+                    originalFileUrl: https://example.com/image.png
+                    watermarks:
+                    - text: MORI_WATERMARK
       responses:
         '200':
           description: Order created successfully
@@ -1101,10 +1227,112 @@ paths:
                         type: string
                       orderId:
                         type: string
+                      status:
+                        type: string
+                        enum:
+                        - pending
+                        description: 'Order status
+
+                          - `pending`: Always returned regardless of input mode
+
+                          '
                       files:
                         type: array
                         items:
-                          $ref: '#/components/schemas/OrderFile'
+                          type: object
+                          description: "File info (fields vary by mode)\n- Upload mode:\
+                            \ fileId, fileName, uploadUrl, fileKey, fileFormat, fileType\n\
+                            - URL mode: fileId, fileName, originalFileUrl, fileKey, fileFormat,\
+                            \ fileType"
+                          properties:
+                            fileId:
+                              type: integer
+                            fileName:
+                              type: string
+                            uploadUrl:
+                              type: string
+                              format: uri
+                              description: Presigned upload URL. Returned in upload mode
+                                only.
+                            originalFileUrl:
+                              type: string
+                              format: uri
+                              description: Public image URL provided in the request. Returned
+                                in URL mode only.
+                            fileKey:
+                              type: string
+                              description: S3 object key for the file.
+                            fileFormat:
+                              type: string
+                              description: File format.
+                              enum:
+                              - JPG
+                              - PNG
+                              - WEBP
+                              - BMP
+                              - TIFF
+                              - PDF
+                            fileType:
+                              type: string
+                              description: File type category.
+                              enum:
+                              - IMG
+                              - DOCUMENT
+              examples:
+                uploadModeResponse:
+                  summary: Upload mode response
+                  value:
+                    data:
+                      orderName: wtr_embed_20260318120000.000
+                      orderId: '424706541233094656'
+                      status: pending
+                      files:
+                      - fileId: 2469
+                        fileName: image.jpg
+                        uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...?X-Amz-Algorithm=AWS4-HMAC-SHA256&...
+                        fileKey: wtr-embed/424706541233094656/images/1/image.jpg
+                        fileFormat: JPG
+                        fileType: IMG
+                      - fileId: 2470
+                        fileName: document.pdf
+                        uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...?X-Amz-Algorithm=AWS4-HMAC-SHA256&...
+                        fileKey: wtr-embed/424706541233094656/documents/2/document.pdf
+                        fileFormat: PDF
+                        fileType: DOCUMENT
+                urlModeResponse:
+                  summary: URL mode response
+                  value:
+                    data:
+                      orderName: wtr_embed_20260318120000.000
+                      orderId: '424707536709206016'
+                      status: pending
+                      files:
+                      - fileId: 2490
+                        fileName: image.png
+                        originalFileUrl: https://example.com/image.jpg
+                        fileKey: wtr-embed/424707536709206016/images/1/image.png
+                        fileFormat: PNG
+                        fileType: IMG
+                mixedModeResponse:
+                  summary: Mixed mode response
+                  value:
+                    data:
+                      orderName: wtr_embed_20260318120000.000
+                      orderId: '424707536709206016'
+                      status: pending
+                      files:
+                      - fileId: 2490
+                        fileName: image.png
+                        originalFileUrl: https://example.com/image.jpg
+                        fileKey: wtr-embed/424707536709206016/images/1/image.png
+                        fileFormat: PNG
+                        fileType: IMG
+                      - fileId: 2491
+                        fileName: photo.jpeg
+                        uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...?X-Amz-Algorithm=AWS4-HMAC-SHA256&...
+                        fileKey: wtr-embed/424707536709206016/images/2/photo.jpeg
+                        fileFormat: JPG
+                        fileType: IMG
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1141,7 +1369,7 @@ paths:
 
         - Only 1 file per order
 
-        - Supports image (jpg, jpeg, png, gif, webp, bmp, tiff) or PDF files
+        - Supports image (jpg, jpeg, png, webp, bmp, tiff) or PDF files
 
         - For images, `includeOriginal: true` allows uploading the original file alongside
 
@@ -1250,6 +1478,8 @@ paths:
                         fileKey: 123/456/watermarked.jpg
                         fileFormat: JPG
                         fileType: IMG
+                        role: watermarked
+                        sequence: 1
                 imageWithOriginalResponse:
                   summary: Image + original response
                   value:
@@ -1263,6 +1493,8 @@ paths:
                         fileKey: 123/456/watermarked.jpg
                         fileFormat: JPG
                         fileType: IMG
+                        role: watermarked
+                        sequence: 1
                         originalFile:
                           fileId: 2
                           fileName: original.jpg
@@ -1270,6 +1502,8 @@ paths:
                           fileKey: 123/456/original.jpg
                           fileFormat: JPG
                           fileType: IMG
+                          role: original
+                          sequence: 1
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':

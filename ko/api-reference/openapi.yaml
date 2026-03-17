@@ -142,6 +142,15 @@ components:
           - IMG
           - DOCUMENT
           description: 파일 타입 (이미지 또는 PDF)
+        role:
+          type: string
+          enum:
+          - watermarked
+          description: 파일 역할 (항상 "watermarked")
+        sequence:
+          type: integer
+          description: 파일 순서 (항상 1)
+          example: 1
         originalFile:
           type: object
           nullable: true
@@ -168,6 +177,15 @@ components:
               enum:
               - IMG
               description: 파일 타입 (이미지만 해당)
+            role:
+              type: string
+              enum:
+              - original
+              description: 파일 역할 (항상 "original")
+            sequence:
+              type: integer
+              description: 파일 순서 (항상 1)
+              example: 1
     Order:
       type: object
       properties:
@@ -230,6 +248,10 @@ components:
           type: string
           format: date-time
           description: 생성 시각
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정일시
         probability:
           type: number
           nullable: true
@@ -331,12 +353,15 @@ components:
         statusCode:
           type: string
           nullable: true
-          enum:
-          - likely_real
-          - uncertain_real
-          - uncertain_ai
-          - likely_ai
-          description: 'AI 감지 결과 코드 (aiDetection 주문 전용, probability 기반 자동 계산)
+          description: '주문 타입별 상태 코드.
+
+            **watermarkExtract 주문:**
+
+            * detected - 워터마크 검출됨
+
+            * undetected - 워터마크 미검출
+
+            **aiDetection 주문** (probability 기반 자동 계산):
 
             * likely_real - probability < 0.25
 
@@ -346,7 +371,26 @@ components:
 
             * likely_ai - probability >= 0.75
 
+            다른 주문 타입에서는 반환되지 않습니다.
+
             '
+        options:
+          type: object
+          nullable: true
+          description: 주문 생성 시 설정한 옵션 (aiDetection 주문만)
+          properties:
+            generateHeatmap:
+              type: boolean
+              description: 히트맵 이미지 생성 여부
+              example: true
+            generateOverlay:
+              type: boolean
+              description: 오버레이 이미지 생성 여부
+              example: true
+            generateThumbnail:
+              type: boolean
+              description: 썸네일 이미지 생성 여부
+              example: true
         heatmapUrl:
           type: string
           format: uri
@@ -1023,9 +1067,41 @@ paths:
 
         - 이미지당 최대 10개의 워터마크 텍스트
 
-        - 주문당 최대 100개의 이미지
+        - 주문당 최대 100개의 파일
 
-        - 지원 형식: jpg, jpeg, png, webp
+        - 지원 이미지 형식 (IMG): jpg, jpeg, png, webp, bmp, tiff
+
+        - 지원 문서 형식 (DOCUMENT): pdf
+
+
+        ## 입력 모드 (업로드 / URL / 혼합)
+
+        입력 모드는 각 파일 객체의 `originalFileUrl` 존재 여부에 따라 결정됩니다:
+
+        - **업로드 모드** (`originalFileUrl` 없음): Presigned URL 발급 → 클라이언트가
+        S3에 업로드 → 처리 자동 시작
+
+        - **URL 모드** (`originalFileUrl` 제공): 해당 URL에서 이미지를 다운로드하여
+        즉시 처리
+
+        - **혼합 모드**: 일부 파일은 업로드 모드, 나머지는 URL 모드로 동시 처리
+
+
+        ### 동작 방식
+
+        | 조건 | 주문 상태 | Confirm 필요 여부 |
+
+        |------|---------|-----------------|
+
+        | 모든 파일에 `originalFileUrl` 있음 | `pending` | 불필요 (서버 다운로드
+        후 자동 시작) |
+
+        | `originalFileUrl` 없는 파일 존재 | `pending` | 불필요 (업로드 후 자동
+        시작) |
+
+
+        <Note>Anti-AI, AI Detection과 달리 Watermark Embed는 별도의 confirm 단계가
+        필요하지 않습니다. 파일 업로드가 완료되면 처리가 자동으로 시작됩니다.</Note>
 
         '
       tags:
@@ -1059,6 +1135,17 @@ paths:
                         type: string
                         description: 파일 이름
                         example: image.jpg
+                      originalFileUrl:
+                        type: string
+                        format: uri
+                        description: '원본 이미지 URL (선택)
+
+                          - 제공 시: URL 모드 (presigned URL 미발급, 즉시 처리)
+
+                          - 미제공 시: 업로드 모드 (presigned URL 발급)
+
+                          '
+                        example: https://example.com/image.jpg
                       watermarks:
                         type: array
                         minItems: 1
@@ -1072,6 +1159,43 @@ paths:
                               type: string
                               maxLength: 1000
                               description: 워터마크 텍스트
+            examples:
+              uploadMode:
+                summary: 업로드 모드 (기본)
+                value:
+                  idempotencyKey: key-embed-001
+                  files:
+                  - fileName: image1.jpg
+                    watermarks:
+                    - text: MORI_WATERMARK
+                  - fileName: image2.png
+                    watermarks:
+                    - text: MORI_WATERMARK
+              urlMode:
+                summary: URL 모드 (즉시 처리)
+                value:
+                  idempotencyKey: key-embed-url-001
+                  files:
+                  - fileName: image1.jpg
+                    originalFileUrl: https://example.com/image1.jpg
+                    watermarks:
+                    - text: MORI_WATERMARK
+                  - fileName: image2.png
+                    originalFileUrl: https://example.com/image2.png
+                    watermarks:
+                    - text: MORI_WATERMARK
+              mixedMode:
+                summary: 혼합 모드
+                value:
+                  idempotencyKey: key-embed-mixed-001
+                  files:
+                  - fileName: upload-file.jpg
+                    watermarks:
+                    - text: MORI_WATERMARK
+                  - fileName: url-file.png
+                    originalFileUrl: https://example.com/image.png
+                    watermarks:
+                    - text: MORI_WATERMARK
       responses:
         '200':
           description: 주문 생성 성공
@@ -1087,10 +1211,110 @@ paths:
                         type: string
                       orderId:
                         type: string
+                      status:
+                        type: string
+                        enum:
+                        - pending
+                        description: '주문 상태
+
+                          - `pending`: 입력 모드에 관계없이 항상 반환
+
+                          '
                       files:
                         type: array
                         items:
-                          $ref: '#/components/schemas/OrderFile'
+                          type: object
+                          description: "파일 정보 (모드에 따라 필드가 다릅니다)\n- 업로드 모드: fileId,\
+                            \ fileName, uploadUrl, fileKey, fileFormat, fileType\n\
+                            - URL 모드: fileId, fileName, originalFileUrl, fileKey,\
+                            \ fileFormat, fileType"
+                          properties:
+                            fileId:
+                              type: integer
+                            fileName:
+                              type: string
+                            uploadUrl:
+                              type: string
+                              format: uri
+                              description: S3 presigned 업로드 URL. 업로드 모드에서만 반환됩니다.
+                            originalFileUrl:
+                              type: string
+                              format: uri
+                              description: 요청에 전달된 공개 이미지 URL. URL 모드에서만 반환됩니다.
+                            fileKey:
+                              type: string
+                              description: S3 오브젝트 키.
+                            fileFormat:
+                              type: string
+                              description: 파일 형식.
+                              enum:
+                              - JPG
+                              - PNG
+                              - WEBP
+                              - BMP
+                              - TIFF
+                              - PDF
+                            fileType:
+                              type: string
+                              description: 파일 유형 분류.
+                              enum:
+                              - IMG
+                              - DOCUMENT
+              examples:
+                uploadModeResponse:
+                  summary: 업로드 모드 응답
+                  value:
+                    data:
+                      orderName: wtr_embed_20260318120000.000
+                      orderId: '424706541233094656'
+                      status: pending
+                      files:
+                      - fileId: 2469
+                        fileName: image.jpg
+                        uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...?X-Amz-Algorithm=AWS4-HMAC-SHA256&...
+                        fileKey: wtr-embed/424706541233094656/images/1/image.jpg
+                        fileFormat: JPG
+                        fileType: IMG
+                      - fileId: 2470
+                        fileName: document.pdf
+                        uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...?X-Amz-Algorithm=AWS4-HMAC-SHA256&...
+                        fileKey: wtr-embed/424706541233094656/documents/2/document.pdf
+                        fileFormat: PDF
+                        fileType: DOCUMENT
+                urlModeResponse:
+                  summary: URL 모드 응답
+                  value:
+                    data:
+                      orderName: wtr_embed_20260318120000.000
+                      orderId: '424707536709206016'
+                      status: pending
+                      files:
+                      - fileId: 2490
+                        fileName: image.png
+                        originalFileUrl: https://example.com/image.jpg
+                        fileKey: wtr-embed/424707536709206016/images/1/image.png
+                        fileFormat: PNG
+                        fileType: IMG
+                mixedModeResponse:
+                  summary: 혼합 모드 응답
+                  value:
+                    data:
+                      orderName: wtr_embed_20260318120000.000
+                      orderId: '424707536709206016'
+                      status: pending
+                      files:
+                      - fileId: 2490
+                        fileName: image.png
+                        originalFileUrl: https://example.com/image.jpg
+                        fileKey: wtr-embed/424707536709206016/images/1/image.png
+                        fileFormat: PNG
+                        fileType: IMG
+                      - fileId: 2491
+                        fileName: photo.jpeg
+                        uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...?X-Amz-Algorithm=AWS4-HMAC-SHA256&...
+                        fileKey: wtr-embed/424707536709206016/images/2/photo.jpeg
+                        fileFormat: JPG
+                        fileType: IMG
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1127,7 +1351,7 @@ paths:
 
         - 주문당 파일 1개
 
-        - 이미지 (jpg, jpeg, png, gif, webp, bmp, tiff) 또는 PDF 파일 지원
+        - 이미지 (jpg, jpeg, png, webp, bmp, tiff) 또는 PDF 파일 지원
 
         - 이미지의 경우 `includeOriginal: true`로 원본 파일도 함께 업로드 가능
 
@@ -1235,6 +1459,8 @@ paths:
                         fileKey: 123/456/watermarked.jpg
                         fileFormat: JPG
                         fileType: IMG
+                        role: watermarked
+                        sequence: 1
                 imageWithOriginalResponse:
                   summary: 이미지 + 원본 응답
                   value:
@@ -1248,6 +1474,8 @@ paths:
                         fileKey: 123/456/watermarked.jpg
                         fileFormat: JPG
                         fileType: IMG
+                        role: watermarked
+                        sequence: 1
                         originalFile:
                           fileId: 2
                           fileName: original.jpg
@@ -1255,6 +1483,8 @@ paths:
                           fileKey: 123/456/original.jpg
                           fileFormat: JPG
                           fileType: IMG
+                          role: original
+                          sequence: 1
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
