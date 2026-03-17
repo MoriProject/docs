@@ -144,29 +144,15 @@ HttpResponse<String> response =
 ```
 </CodeGroup>
 
-## 요청 제한
-
-플랜별 분당 요청 수 제한이 적용됩니다. 초과 시 `429 Too Many Requests`와 함께 `RATE_LIMIT_EXCEEDED` 오류 코드가 반환됩니다.
-
-| 플랜 | 분당 요청 수 |
-|------|------------|
-| 무료 | 60 |
-| Pro | 300 |
-| Enterprise | 1,000 |
-
-<Tip>
-  높은 처리량이 필요한 경우 [support@bizmori.com](mailto:support@bizmori.com)으로 문의하여 Enterprise 플랜의 요청 제한을 조정하세요.
-</Tip>
-
 ## 멱등성 (Idempotency)
 
 모든 주문 생성 엔드포인트는 `idempotencyKey` 파라미터를 지원합니다. 동일한 키로 중복 요청을 보내면 새 주문을 생성하는 대신 **기존 주문을 반환**합니다. 네트워크 재시도 시 이중 처리를 방지할 수 있습니다.
 
 ```json
 {
-  "idempotencyKey": "unique-request-id-123",
+  "idempotencyKey": "01960d3e-a4f2-7b3c-8a1d-4c7e2f9b0a3d",
   "files": [...]
 }
 ```
 
-UUID 또는 비즈니스 로직에서 파생된 결정론적 키(예: `user-{id}-batch-{timestamp}`)를 사용하세요.
+**UUID v7**을 사용하는 것을 권장합니다. 비즈니스 로직에서 파생된 결정론적 키(예: `user-{id}-batch-{timestamp}`)도 사용할 수 있습니다.
