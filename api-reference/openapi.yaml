@@ -1304,7 +1304,7 @@ paths:
 
         2. Upload the image directly to S3 using the presigned URL
 
-        3. Call `POST /api/v2/orders/ai-detection/{orderId}/confirm` to start async
+        3. Call `POST /api/v2/orders/ai-detection/confirm` to start async
         detection
 
         4. Use webhooks or poll the order detail endpoint for the result
@@ -1440,7 +1440,7 @@ paths:
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/ai-detection',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey':\
           \ 'key-ai-001', 'fileName': 'photo.jpg'}\n)\ndata = response.json()"
-  /api/v2/orders/ai-detection/{orderId}/confirm:
+  /api/v2/orders/ai-detection/confirm:
     post:
       summary: Confirm AI Detection order
       description: 'Confirms that the image has been uploaded to S3 and starts async
@@ -1461,13 +1461,18 @@ paths:
       - AI Detection
       security:
       - BearerAuth: []
-      parameters:
-      - in: path
-        name: orderId
+      requestBody:
         required: true
-        schema:
-          type: string
-        description: Order ID
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - orderId
+              properties:
+                orderId:
+                  type: string
+                  description: Order ID
       responses:
         '200':
           description: Processing started
@@ -1496,18 +1501,21 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST \"https://api.bizmori.com/api/v2/orders/ai-detection/ORDER_ID/confirm\"\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X POST \"https://api.bizmori.com/api/v2/orders/ai-detection/confirm\"\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type:\
+          \ application/json\" \\\n  -d '{\"orderId\": \"ORDER_ID\"}'"
       - lang: javascript
         label: JavaScript
-        source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/ai-detection/${orderId}/confirm`,\n\
-          \  { method: 'POST', headers: { 'Authorization': 'Bearer YOUR_API_TOKEN'\
-          \ } }\n);\nconst data = await response.json();"
+        source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
+          \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer\
+          \ YOUR_API_TOKEN',\n      'Content-Type': 'application/json'\n    },\n \
+          \   body: JSON.stringify({ orderId: 'ORDER_ID' })\n  }\n);\nconst data =\
+          \ await response.json();"
       - lang: python
         label: Python
-        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.post(\n\
-          \    f'https://api.bizmori.com/api/v2/orders/ai-detection/{order_id}/confirm',\n\
-          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'orderId':\
+          \ 'ORDER_ID'}\n)\ndata = response.json()"
   /api/v2/orders:
     get:
       summary: List orders
