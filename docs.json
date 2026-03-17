@@ -177,7 +177,7 @@
                 "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
                   "POST /api/v2/orders/ai-detection",
-                  "POST /api/v2/orders/ai-detection/{orderId}/confirm"
+                  "POST /api/v2/orders/ai-detection/confirm"
                 ]
               },
               {
