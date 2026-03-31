@@ -87,7 +87,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 ```
 
 <Note>
-  The presigned upload URL expires after **10 minutes**. Upload your image before it expires.
+  The presigned upload URL expires after **1 hour**. Upload your image before it expires.
 </Note>
 
 ## Step 3: Confirm the order
@@ -184,6 +184,16 @@ The `probability` field (0–1) indicates how likely the image is AI-generated. 
 <Note>
   `heatmapUrl` and `overlayUrl` are only present if you requested them via `options.generateHeatmap` and `options.generateOverlay` in Step 1.
 </Note>
+
+## Error handling
+
+| HTTP Status | Meaning | Action |
+|-------------|---------|--------|
+| `400` | Invalid request | Check parameters and file format |
+| `401` | Authentication failed | Verify your API key |
+| `429` | Rate limit exceeded | Reduce request frequency or upgrade plan |
+
+For the complete error code reference, see [Error Codes](/errors).
 
 ## Next steps
 

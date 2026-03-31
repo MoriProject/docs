@@ -8,7 +8,7 @@ This guide walks you through detecting a watermark in an image — from creating
 ## Prerequisites
 
 - A BIZ MORI API key ([get one here](https://app.bizmori.com/keys))
-- A watermarked image file (`jpeg`, `jpg`, `png`, `gif`, `webp`, `bmp`, or `tiff`) or PDF
+- A watermarked image file (`jpeg`, `jpg`, `png`, `webp`, `bmp`, or `tiff`) or PDF
 
 ## Step 1: Create an order
 
@@ -96,7 +96,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 </Info>
 
 <Note>
-  Presigned URLs expire after a set time. If yours has expired, use the [Refresh URLs](/api-reference/orders/refresh-urls) endpoint to generate new ones.
+  Presigned URLs expire after **1 hour**. If yours has expired, use the [Refresh URLs](/api-reference/orders/refresh-urls) endpoint to generate new ones.
 </Note>
 
 ## Step 3: Check the result
@@ -156,6 +156,16 @@ data = res.json()['data']
 | `detected` | Watermark found — check `watermarkText` for the extracted text |
 | `undetected` | No watermark detected in the image |
 | `failed` | Extraction failed |
+
+## Error handling
+
+| HTTP Status | Meaning | Action |
+|-------------|---------|--------|
+| `400` | Invalid request | Check parameters and file format |
+| `401` | Authentication failed | Verify your API key |
+| `429` | Rate limit exceeded | Reduce request frequency or upgrade plan |
+
+For the complete error code reference, see [Error Codes](/errors).
 
 ## Next steps
 

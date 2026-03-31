@@ -92,7 +92,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 ```
 
 <Note>
-  Presigned URLs expire after a set time. If yours has expired, use the [Refresh URLs](/api-reference/orders/refresh-urls) endpoint to generate new ones.
+  Presigned URLs expire after **1 hour**. If yours has expired, use the [Refresh URLs](/api-reference/orders/refresh-urls) endpoint to generate new ones.
 </Note>
 
 ## Step 3: Confirm the order
@@ -204,6 +204,16 @@ download_url = res.json()['data']['downloadUrl']
 ```
 
 The `downloadUrl` is a presigned S3 URL valid for **1 hour**. Download the protected file directly from this URL.
+
+## Error handling
+
+| HTTP Status | Meaning | Action |
+|-------------|---------|--------|
+| `400` | Invalid request | Check parameters and file format |
+| `401` | Authentication failed | Verify your API key |
+| `429` | Rate limit exceeded | Reduce request frequency or upgrade plan |
+
+For the complete error code reference, see [Error Codes](/errors).
 
 ## Next steps
 

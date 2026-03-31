@@ -8,7 +8,7 @@ This guide walks you through embedding an invisible watermark into an image — 
 ## Prerequisites
 
 - A BIZ MORI API key ([get one here](https://app.bizmori.com/keys))
-- An image file to watermark (`jpeg`, `jpg`, `png`, or `webp`)
+- An image or PDF file to watermark (`jpeg`, `jpg`, `png`, `webp`, `tiff`, `bmp`, or `pdf`)
 
 ## Step 1: Create an order
 
@@ -76,12 +76,15 @@ data = res.json()['data']
   "data": {
     "orderName": "wtr_embed_2026-03-18",
     "orderId": "123456789",
+    "status": "pending",
     "files": [
       {
         "fileId": 1,
         "fileName": "photo.jpg",
         "uploadUrl": "https://s3.amazonaws.com/...",
-        "fileKey": "temp/123456789/0/photo.jpg"
+        "fileKey": "wtr-embed/123456789/images/1/photo.jpg",
+        "fileFormat": "JPG",
+        "fileType": "IMG"
       }
     ]
   }
@@ -103,7 +106,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 </Info>
 
 <Note>
-  Presigned URLs expire after a set time. If yours has expired, use the [Refresh URLs](/api-reference/orders/refresh-urls) endpoint to generate new ones.
+  Presigned URLs expire after **1 hour**. If yours has expired, use the [Refresh URLs](/api-reference/orders/refresh-urls) endpoint to generate new ones.
 </Note>
 
 ## Step 3: Check order status & download result
@@ -176,6 +179,16 @@ download_url = res.json()['data']['downloadUrl']
 ```
 
 The `downloadUrl` is a presigned S3 URL valid for **1 hour**.
+
+## Error handling
+
+| HTTP Status | Meaning | Action |
+|-------------|---------|--------|
+| `400` | Invalid request | Check parameters and file format |
+| `401` | Authentication failed | Verify your API key |
+| `429` | Rate limit exceeded | Reduce request frequency or upgrade plan |
+
+For the complete error code reference, see [Error Codes](/errors).
 
 ## Next steps
 

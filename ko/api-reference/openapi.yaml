@@ -216,8 +216,6 @@ components:
           - inProgress
           - complete
           - failed
-          - detected
-          - undetected
           - expired
           description: '주문 상태
 
@@ -228,10 +226,6 @@ components:
             * complete - 완료
 
             * failed - 실패
-
-            * detected - 워터마크 감지됨 (wtr-extract 전용)
-
-            * undetected - 워터마크 미감지 (wtr-extract 전용)
 
             * expired - 만료됨 (주문 생성 후 7일이 지나면 파일 다운로드 불가)
 
@@ -306,8 +300,6 @@ components:
           - inProgress
           - complete
           - failed
-          - detected
-          - undetected
           - expired
           description: 주문 상태
         fileCount:
@@ -1787,8 +1779,6 @@ paths:
           - inProgress
           - complete
           - failed
-          - detected
-          - undetected
           - expired
           - all
           default: all

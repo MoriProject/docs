@@ -89,7 +89,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 ```
 
 <Note>
-  Presigned URL은 일정 시간 후 만료됩니다. 만료된 경우 [URL 갱신](/ko/api-reference/orders/refresh-urls) 엔드포인트를 사용하여 새 URL을 받으세요.
+  Presigned URL은 **1시간** 후 만료됩니다. 만료된 경우 [URL 갱신](/ko/api-reference/orders/refresh-urls) 엔드포인트를 사용하여 새 URL을 받으세요.
 </Note>
 
 ## 3단계: 주문 확인
@@ -221,6 +221,16 @@ download_url = res.json()['data']['downloadUrl']
 `downloadUrl`은 **1시간** 유효한 Presigned S3 URL입니다. 이 URL로 보호된 파일을 직접 다운로드하세요.
 
 Anti-AI API에서 지원하는 옵션과 상세한 설명은 [API 레퍼런스](/ko/api-reference/anti-ai/create-order)를 참고하세요.
+
+## 에러 처리
+
+| HTTP 상태 코드 | 의미 | 조치 |
+|----------------|------|------|
+| `400` | 잘못된 요청 | 파라미터 및 파일 형식 확인 |
+| `401` | 인증 실패 | API 키 확인 |
+| `429` | 사용량 초과 | 요청 빈도를 줄이거나 플랜 업그레이드 |
+
+전체 에러 코드는 [에러 코드](/ko/errors) 페이지를 참고하세요.
 
 ## 다음 단계
 
