@@ -3,7 +3,11 @@
     "allow": [
       "Bash(ls:*)",
       "Bash(git stash:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(xargs cat:*)",
+      "Bash(find /Users/jimin/Documents/GitHub/was/mori-biz-was -type f -name *.sql)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
