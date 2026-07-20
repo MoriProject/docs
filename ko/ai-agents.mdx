@@ -82,6 +82,8 @@ If you could not run one of these, say so plainly instead of asserting it passed
     (여기에 프롬프트를 붙여넣으세요)
     ```
 
+    일회성 작업이라면 `Cmd/Ctrl + L`로 채팅 패널에 바로 붙여넣어도 됩니다.
+
   </Tab>
   <Tab title="Codex / 기타 에이전트">
     Codex를 비롯한 대부분의 코딩 에이전트는 저장소 루트의 `AGENTS.md`를 읽습니다. `## BIZ MORI API` 제목 아래에 프롬프트를 붙여넣으면 실행할 때마다 자동으로 참조됩니다.
@@ -135,8 +137,8 @@ If you could not run one of these, say so plainly instead of asserting it passed
   </Accordion>
   <Accordion title='Presigned URL 만료를 처리하는지' icon='clock'>
     업로드·다운로드 URL은 1시간 동안만 유효합니다. 오래 걸리는 배치 작업이라면
-    만료된 URL을 재사용하지 말고 URL 재발급 엔드포인트(`POST /api/v2/orders/
-    {orderId}/refresh-urls`)를 호출해야 합니다.
+    만료된 URL을 재사용하지 말고 [URL 재발급](/ko/api-reference/orders/refresh-urls)
+    엔드포인트를 호출해야 합니다.
   </Accordion>
 </AccordionGroup>
 
