@@ -1,0 +1,137 @@
+---
+title: "AI Agent Integration"
+description: "Give Claude Code, Cursor, or Codex everything it needs to integrate the BIZ MORI API in one paste"
+---
+
+## Copy this prompt
+
+Copy it, paste it into your agent, and fill in the `<...>` placeholders — service, stack, and your task. Leave the rest as is.
+
+It is deliberately short. Rather than restating the API, it does the three things an agent will not do on its own: **read the docs and report risks before writing code**, **name the mistakes to refuse to ship** (skipped confirm calls, unverified webhook signatures, hardcoded keys), and **prove the integration works** afterward instead of just claiming it does.
+
+```text wrap
+Integrate the BIZ MORI API for me.
+
+Docs:      https://docs.bizmori.com
+Full docs: https://docs.bizmori.com/llms-full.txt          <- guides, in plain text
+OpenAPI:   https://docs.bizmori.com/api-reference/openapi.yaml  <- authoritative schemas
+Base URL:  https://api.bizmori.com
+Auth:      Authorization: Bearer $BIZMORI_API_KEY  (read from env; never hardcode or log it)
+Service:   <Anti-AI | Watermark Embed | Watermark Extract | AI Detection>
+Stack:     <e.g. TypeScript + Express, Python + FastAPI>
+My task:   <what you want built>
+
+Before writing any code, fetch BOTH files above:
+- llms-full.txt for the guides — read the quickstart for my service, plus Webhooks
+  and Error Codes.
+- openapi.yaml for the exact request/response schemas. The guides do NOT contain the
+  field definitions, so take every field name, type, enum value, and required/optional
+  flag from the spec. Never infer a field from a code sample alone.
+Then tell me your plan and anything risky or ambiguous. Do not invent endpoints, fields,
+or parameters: if the spec does not have it, say so instead of guessing. If an endpoint
+is marked deprecated in the spec, do not use it — use the replacement it names.
+
+The docs specify these, and they are the things that get implemented wrong. Look each
+one up rather than assuming — do not ship code that skips them:
+- Orders are ASYNCHRONOUS, and the confirm step differs per service. Some services
+  require a confirm call after upload; others have no confirm endpoint at all and must
+  never receive one. Check which applies to my service before you write the flow.
+- Webhook signatures must be verified against the RAW request body, in constant time.
+- Presigned upload/download URLs expire, and there is an endpoint to refresh them.
+- Order creation takes an idempotency key. Reuse it when retrying.
+
+After you finish, verify — do not just claim it works:
+1. Run a real end-to-end order with a test image and show me it reaching `complete`.
+2. Show me the result actually retrieved (the downloaded file, or the detection field).
+3. Grep your own diff for a hardcoded key or a logged token, and show me the output.
+4. If you built a webhook receiver, send it a bad signature and show it returns 401.
+If you could not run one of these, say so plainly instead of asserting it passed.
+```
+
+## Use it in your editor
+
+<Tabs>
+  <Tab title="Claude Code">
+    Paste the prompt straight into a session for a one-off task.
+
+    To load it in every session, save the prompt to `.claude/bizmori-api.md` and import it from your `CLAUDE.md`:
+
+    ```markdown CLAUDE.md
+    @.claude/bizmori-api.md
+    ```
+
+    Claude Code reads imported files on startup, so the instructions are in context before you ask for anything.
+  </Tab>
+  <Tab title="Cursor">
+    Save the prompt as a project rule so Cursor applies it whenever you touch integration code. Create `.cursor/rules/bizmori-api.mdc`:
+
+    ```markdown
+    ---
+    description: BIZ MORI API integration contract
+    globs: ["**/*bizmori*", "**/api/**"]
+    ---
+
+    (paste the prompt here)
+    ```
+
+    For a one-off task, paste it into the chat panel with `Cmd/Ctrl + L` instead.
+  </Tab>
+  <Tab title="Codex / other agents">
+    Codex and most other coding agents read an `AGENTS.md` at the repo root. Paste the prompt there under a `## BIZ MORI API` heading and it is picked up automatically on every run.
+
+    For agents with no convention file, paste the prompt as the first message of the conversation.
+  </Tab>
+</Tabs>
+
+## Give your agent the live docs
+
+The prompt above works because these docs are published in a machine-readable form. Your agent pulls the current spec at the moment you ask, rather than working from whatever was true when the prompt was written:
+
+| Resource | URL | Use it for |
+|---|---|---|
+| OpenAPI spec | `https://docs.bizmori.com/api-reference/openapi.yaml` | Exact request/response schemas — field names, types, enums, required flags. Also generates a typed client |
+| Full docs | `https://docs.bizmori.com/llms-full.txt` | The guides as one plain-text file — flows, webhook verification, error codes |
+| Docs index | `https://docs.bizmori.com/llms.txt` | A compact map of every page, when the agent should navigate rather than ingest everything |
+| Any page as Markdown | append `.md` to a page URL | Feeding one specific guide into context |
+
+<Warning>
+  Both matter, and they are not interchangeable. `llms-full.txt` carries the guides but **not** the field definitions — those are rendered from the OpenAPI spec and do not survive into plain text. An agent given only `llms-full.txt` will reconstruct request bodies from code samples and guess the rest. That is why the prompt fetches both.
+</Warning>
+
+## Before you ship what the agent wrote
+
+<Warning>
+  AI agents produce plausible-looking code. Check these four things before shipping an integration — they are the mistakes we see most often.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="The API key is not hardcoded" icon="key">
+    The key must come from an environment variable or a secret manager, never from source. Grep the diff for `Bearer ` and for anything resembling a literal key, and confirm the key is not written to logs.
+  </Accordion>
+  <Accordion title="The confirm step matches the service" icon="check">
+    Anti-AI (upload mode) and AI Detection require a confirm call. Watermark Embed and Watermark Extract do not — and calling confirm for them will fail. Anti-AI in pure URL mode also skips confirm.
+  </Accordion>
+  <Accordion title="Webhook signatures are verified against the raw body" icon="shield">
+    The HMAC must be computed over the raw request bytes. If a JSON body-parser runs first and the code re-serializes the object, the signature will not match and the agent may be tempted to "fix" it by skipping verification. It must compare in constant time.
+  </Accordion>
+  <Accordion title="Presigned URL expiry is handled" icon="clock">
+    Upload and download URLs are valid for 1 hour. A long-running batch job must call [Refresh URLs](/api-reference/orders/refresh-urls) rather than reusing a stale URL.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Walk a flow by hand before automating it.
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference/introduction">
+    The authoritative spec for every endpoint.
+  </Card>
+  <Card title="Webhooks" icon="bell" href="/webhooks">
+    Signature verification and event payloads in full.
+  </Card>
+  <Card title="Error Codes" icon="circle-exclamation" href="/errors">
+    Every code your agent's error handling should cover.
+  </Card>
+</CardGroup>
