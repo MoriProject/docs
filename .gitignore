@@ -1,0 +1,18 @@
+# oh-my-claudecode 운영 아티팩트 (로컬 세션 상태 — 커밋 금지)
+.omc/
+
+# 의존성
+node_modules/
+
+# Mintlify 로컬 빌드/캐시
+.mintlify/
+.next/
+
+# 환경 변수 / 시크릿
+.env
+.env.*
+!.env.example
+
+# OS / 에디터
+.DS_Store
+*.log
