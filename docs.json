@@ -41,7 +41,7 @@
               },
               {
                 "group": "Use Without Code",
-                "pages": ["mcp"]
+                "pages": ["mcp-connector"]
               },
               {
                 "group": "Build with AI Agents",
@@ -139,7 +139,7 @@
               },
               {
                 "group": "코드 없이 사용하기",
-                "pages": ["ko/mcp"]
+                "pages": ["ko/mcp-connector"]
               },
               {
                 "group": "AI 에이전트로 개발하기",
