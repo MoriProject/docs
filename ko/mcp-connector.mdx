@@ -36,41 +36,61 @@ description: '코드도 API 키도 없이, Claude에서 대화만으로 BIZ MORI
 
 ## 커넥터 연결하기
 
-<Steps>
-  <Step title="커넥터 설정 열기">
-    Claude 앱(웹 또는 데스크톱)에서 **설정 → 커넥터 → 사용자 지정 커넥터 추가**로 이동합니다.
-  </Step>
+<AccordionGroup>
+  <Accordion title="Claude 앱 (웹 / 데스크톱)" icon="sparkles">
+    <Steps>
+      <Step title="커넥터 설정 열기">
+        **설정 → 커넥터 → 사용자 지정 커넥터 추가**로 이동합니다.
+      </Step>
 
-  <Step title="커넥터 URL 입력">
-    ```
+      <Step title="커넥터 URL 입력">
+        ```text
+        https://mcp.bizmori.com/mcp
+        ```
+
+        이름은 알아보기 쉽게 `BIZ MORI` 정도로 지정하세요.
+      </Step>
+
+      <Step title="BIZ MORI 계정으로 로그인">
+        BIZ MORI 로그인 창이 열립니다.
+
+        [app.bizmori.com](https://app.bizmori.com)에서 사용하는 계정으로 로그인하고 연결을 승인하세요.
+
+        <Check>
+          API 키는 필요하지 않습니다.
+        </Check>
+      </Step>
+
+      <Step title="사용 시작">
+        새 대화에서 BIZ MORI 기능을 바로 사용할 수 있습니다.
+      </Step>
+    </Steps>
+
+  </Accordion>
+
+  <Accordion title="Claude Code / Codex" icon="terminal">
+    Claude Code와 Codex에서도 동일한 MCP 서버를 사용할 수 있습니다.
+
+    각 도구의 MCP 설정에 아래 서버를 등록하세요.
+
+    ```text
     https://mcp.bizmori.com/mcp
     ```
 
-    이름은 알아보기 쉽게 `BIZ MORI` 정도로 지정하세요.
-
-  </Step>
-
-  <Step title="BIZ MORI 계정으로 로그인">
-    BIZ MORI 로그인 창이 열립니다. [app.bizmori.com](https://app.bizmori.com)에서 쓰는 것과 같은 계정으로 로그인하고 연결을 승인하세요.
+    로그인 창이 나타나면 BIZ MORI 계정으로 로그인하고 연결을 승인하면 됩니다.
 
     <Check>
-      API 키는 **필요하지 않습니다.**
+      API 키는 필요하지 않습니다.
     </Check>
 
-  </Step>
-
-  <Step title="요청해보기">
-    새 대화를 열고 이렇게 입력해보세요.
+    연결이 완료되면 로컬 파일을 바로 사용할 수 있습니다.
 
     ```text
-    BIZ MORI로 이 이미지가 AI 생성인지 확인해줘.
+    ~/Pictures/artwork.png AI 생성인지 검사해줘
     ```
 
-    Claude 앱에서는 파일 업로드가 필요한 경우 BIZ MORI 업로드 페이지를 제공합니다.
-
-  </Step>
-</Steps>
-
+  </Accordion>
+</AccordionGroup>
 ## 청구 계정 설정
 
 BIZ MORI에서 조직에 소속되어 있다면, 작업을 개인 계정으로도 조직 계정으로도 청구할 수 있습니다. 커넥터는 임의로 고르지 않고 **반드시 물어봅니다.**

@@ -39,44 +39,65 @@ description: 'Use BIZ MORI directly from Claude—no code or API keys required.'
     Choose whether jobs are billed to your personal account or your organization.
   </Card>
 </Columns>
-
 ## Connect the connector
 
-<Steps>
-  <Step title="Open Connector Settings">
-    In the Claude app (Web or Desktop), go to **Settings → Connectors → Add custom connector**.
-  </Step>
+<AccordionGroup>
+  <Accordion title="Claude App (Web / Desktop)" icon="sparkles">
+    <Steps>
+      <Step title="Open Connector Settings">
+        Go to **Settings → Connectors → Add custom connector**.
+      </Step>
 
-  <Step title="Enter the connector URL">
+      <Step title="Enter the connector URL">
+        ```text
+        https://mcp.bizmori.com/mcp
+        ```
+
+        You can name it something like `BIZ MORI`.
+      </Step>
+
+      <Step title="Sign in with your BIZ MORI account">
+        A BIZ MORI sign-in window will appear.
+
+        Sign in using the same account you use at [app.bizmori.com](https://app.bizmori.com) and approve the connection.
+
+        <Check>
+          No API key is required.
+        </Check>
+      </Step>
+
+      <Step title="Start using BIZ MORI">
+        Open a new conversation and start using BIZ MORI features.
+
+        If a job requires a file upload, Claude will automatically provide a **BIZ MORI upload page**.
+      </Step>
+    </Steps>
+
+  </Accordion>
+
+  <Accordion title="Claude Code / Codex" icon="terminal">
+    Claude Code and Codex both support the BIZ MORI MCP server.
+
+    Add the following MCP server to your tool's MCP configuration.
+
     ```text
     https://mcp.bizmori.com/mcp
     ```
 
-    You can name it something like `BIZ MORI`.
-
-  </Step>
-
-  <Step title="Sign in with your BIZ MORI account">
-    A BIZ MORI sign-in window will appear. Sign in using the same account you use at [app.bizmori.com](https://app.bizmori.com) and approve the connection.
+    When prompted, sign in with your BIZ MORI account and approve the connection.
 
     <Check>
-      **No API key is required.**
+      No API key is required.
     </Check>
 
-  </Step>
-
-  <Step title="Try it">
-    Start a new conversation and say:
+    Once connected, you can use local files directly.
 
     ```text
-    Use BIZ MORI to check whether this image was AI-generated.
+    Check whether ~/Pictures/artwork.png was AI-generated.
     ```
 
-    If the Claude app needs a file upload, it will provide a BIZ MORI upload page automatically.
-
-  </Step>
-</Steps>
-
+  </Accordion>
+</AccordionGroup>
 ## Billing account
 
 If you're a member of an organization in BIZ MORI, you can bill jobs to either your personal account or your organization. The connector **always asks first** instead of choosing automatically.
