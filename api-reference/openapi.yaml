@@ -218,8 +218,6 @@ components:
           - inProgress
           - complete
           - failed
-          - detected
-          - undetected
           - expired
           description: 'Order status
 
@@ -230,10 +228,6 @@ components:
             * complete - Completed
 
             * failed - Failed
-
-            * detected - Watermark detected (wtr-extract only)
-
-            * undetected - Watermark not detected (wtr-extract only)
 
             * expired - Expired (order files unavailable after 7 days)
 
@@ -308,8 +302,6 @@ components:
           - inProgress
           - complete
           - failed
-          - detected
-          - undetected
           - expired
           description: Order status
         fileCount:
@@ -1812,8 +1804,6 @@ paths:
           - inProgress
           - complete
           - failed
-          - detected
-          - undetected
           - expired
           - all
           default: all

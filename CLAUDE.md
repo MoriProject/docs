@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code for the MORI API documentation project.
 
+## Related BIZ Repositories
+
+@.claude/repos/mori-biz-was.md
+@.claude/repos/mori-biz-aws.md
+@.claude/repos/mori-admin-rev.md
+
 ## Project Overview
 
 MORI BIZ public API documentation built with [Mintlify](https://mintlify.com).

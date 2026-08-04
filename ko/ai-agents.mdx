@@ -1,0 +1,160 @@
+---
+title: 'AI 에이전트 연동'
+description: 'Claude Code, Cursor, Codex에 붙여넣기만 하면 BIZ MORI API 연동에 필요한 모든 규칙이 전달됩니다'
+---
+
+## 이 프롬프트를 복사하세요
+
+복사해서 에이전트에 붙여넣고, `<...>` 자리만 채우세요 — 서비스, 스택, 실제 작업 내용입니다. 나머지는 그대로 두시면 됩니다.
+
+프롬프트는 의도적으로 짧습니다. API를 다시 옮겨 적는 대신, 에이전트가 스스로는 하지 않는 세 가지만 시킵니다. **코드를 쓰기 전에 문서를 읽고 위험한 부분을 보고**하게 하고, **출시하면 안 되는 실수를 못박고**(confirm 단계 누락, 웹훅 서명 미검증, API 키 하드코딩), 마지막에 **연동이 실제로 동작함을 증명**하게 합니다 — 동작한다고 주장만 하지 않도록.
+
+```text wrap
+Integrate the BIZ MORI API for me.
+
+Docs:      https://docs.bizmori.com
+Full docs: https://docs.bizmori.com/llms-full.txt          <- guides, in plain text
+OpenAPI:   https://docs.bizmori.com/api-reference/openapi.yaml  <- authoritative schemas
+Base URL:  https://api.bizmori.com
+Auth:      Authorization: Bearer $BIZMORI_API_KEY  (read from env; never hardcode or log it)
+Service:   <Anti-AI | Watermark Embed | Watermark Extract | AI Detection>
+Stack:     <e.g. TypeScript + Express, Python + FastAPI>
+My task:   <what you want built>
+
+Before writing any code, fetch BOTH files above:
+- llms-full.txt for the guides — read the quickstart for my service, plus Webhooks
+  and Error Codes.
+- openapi.yaml for the exact request/response schemas. The guides do NOT contain the
+  field definitions, so take every field name, type, enum value, and required/optional
+  flag from the spec. Never infer a field from a code sample alone.
+Then tell me your plan and anything risky or ambiguous. Do not invent endpoints, fields,
+or parameters: if the spec does not have it, say so instead of guessing. If an endpoint
+is marked deprecated in the spec, do not use it — use the replacement it names.
+
+The docs specify these, and they are the things that get implemented wrong. Look each
+one up rather than assuming — do not ship code that skips them:
+- Orders are ASYNCHRONOUS, and the confirm step differs per service. Some services
+  require a confirm call after upload; others have no confirm endpoint at all and must
+  never receive one. Check which applies to my service before you write the flow.
+- Webhook signatures must be verified against the RAW request body, in constant time.
+- Presigned upload/download URLs expire, and there is an endpoint to refresh them.
+- Order creation takes an idempotency key. Reuse it when retrying.
+
+After you finish, verify — do not just claim it works:
+1. Run a real end-to-end order with a test image and show me it reaching `complete`.
+2. Show me the result actually retrieved (the downloaded file, or the detection field).
+3. Grep your own diff for a hardcoded key or a logged token, and show me the output.
+4. If you built a webhook receiver, send it a bad signature and show it returns 401.
+If you could not run one of these, say so plainly instead of asserting it passed.
+```
+
+<Note>
+  프롬프트 본문은 의도적으로 영어로 작성되어 있습니다. 코딩 에이전트는 영어
+  지시문에서 가장 안정적으로 동작하며, 엔드포인트·필드명과 표기를 일치시키기
+  위해서입니다. 상단 `My task` 항목에는 한국어로 작업을 적어도 문제없이
+  동작합니다.
+</Note>
+
+## 에디터에서 사용하기
+
+<Tabs>
+  <Tab title="Claude Code">
+    일회성 작업이라면 세션에 그대로 붙여넣으면 됩니다.
+
+    모든 세션에서 자동으로 불러오려면 프롬프트를 `.claude/bizmori-api.md`로 저장하고 `CLAUDE.md`에서 import 하세요:
+
+    ```markdown CLAUDE.md
+    @.claude/bizmori-api.md
+    ```
+
+    Claude Code는 시작 시 import된 파일을 읽으므로, 요청하기 전에 이미 지시문이 컨텍스트에 들어옵니다.
+
+  </Tab>
+  <Tab title="Cursor">
+    프로젝트 룰로 저장해 두면 연동 코드를 만질 때마다 Cursor가 자동 적용합니다. `.cursor/rules/bizmori-api.mdc` 파일을 만드세요:
+
+    ```markdown
+    ---
+    description: BIZ MORI API integration contract
+    globs: ["**/*bizmori*", "**/api/**"]
+    ---
+
+    (여기에 프롬프트를 붙여넣으세요)
+    ```
+
+    일회성 작업이라면 `Cmd/Ctrl + L`로 채팅 패널에 바로 붙여넣어도 됩니다.
+
+  </Tab>
+  <Tab title="Codex / 기타 에이전트">
+    Codex를 비롯한 대부분의 코딩 에이전트는 저장소 루트의 `AGENTS.md`를 읽습니다. `## BIZ MORI API` 제목 아래에 프롬프트를 붙여넣으면 실행할 때마다 자동으로 참조됩니다.
+
+    규약 파일이 없는 에이전트라면 대화의 첫 메시지로 프롬프트를 붙여넣으세요.
+
+  </Tab>
+</Tabs>
+
+## 에이전트에 실시간 문서 연결하기
+
+위 프롬프트가 짧아도 되는 이유가 여기 있습니다. 이 문서는 기계가 읽을 수 있는 형식으로도 제공되므로, 에이전트는 프롬프트가 작성된 시점의 내용이 아니라 **요청하는 그 순간의 최신 스펙**을 직접 가져옵니다.
+
+| 리소스               | URL                                                   | 용도                                                                                   |
+| -------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| OpenAPI 스펙         | `https://docs.bizmori.com/api-reference/openapi.yaml` | 정확한 요청/응답 스키마 — 필드명, 타입, enum, 필수 여부. 타입 클라이언트 생성에도 사용 |
+| 전체 문서            | `https://docs.bizmori.com/llms-full.txt`              | 가이드 전체를 하나의 평문 파일로 — 흐름, 웹훅 검증, 에러 코드                          |
+| 문서 인덱스          | `https://docs.bizmori.com/llms.txt`                   | 전체를 통째로 넣지 않고 필요한 문서만 찾아가게 할 때                                   |
+| 개별 페이지 Markdown | 페이지 URL 뒤에 `.md` 추가                            | 특정 가이드 하나만 컨텍스트에 넣을 때                                                  |
+
+<Warning>
+  둘 다 필요하며 서로를 대체하지 않습니다. `llms-full.txt`에는 가이드는 담기지만
+  **필드 정의는 담기지 않습니다** — 파라미터 표는 OpenAPI 스펙에서 렌더되는
+  것이라 평문으로 옮겨지지 않기 때문입니다. `llms-full.txt`만 받은 에이전트는
+  코드 샘플을 보고 요청 바디를 역추정하고 나머지는 추측하게 됩니다. 프롬프트가
+  두 파일을 모두 가져오게 하는 이유입니다.
+</Warning>
+
+## 배포 전 확인할 것
+
+<Warning>
+  배포 전 아래 네 가지는 반드시 확인하세요. 가장 자주 발생하는 실수입니다.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title='API 키가 하드코딩되지 않았는지' icon='key'>
+    키는 반드시 환경 변수나 시크릿 매니저에서 읽어야 하며, 소스 코드에 있어서는
+    안 됩니다. 변경분에서 `Bearer ` 및 키처럼 보이는 리터럴을 검색하고, 키가
+    로그에 남지 않는지 확인하세요.
+  </Accordion>
+  <Accordion title='서비스별 confirm 단계가 맞는지' icon='check'>
+    Anti-AI(업로드 모드)와 AI Detection은 confirm 호출이 필요합니다. Watermark
+    Embed와 Watermark Extract는 필요 없으며, 호출하면 실패합니다. Anti-AI를 URL
+    모드로만 쓰는 경우에도 confirm은 호출하지 않습니다.
+  </Accordion>
+  <Accordion title='웹훅 서명을 raw body로 검증하는지' icon='shield'>
+    HMAC은 원본 요청 바이트(raw body)로 계산해야 합니다. JSON 파서가 먼저 실행된
+    뒤 객체를 다시 직렬화하면 서명이 맞지 않으며, 이때 에이전트가 검증을
+    건너뛰는 방식으로 "고치려" 들 수 있습니다. 비교는 반드시 상수
+    시간(constant-time)으로 해야 합니다.
+  </Accordion>
+  <Accordion title='Presigned URL 만료를 처리하는지' icon='clock'>
+    업로드·다운로드 URL은 1시간 동안만 유효합니다. 오래 걸리는 배치 작업이라면
+    만료된 URL을 재사용하지 말고 [URL 재발급](/ko/api-reference/orders/refresh-urls)
+    엔드포인트를 호출해야 합니다.
+  </Accordion>
+</AccordionGroup>
+
+## 다음 단계
+
+<CardGroup cols={2}>
+  <Card title='퀵스타트' icon='rocket' href='/ko/quickstart'>
+    자동화하기 전에 직접 한 번 흐름을 따라가 보세요.
+  </Card>
+  <Card title='API 레퍼런스' icon='code' href='/ko/api-reference/introduction'>
+    모든 엔드포인트의 기준 스펙입니다.
+  </Card>
+  <Card title='웹훅' icon='bell' href='/ko/webhooks'>
+    서명 검증과 이벤트 페이로드 전체 설명입니다.
+  </Card>
+  <Card title='에러 코드' icon='circle-exclamation' href='/ko/errors'>
+    에이전트의 에러 처리가 다뤄야 할 모든 코드입니다.
+  </Card>
+</CardGroup>

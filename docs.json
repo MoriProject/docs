@@ -8,10 +8,7 @@
     "dark": "#4F46E5"
   },
   "favicon": "/favicon.svg",
-  "openapi": [
-    "/api-reference/openapi.yaml",
-    "/ko/api-reference/openapi.yaml"
-  ],
+  "openapi": ["/api-reference/openapi.yaml", "/ko/api-reference/openapi.yaml"],
   "languages": [
     {
       "language": "en",
@@ -43,11 +40,16 @@
                 ]
               },
               {
+                "group": "Use Without Code",
+                "pages": ["mcp-connector"]
+              },
+              {
+                "group": "Build with AI Agents",
+                "pages": ["ai-agents"]
+              },
+              {
                 "group": "Guides",
-                "pages": [
-                  "errors",
-                  "webhooks"
-                ]
+                "pages": ["errors", "webhooks"]
               }
             ]
           },
@@ -56,9 +58,7 @@
             "groups": [
               {
                 "group": "Overview",
-                "pages": [
-                  "api-reference/introduction"
-                ]
+                "pages": ["api-reference/introduction"]
               },
               {
                 "group": "Anti-AI",
@@ -77,15 +77,11 @@
               },
               {
                 "group": "Watermark Embed",
-                "pages": [
-                  "api-reference/watermark-embed/create-order"
-                ]
+                "pages": ["api-reference/watermark-embed/create-order"]
               },
               {
                 "group": "Watermark Extract",
-                "pages": [
-                  "api-reference/watermark-extract/create-order"
-                ]
+                "pages": ["api-reference/watermark-extract/create-order"]
               },
               {
                 "group": "Orders",
@@ -117,11 +113,7 @@
             "groups": [
               {
                 "group": "Legal",
-                "pages": [
-                  "legal/terms",
-                  "legal/privacy",
-                  "legal/aup"
-                ]
+                "pages": ["legal/terms", "legal/privacy", "legal/aup"]
               }
             ]
           }
@@ -146,11 +138,16 @@
                 ]
               },
               {
+                "group": "코드 없이 사용하기",
+                "pages": ["ko/mcp-connector"]
+              },
+              {
+                "group": "AI 에이전트로 개발하기",
+                "pages": ["ko/ai-agents"]
+              },
+              {
                 "group": "가이드",
-                "pages": [
-                  "ko/errors",
-                  "ko/webhooks"
-                ]
+                "pages": ["ko/errors", "ko/webhooks"]
               }
             ]
           },
@@ -159,9 +156,7 @@
             "groups": [
               {
                 "group": "개요",
-                "pages": [
-                  "ko/api-reference/introduction"
-                ]
+                "pages": ["ko/api-reference/introduction"]
               },
               {
                 "group": "Anti-AI",
@@ -183,16 +178,12 @@
               {
                 "group": "Watermark-Embed",
                 "openapi": "/ko/api-reference/openapi.yaml",
-                "pages": [
-                  "POST /api/v2/orders/wtr-embed"
-                ]
+                "pages": ["POST /api/v2/orders/wtr-embed"]
               },
               {
                 "group": "Watermark-Extract",
                 "openapi": "/ko/api-reference/openapi.yaml",
-                "pages": [
-                  "POST /api/v2/orders/wtr-extract"
-                ]
+                "pages": ["POST /api/v2/orders/wtr-extract"]
               },
               {
                 "group": "Orders",
@@ -226,11 +217,7 @@
             "groups": [
               {
                 "group": "법적 고지",
-                "pages": [
-                  "ko/legal/terms",
-                  "ko/legal/privacy",
-                  "ko/legal/aup"
-                ]
+                "pages": ["ko/legal/terms", "ko/legal/privacy", "ko/legal/aup"]
               }
             ]
           }
