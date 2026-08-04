@@ -27,6 +27,12 @@ All quickstart guides share these requirements:
 - A BIZ MORI API key ([get one here](https://app.bizmori.com/keys))
 - An image file in a supported format (varies by service)
 
+## Front end or back end?
+
+Both. Every endpoint in these guides is plain HTTPS and JSON, and file transfer happens through presigned S3 URLs — nothing needs a server-only runtime. The same create → upload → poll → download flow runs identically from a Node.js service or from a React component in the browser.
+
+Each quickstart carries a **React** tab on every step plus a full copy-paste component, alongside the cURL, Node.js, and Python examples.
+
 ## Not a developer?
 
 <Card title="MCP Connector" icon="plug" href="/mcp-connector" horizontal>
