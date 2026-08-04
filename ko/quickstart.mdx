@@ -1,21 +1,29 @@
 ---
-title: "빠른 시작"
-description: "BIZ MORI API 시작하기 — 서비스를 선택하세요"
+title: '빠른 시작'
+description: 'BIZ MORI API 시작하기 — 서비스를 선택하세요'
 ---
 
 연동할 서비스에 맞는 빠른 시작 가이드를 선택하세요:
 
 <CardGroup cols={2}>
-  <Card title="Anti-AI" icon="shield" href="/ko/quickstart/anti-ai">
+  <Card title='Anti-AI' icon='shield' href='/ko/quickstart/anti-ai'>
     이미지를 AI 학습 및 생성으로부터 보호합니다.
   </Card>
-  <Card title="워터마크 삽입" icon="stamp" href="/ko/quickstart/watermark-embed">
+  <Card
+    title='워터마크 삽입'
+    icon='stamp'
+    href='/ko/quickstart/watermark-embed'
+  >
     이미지에 비가시성 워터마크를 삽입합니다.
   </Card>
-  <Card title="워터마크 검출" icon="magnifying-glass" href="/ko/quickstart/watermark-extract">
+  <Card
+    title='워터마크 검출'
+    icon='magnifying-glass'
+    href='/ko/quickstart/watermark-extract'
+  >
     이미지에서 비가시성 워터마크를 검출하고 추출합니다.
   </Card>
-  <Card title="AI Detection" icon="robot" href="/ko/quickstart/ai-detection">
+  <Card title='AI Detection' icon='robot' href='/ko/quickstart/ai-detection'>
     AI 생성 이미지를 확률 점수로 탐지합니다.
   </Card>
 </CardGroup>
@@ -27,20 +35,16 @@ description: "BIZ MORI API 시작하기 — 서비스를 선택하세요"
 - BIZ MORI API 키 ([여기서 발급](https://app.bizmori.com/keys))
 - 이미지 파일 — `jpg`, `jpeg`, `png`, `webp`, `tiff`, `bmp`는 모든 서비스에서 지원됩니다. 비가시성 워터마크 삽입 또는 검출 서비스에서는 `pdf`도 추가로 지원됩니다.
 
-## 프론트엔드인가요, 백엔드인가요?
-
-둘 다입니다. 이 가이드의 모든 엔드포인트는 평범한 HTTPS와 JSON이고, 파일 전송은 presigned S3 URL로 이뤄집니다. 서버 전용 런타임이 필요한 부분이 없습니다. 주문 생성 → 업로드 → 상태 확인 → 다운로드 흐름은 Node.js 서비스에서든 브라우저의 React 컴포넌트에서든 똑같이 동작합니다.
-
-각 빠른 시작 가이드에는 cURL, Node.js, Python 예제와 함께 단계마다 **React** 탭과 복사해서 바로 쓸 수 있는 전체 컴포넌트가 있습니다.
-
 ## 개발자가 아니신가요?
 
-<Card title="MCP 커넥터" icon="plug" href="/ko/mcp-connector" horizontal>
-  BIZ MORI를 Claude에 연결해 대화만으로 작업하세요 — 코드도 API 키도 필요 없습니다.
+<Card title='MCP 커넥터' icon='plug' href='/ko/mcp-connector' horizontal>
+  BIZ MORI를 Claude에 연결해 대화만으로 작업하세요 — 코드도 API 키도 필요
+  없습니다.
 </Card>
 
 ## AI 코딩 에이전트로 개발하시나요?
 
-<Card title="AI 에이전트 연동" icon="robot" href="/ko/ai-agents" horizontal>
-  프롬프트 하나를 Claude Code, Cursor, Codex에 복사해 붙여넣고 연동 규칙 전체를 에이전트에 전달하세요.
+<Card title='AI 에이전트 연동' icon='robot' href='/ko/ai-agents' horizontal>
+  프롬프트 하나를 Claude Code, Cursor, Codex에 복사해 붙여넣고 연동 규칙 전체를
+  에이전트에 전달하세요.
 </Card>
