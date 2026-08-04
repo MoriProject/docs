@@ -29,7 +29,7 @@ Test API keys:
 - do not run Anti-AI, watermark, or AI Detection processing;
 - do not call external processing services or consume credits.
 
-Test order IDs and file URLs are synthetic. Webhook mutation requests are rejected with a test key, while list and read paths return mock data.
+Test order IDs and file URLs are synthetic. Order history, recent stats, and webhook-list requests return empty mock data. Order detail, download, URL-refresh, webhook-detail, and webhook-event reads return not-found responses. Webhook mutation requests are rejected with a test key.
 
 ## Using your API key
 
