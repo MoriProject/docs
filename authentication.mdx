@@ -10,11 +10,26 @@ All API endpoints require authentication using an **API key** passed as a Bearer
 1. Sign in to the [BIZ MORI Dashboard](https://app.bizmori.com)
 2. Navigate to [**API Keys**](https://app.bizmori.com/keys)
 3. Click **Issue New Key**
-4. Copy and securely store the key — **it will only be shown once**
+4. Copy and securely store the key. Live API keys are shown only once.
+
+The dashboard automatically issues one test API key for each account and organization. The same key remains available for retrieval from the API Keys page.
 
 <Warning>
   Your API key grants full access to your account's API. Never expose it in client-side code, public repositories, or version control. Store it as an environment variable.
 </Warning>
+
+## Test API keys
+
+Use the automatically issued test API key with the `sk_test_` prefix when you need to verify an integration without running the underlying processing services.
+
+Test API keys:
+
+- use the same `Authorization: Bearer` authentication as live keys;
+- return mock responses for order and order-history endpoints;
+- do not run Anti-AI, watermark, or AI Detection processing;
+- do not call external processing services or consume credits.
+
+Test order IDs and file URLs are synthetic. Webhook mutation requests are rejected with a test key, while list and read paths return mock data.
 
 ## Using your API key
 

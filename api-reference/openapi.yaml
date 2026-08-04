@@ -12,6 +12,8 @@ info:
 
     - **AI Detection**: Detect whether an image is AI-generated
 
+    - **Test API keys**: Keys with the `sk_test_` prefix use the same Bearer authentication but return mock responses for integration testing without running processing services or consuming credits
+
     '
   contact:
     name: BIZ MORI Support
@@ -24,7 +26,7 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-      description: API Key for external client access
+      description: 'Bearer API key for external client access. Live keys use the `sk_` prefix; test keys use the `sk_test_` prefix and return mock responses without processing or credit usage.'
   schemas:
     BaseResponse:
       type: object

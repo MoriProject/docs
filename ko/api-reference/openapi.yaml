@@ -12,6 +12,8 @@ info:
 
     - **AI Detection**: 이미지가 AI로 생성되었는지 감지
 
+    - **테스트 API 키**: `sk_test_` 접두사의 키는 동일한 Bearer 인증을 사용하며, 실제 처리 서비스나 크레딧 사용 없이 연동 검증용 모의 응답을 반환
+
     '
   contact:
     name: BIZ MORI 지원
@@ -24,7 +26,7 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-      description: 외부 클라이언트 접근을 위한 API 키
+      description: '외부 클라이언트 접근을 위한 Bearer API 키. 일반 키는 `sk_` 접두사를 사용하고, 테스트 키는 `sk_test_` 접두사로 실제 처리나 크레딧 사용 없이 모의 응답을 반환'
   schemas:
     BaseResponse:
       type: object
