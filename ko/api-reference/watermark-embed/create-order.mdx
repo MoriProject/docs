@@ -1,17 +1,4 @@
 ---
 title: "워터마크 삽입 주문 생성"
-openapi: "POST /api/v2/orders/wtr-embed"
+openapi: "/ko/api-reference/openapi.yaml POST /api/v2/orders/wtr-embed"
 ---
-
-## 주문 결과 다운로드
-
-주문이 `complete` 상태가 되면 [다운로드 URL 발급](/ko/api-reference/orders/download-order) 엔드포인트를 사용하여 처리된 파일을 다운로드할 수 있습니다:
-
-```bash
-curl -X GET https://api.bizmori.com/api/v2/orders/{orderId}/download \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
-```
-
-<Warning>
-  주문 생성 후 **최대 7일**까지 파일을 다운로드할 수 있습니다. 7일이 경과하면 주문이 `expired` 상태로 전환되며, 이후 파일을 다운로드할 수 없습니다.
-</Warning>

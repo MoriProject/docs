@@ -1,0 +1,75 @@
+---
+title: "エラーコード"
+description: "BIZ MORI API エラーコード完全リファレンス"
+---
+
+すべてのエラーレスポンスは次の形式に従います:
+
+```json
+{
+  "code": "ERROR_CODE"
+}
+```
+
+HTTP ステータスコードがエラーの種類を示します。プログラムによるエラー処理や i18n/ローカライゼーションには `code` フィールドを使用してください。
+
+## 認証エラー
+
+| エラーコード | HTTP ステータス | 説明 |
+|-----------|-----------|------|
+| `AUTH_NOT_AUTHENTICATED` | 401 | 認証が必要です |
+| `AUTH_TOKEN_EXPIRED` | 401 | 認証トークンの有効期限切れ |
+| `AUTH_TOKEN_INVALID` | 401 | 無効な認証トークン |
+| `AUTH_TOKEN_INVALID_FORMAT` | 401 | トークンの形式が不正です |
+| `AUTH_FORBIDDEN` | 403 | 権限不足 |
+
+## バリデーションエラー
+
+| エラーコード | HTTP ステータス | 説明 |
+|-----------|-----------|------|
+| `VALIDATION_FAILED` | 400 | 入力値のバリデーションに失敗しました |
+| `VALIDATION_IDEMPOTENCY_KEY_INVALID` | 400 | 無効な冪等性キー |
+| `INVALID_PARAMETER` | 400 | 無効なパラメータ |
+
+## 注文エラー
+
+| エラーコード | HTTP ステータス | 説明 |
+|-----------|-----------|------|
+| `ORDER_NOT_FOUND` | 404 | 注文が見つかりません |
+| `ORDER_NOT_PENDING` | 400 | 注文が保留状態ではありません |
+| `ORDER_NOT_OWNER` | 403 | 注文の所有者ではありません |
+| `ORDER_EXPIRED` | 400 | 注文の有効期限切れ |
+| `ORDER_NOT_COMPLETED` | 400 | 注文が完了していません |
+| `ORDER_FILE_NOT_UPLOADED` | 400 | 注文ファイルがアップロードされていません |
+| `ORDER_ALREADY_CONFIRMED` | 400 | 既に確認済みの注文です |
+| `ORDER_ALREADY_COMPLETED` | 400 | 既に完了した注文です |
+| `ORDER_ALREADY_FAILED` | 400 | 既に失敗した注文です |
+| `ORDER_TYPE_NOT_MATCH` | 400 | 注文タイプが一致しません |
+| `ORDER_TYPE_CANT_DOWNLOAD` | 400 | ダウンロードできない注文タイプです |
+| `ORDER_TIMEOUT` | 408 | 注文処理がタイムアウトしました |
+
+## 使用量・プランエラー
+
+| エラーコード | HTTP ステータス | 説明 |
+|-----------|-----------|------|
+| `USAGE_LIMIT_EXCEEDED` | 400 | 使用量の上限を超過しました |
+| `USAGE_NOT_ENOUGH` | 400 | 使用量の割り当てが不足しています |
+| `PLAN_NOT_FOUND` | 404 | プランが見つかりません |
+
+## Webhookエラー
+
+| エラーコード | HTTP ステータス | 説明 |
+|-----------|-----------|------|
+| `WEBHOOK_NOT_FOUND` | 404 | Webhookが見つかりません |
+
+## レート制限
+
+| エラーコード | HTTP ステータス | 説明 |
+|-----------|-----------|------|
+| `RATE_LIMIT_EXCEEDED` | 429 | リクエストが多すぎます |
+
+## サーバーエラー
+
+| エラーコード | HTTP ステータス | 説明 |
+|-----------|-----------|------|
+| `SERVER_INTERNAL_ERROR` | 500 | 内部サーバーエラー |

@@ -1969,7 +1969,7 @@ paths:
                       orderId: '1234567890123456791'
                       channel: api
                       thumbnailImageUrl: https://s3.amazonaws.com/...
-                      status: detected
+                      status: complete
                       orderName: wtr_extract_2026-03-12
                       fileCount: 1
                       createdAt: '2026-03-12T10:00:00.000Z'

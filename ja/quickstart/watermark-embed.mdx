@@ -1,20 +1,20 @@
 ---
-title: "비가시성 워터마크 삽입"
-description: "이미지에 비가시성 워터마크 삽입하기"
+title: "不可視 watermark の埋め込み"
+description: "画像に不可視 watermark を埋め込む"
 ---
 
-이 가이드는 이미지에 비가시성 워터마크를 삽입하는 과정을 안내합니다 — 주문 생성부터 워터마크가 삽입된 결과물 다운로드까지.
+このガイドでは、画像に不可視 watermark を埋め込む手順を説明します — 注文の作成から、watermark が埋め込まれた結果のダウンロードまでです。
 
-이 API의 모든 엔드포인트는 순수 HTTPS와 JSON으로 동작하므로, 서버에서든 브라우저에서든 동일하게 호출할 수 있습니다. 각 단계에는 **React** 탭이 포함되어 있으며, 그대로 복사해 사용할 수 있는 [전체 컴포넌트](#전체-react-예제)는 페이지 하단에 있습니다.
+この API のすべてのエンドポイントは純粋な HTTPS と JSON で動作するため、サーバーからでもブラウザからでも同じように呼び出せます。各ステップには **React** タブが含まれており、そのままコピーして使える[完全なコンポーネント](#react-完全なサンプル)はページ下部にあります。
 
-## 사전 준비
+## 事前準備
 
-- BIZ MORI API 키 ([여기서 발급](https://app.bizmori.com/keys))
-- 비가시성 워터마크를 삽입할 파일 (`jpeg`, `jpg`, `png`, `webp`, `tiff`, `bmp`, 또는 `pdf`)
+- BIZ MORI API キー（[こちらから発行](https://app.bizmori.com/keys)）
+- 不可視 watermark を埋め込むファイル（`jpeg`、`jpg`、`png`、`webp`、`tiff`、`bmp`、または `pdf`）
 
-## 1단계: 주문 생성
+## ステップ1: 注文の作成
 
-워터마크 텍스트와 함께 비가시성 워터마크 삽입 주문을 생성합니다.
+watermark テキストを指定して、不可視 watermark 埋め込み注文を作成します。
 
 <CodeGroup>
 ```bash cURL
@@ -53,8 +53,8 @@ const { data } = await response.json();
 ```
 
 ```jsx React
-// JSON을 사용하는 모든 호출에 쓰는 헬퍼 함수 하나입니다. API는 실패 시
-// `{ code: "ERROR_CODE" }`를 반환하므로, 단순 상태 코드 대신 이 code를 노출합니다.
+// JSON を使用するすべての呼び出しで使うヘルパー関数です。API は失敗時に
+// `{ code: "ERROR_CODE" }` を返すため、単純なステータスコードの代わりにこの code を公開します。
 const API_BASE = 'https://api.bizmori.com/api/v2';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
@@ -75,7 +75,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   return (await res.json()).data;
 }
 
-// `file`은 사용자가 선택한 단일 File, `watermarkTexts`는 string[]입니다
+// `file` はユーザーが選択した単一の File、`watermarkTexts` は string[] です
 const order = await api('/orders/wtr-embed', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
@@ -110,7 +110,7 @@ data = res.json()['data']
 ```
 </CodeGroup>
 
-**응답:**
+**レスポンス:**
 ```json
 {
   "data": {
@@ -131,9 +131,9 @@ data = res.json()['data']
 }
 ```
 
-## 2단계: 파일 업로드
+## ステップ2: ファイルのアップロード
 
-1단계 응답의 `uploadUrl`로 파일을 PUT 업로드합니다. **Authorization 헤더는 필요 없습니다** — S3 직접 업로드입니다.
+ステップ1のレスポンスの `uploadUrl` にファイルを PUT アップロードします。**Authorization ヘッダーは不要です** — S3 への直接アップロードです。
 
 <CodeGroup>
 ```bash cURL
@@ -143,7 +143,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 ```
 
 ```jsx React
-// fetch()는 업로드 진행률을 알려줄 수 없으므로, PUT에는 XMLHttpRequest를 사용합니다.
+// fetch() はアップロードの進捗を通知できないため、PUT には XMLHttpRequest を使用します。
 function putFile(file, uploadUrl, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -161,22 +161,22 @@ function putFile(file, uploadUrl, onProgress) {
   });
 }
 
-// 파일이 정확히 하나이므로, 업로드 진행률은 숫자 하나로 표현됩니다.
+// ファイルはちょうど1つなので、アップロード進捗は単一の数値で表されます。
 await putFile(file, order.files[0].uploadUrl, (ratio) => setProgress(ratio));
 ```
 </CodeGroup>
 
 <Info>
-  **별도의 확인(confirm) 단계가 필요 없습니다.** Anti-AI 및 AI Detection 서비스와 달리, 비가시성 워터마크 삽입은 파일 업로드가 완료되면 처리가 자동으로 시작됩니다. 업로드 후 바로 주문 상태를 확인하시면 됩니다.
+  **別途、確認（confirm）ステップは必要ありません。** Anti-AI や AI Detection サービスとは異なり、不可視 watermark の埋め込みはファイルのアップロードが完了すると自動的に処理が開始されます。アップロード後はそのまま注文ステータスを確認してください。
 </Info>
 
 <Note>
-  Presigned URL은 **1시간** 후 만료됩니다. 만료된 경우 [URL 갱신](/ko/api-reference/orders/refresh-urls) 엔드포인트를 사용하여 새 URL을 받으세요.
+  プリサインド URL は **1時間** 後に失効します。失効した場合は、[URL の再発行](/ja/api-reference/orders/refresh-urls) エンドポイントを使用して新しい URL を取得してください。
 </Note>
 
-## 3단계: 주문 상태 확인 & 결과 다운로드
+## ステップ3: 注文ステータスの確認と結果のダウンロード
 
-주문 상태를 폴링하거나 [웹훅](/ko/webhooks)을 설정하여 처리 완료 알림을 받습니다.
+注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して処理完了の通知を受け取ります。
 
 <CodeGroup>
 ```bash cURL
@@ -195,8 +195,8 @@ const { data } = await res.json();
 ```jsx React
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 대기 시간이 길어질수록 폴링 간격도 늘립니다: 빠른 응답은 빠르게 유지하고,
-// 오래 걸리는 작업이 API를 계속 두드리지 않도록 합니다. 무한정 폴링하지 않고 10분 후 포기합니다.
+// 待機時間が長くなるほどポーリング間隔も広げます：素早い応答はそのまま素早く保ち、
+// 時間がかかる処理が API を叩き続けないようにします。無期限にポーリングせず、10分後には諦めます。
 async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {}) {
   const deadline = Date.now() + timeoutMs;
   let delay = 2000;
@@ -222,7 +222,7 @@ status = res.json()['data']['status']
 ```
 </CodeGroup>
 
-**응답:**
+**レスポンス:**
 ```json
 {
   "data": {
@@ -241,14 +241,14 @@ status = res.json()['data']['status']
 }
 ```
 
-| 상태 | 의미 |
+| ステータス | 意味 |
 |------|------|
-| `pending` | 파일 업로드 대기 중 |
-| `inProgress` | 처리 중 |
-| `complete` | 완료 (다운로드 가능) |
-| `failed` | 처리 실패 |
+| `pending` | ファイルのアップロード待ち |
+| `inProgress` | 処理中 |
+| `complete` | 完了（ダウンロード可能） |
+| `failed` | 処理失敗 |
 
-상태가 `complete`이면 다운로드 URL을 받습니다:
+ステータスが `complete` になったら、ダウンロード URL を取得します：
 
 <CodeGroup>
 ```bash cURL
@@ -261,12 +261,12 @@ const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789/downloa
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.downloadUrl — 1시간 유효
+// data.downloadUrl — 1時間有効
 ```
 
 ```jsx React
 const { downloadUrl } = await api(`/orders/${order.orderId}/download`);
-// <a href={downloadUrl} download>에 전달하세요 — 이 URL은 1시간 동안 유효합니다
+// <a href={downloadUrl} download> に渡してください — この URL は1時間有効です
 setDownloadUrl(downloadUrl);
 ```
 
@@ -279,7 +279,7 @@ download_url = res.json()['data']['downloadUrl']
 ```
 </CodeGroup>
 
-**응답:**
+**レスポンス:**
 ```json
 {
   "data": {
@@ -289,13 +289,13 @@ download_url = res.json()['data']['downloadUrl']
 }
 ```
 
-`downloadUrl`은 **1시간** 유효한 Presigned S3 URL입니다.
+`downloadUrl` は **1時間** 有効なプリサインド S3 URL です。
 
-비가시성 워터마크 삽입 API에서 지원하는 옵션과 상세한 설명은 [API 레퍼런스](/ko/api-reference/watermark-embed/create-order)를 참고하세요.
+不可視 watermark 埋め込み API でサポートされているオプションの詳細については、[API リファレンス](/ja/api-reference/watermark-embed/create-order)を参照してください。
 
-## 전체 React 예제
+## React 完全なサンプル
 
-위 내용을 모두 하나의 컴포넌트로 연결했습니다: 진행률을 보여주는 단일 파일 업로드, 추가/삭제와 중복 검사가 가능한 워터마크 텍스트 목록, 백오프 폴링, 다운로드 링크까지. React 외에 별도의 의존성은 없습니다.
+上記すべてを1つのコンポーネントにまとめました：進捗を表示する単一ファイルのアップロード、追加・削除と重複チェックが可能な watermark テキストのリスト、バックオフ付きポーリング、ダウンロードリンクまでを含みます。React 以外の依存関係はありません。
 
 ```jsx WatermarkEmbedUploader.jsx
 import { useRef, useState } from 'react';
@@ -310,9 +310,9 @@ const MAX_TEXT_LENGTH = 1000;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
-  // 재시도는 호출자의 idempotency key를 그대로 재사용하므로, 재시도된 생성 요청이
-  // 두 번째 주문을 만들어내는 일은 없습니다. 인증 실패는 `AUTH_*` 코드로 나타나며,
-  // 재시도해도 소용없으므로 아래의 throw로 그대로 전달됩니다.
+  // リトライは呼び出し元の idempotency key をそのまま再利用するため、リトライされた作成リクエストが
+  // 2番目の注文を作成することはありません。認証失敗は `AUTH_*` コードとして現れ、
+  // リトライしても意味がないため、下の throw にそのまま渡されます。
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(`${API_BASE}${path}`, {
       method,
@@ -370,7 +370,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
 
 export default function WatermarkEmbedUploader() {
   const [file, setFile] = useState(null);
-  // 지연 초기화: 이렇게 하지 않으면 crypto.randomUUID()가 렌더링마다 실행됩니다.
+  // 遅延初期化：こうしないと crypto.randomUUID() がレンダリングのたびに実行されます。
   const [watermarks, setWatermarks] = useState(() => [{ id: crypto.randomUUID(), text: '' }]);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('idle');
@@ -380,8 +380,8 @@ export default function WatermarkEmbedUploader() {
 
   const busy = status !== 'idle' && status !== 'complete';
 
-  // 처음 등장한 이후의 동일한 텍스트를 모두 중복으로 표시합니다. 빈 값은
-  // 예외입니다 — 아래의 '빈 텍스트 금지' 규칙에서 이미 걸러지기 때문입니다.
+  // 最初に出現した後に現れる同じテキストをすべて重複としてマークします。空の値は
+  // 例外です — 下の「空テキスト禁止」ルールで既に除外されているためです。
   const duplicateIds = (() => {
     const seen = new Map();
     const duplicates = new Set();
@@ -419,8 +419,8 @@ export default function WatermarkEmbedUploader() {
     if (inFlight.current || !canSubmit) return;
     inFlight.current = true;
 
-    // 선택 값을 스냅샷으로 저장합니다. 요청이 진행되는 동안에도 사용자는 폼을
-    // 수정할 수 있으므로, 업로드에는 제출 시점의 값을 그대로 사용해야 합니다.
+    // 選択された値をスナップショットとして保存します。リクエストが進行している間もユーザーはフォームを
+    // 編集できるため、アップロードには送信時点の値をそのまま使用する必要があります。
     const selectedFile = file;
     const selectedWatermarks = watermarks;
     setError(null);
@@ -445,11 +445,11 @@ export default function WatermarkEmbedUploader() {
       setStatus('uploading');
       await putFile(selectedFile, order.files[0].uploadUrl, setProgress);
 
-      // 별도의 확인(confirm) 단계는 없습니다 — 업로드가 완료되면 처리가 자동으로 시작됩니다.
+      // 別途、確認（confirm）ステップはありません — アップロードが完了すると処理が自動的に開始されます。
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
       if (finished.status === 'failed') throw new Error('ORDER_FAILED');
 
-      setStatus('다운로드 URL 발급 중');
+      setStatus('ダウンロード URL 発行中');
       const download = await api(`/orders/${order.orderId}/download`);
       setDownloadUrl(download.downloadUrl);
       setStatus('complete');
@@ -478,65 +478,65 @@ export default function WatermarkEmbedUploader() {
               value={watermark.text}
               maxLength={MAX_TEXT_LENGTH}
               disabled={busy}
-              placeholder={`워터마크 텍스트 #${index + 1}`}
+              placeholder={`watermark テキスト #${index + 1}`}
               onChange={(event) => updateWatermark(watermark.id, event.target.value)}
               style={{ borderColor: duplicateIds.has(watermark.id) ? 'red' : undefined }}
             />
             <button type="button" disabled={busy || watermarks.length === 1} onClick={() => removeWatermark(watermark.id)}>
-              삭제
+              削除
             </button>
           </li>
         ))}
       </ul>
       <button type="button" disabled={busy || watermarks.length >= MAX_WATERMARKS} onClick={addWatermark}>
-        워터마크 텍스트 추가 ({watermarks.length}/{MAX_WATERMARKS})
+        watermark テキストを追加 ({watermarks.length}/{MAX_WATERMARKS})
       </button>
 
       <button type="submit" disabled={!canSubmit}>
-        워터마크 삽입
+        watermark を埋め込む
       </button>
 
-      {status !== 'idle' && <p>상태: {status}</p>}
-      {status === 'uploading' && <p>업로드 진행률: {Math.round(progress * 100)}%</p>}
+      {status !== 'idle' && <p>ステータス: {status}</p>}
+      {status === 'uploading' && <p>アップロード進捗: {Math.round(progress * 100)}%</p>}
 
       {downloadUrl && (
         <a href={downloadUrl} download>
-          워터마크 삽입 이미지 다운로드
+          watermark 付き画像をダウンロード
         </a>
       )}
-      {error && <p role="alert">실패: {error}</p>}
+      {error && <p role="alert">失敗: {error}</p>}
     </form>
   );
 }
 ```
 
 <Note>
-  `import.meta.env.VITE_MORI_API_TOKEN`은 Vite의 문법입니다. Next.js에서는 `process.env.NEXT_PUBLIC_MORI_API_TOKEN`을 사용하거나, 사용 중인 번들러가 클라이언트 코드에 노출하는 방식을 따르세요. `crypto.randomUUID()`는 보안 컨텍스트에서만 동작합니다. HTTPS와 `localhost`에서는 문제없지만, 일반 HTTP LAN 주소에서는 사용할 수 없습니다.
+  `import.meta.env.VITE_MORI_API_TOKEN` は Vite の構文です。Next.js では `process.env.NEXT_PUBLIC_MORI_API_TOKEN` を使用するか、使用中のバンドラーがクライアントコードに公開する方式に従ってください。`crypto.randomUUID()` はセキュアコンテキストでのみ動作します。HTTPS と `localhost` では問題ありませんが、通常の HTTP の LAN アドレスでは使用できません。
 </Note>
 
-## 에러 처리
+## エラー処理
 
-| HTTP 상태 코드 | 의미 | 조치 |
+| HTTP ステータスコード | 意味 | 対応 |
 |----------------|------|------|
-| `400` | 잘못된 요청 | 파라미터 및 파일 형식 확인 |
-| `401` | 인증 실패 | API 키 확인 |
-| `429` | 사용량 초과 | 요청 빈도를 줄이거나 플랜 업그레이드 |
+| `400` | 不正なリクエスト | パラメータとファイル形式を確認 |
+| `401` | 認証失敗 | API キーを確認 |
+| `429` | 使用量超過 | リクエスト頻度を減らすか、プランをアップグレード |
 
-전체 에러 코드는 [에러 코드](/ko/errors) 페이지를 참고하세요.
+エラーコードの一覧は、[エラーコード](/ja/errors) ページを参照してください。
 
-## 다음 단계
+## 次のステップ
 
 <CardGroup cols={2}>
-  <Card title="Anti-AI" icon="shield" href="/ko/quickstart/anti-ai">
-    이미지를 AI 학습 및 생성으로부터 보호합니다.
+  <Card title="Anti-AI" icon="shield" href="/ja/quickstart/anti-ai">
+    画像を AI 学習および生成から保護します。
   </Card>
-  <Card title="워터마크 검출" icon="magnifying-glass" href="/ko/quickstart/watermark-extract">
-    이미지에서 비가시성 워터마크를 검출하고 추출합니다.
+  <Card title="不可視 watermark の抽出" icon="magnifying-glass" href="/ja/quickstart/watermark-extract">
+    画像から不可視 watermark を検出・抽出します。
   </Card>
-  <Card title="AI Detection" icon="robot" href="/ko/quickstart/ai-detection">
-    AI 생성 이미지를 확률 점수로 탐지합니다.
+  <Card title="AI Detection" icon="robot" href="/ja/quickstart/ai-detection">
+    AI 生成画像を確率スコアで検出します。
   </Card>
-  <Card title="웹훅" icon="bell" href="/ko/webhooks">
-    처리 완료 시 알림을 받기 위해 웹훅을 설정합니다.
+  <Card title="Webhook" icon="bell" href="/ja/webhooks">
+    処理完了時に通知を受け取るために Webhook を設定します。
   </Card>
 </CardGroup>

@@ -1,23 +1,23 @@
 ---
 title: "Anti-AI"
-description: "Anti-AI API로 이미지를 AI로부터 보호하기"
+description: "Anti-AI API で画像を AI から保護する"
 ---
 
-이 가이드는 **Anti-AI 보호 주문**을 생성하는 과정을 안내합니다 — 이미지 업로드부터 보호된 결과물 다운로드까지.
+このガイドでは、**Anti-AI 保護注文**を作成する手順を説明します — 画像のアップロードから保護された結果のダウンロードまでです。
 
-이 문서의 모든 엔드포인트는 순수 HTTPS와 JSON 통신이므로, 서버뿐 아니라 브라우저에서도 동일하게 호출할 수 있습니다. 각 단계에는 **React** 탭이 포함되어 있으며, [전체 복사-붙여넣기용 컴포넌트](#전체-react-예제)는 페이지 하단에서 확인할 수 있습니다.
+このドキュメントのすべてのエンドポイントは純粋な HTTPS と JSON 通信であるため、サーバーだけでなくブラウザからも同じように呼び出せます。各ステップには **React** タブが含まれており、[コピー&ペーストしてそのまま使える完全なコンポーネント](#react-完全なサンプル)はページ下部で確認できます。
 
-## 사전 준비
+## 事前準備
 
-- BIZ MORI API 키 ([여기서 발급](https://app.bizmori.com/keys))
-- 보호할 이미지 파일 (`jpeg`, `jpg`, `png`, `webp`, `tiff`, 또는 `bmp`)
+- BIZ MORI API キー（[こちらから発行](https://app.bizmori.com/keys)）
+- 保護する画像ファイル（`jpeg`、`jpg`、`png`、`webp`、`tiff`、または `bmp`）
 
-## 1단계: 주문 생성
+## ステップ1: 注文の作成
 
-주문을 생성하고 S3에 파일을 업로드하기 위한 Presigned URL을 받습니다.
+注文を作成し、S3 にファイルをアップロードするためのプリサインド URL を受け取ります。
 
 <Tip>
-  파일을 업로드하는 대신 이미지 URL을 직접 제공할 수도 있습니다. URL 모드에 대한 자세한 내용은 [Anti-AI 주문 생성 API](/ko/api-reference/anti-ai/create-order)를 참고하세요.
+  ファイルをアップロードする代わりに、画像 URL を直接指定することもできます。URL モードの詳細については、[Anti-AI 注文作成 API](/ja/api-reference/anti-ai/create-order) を参照してください。
 </Tip>
 
 <CodeGroup>
@@ -47,8 +47,8 @@ const { data } = await response.json();
 ```
 
 ```jsx React
-// 모든 JSON 호출에 사용하는 하나의 헬퍼 함수입니다. API는 실패 시
-// `{ code: "ERROR_CODE" }`를 반환하므로, 단순한 상태 코드 대신 이 코드를 그대로 노출합니다.
+// すべての JSON 呼び出しで使用する 1 つのヘルパー関数です。API は失敗時に
+// `{ code: "ERROR_CODE" }` を返すため、単純なステータスコードの代わりにこの code をそのまま公開します。
 const API_BASE = 'https://api.bizmori.com/api/v2';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
@@ -69,7 +69,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   return (await res.json()).data;
 }
 
-// `files`는 사용자가 선택한 File[] 입니다.
+// `files` はユーザーが選択した File[] です。
 const order = await api('/orders/anti-ai', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
@@ -95,7 +95,7 @@ data = res.json()['data']
 ```
 </CodeGroup>
 
-**응답:**
+**レスポンス:**
 ```json
 {
   "data": {
@@ -114,9 +114,9 @@ data = res.json()['data']
 }
 ```
 
-## 2단계: 파일 업로드
+## ステップ2: ファイルのアップロード
 
-1단계 응답의 `uploadUrl`로 파일을 PUT 업로드합니다. **Authorization 헤더는 필요 없습니다** — S3 직접 업로드입니다.
+ステップ1のレスポンスの `uploadUrl` にファイルを PUT アップロードします。**Authorization ヘッダーは不要です** — S3 への直接アップロードです。
 
 <CodeGroup>
 ```bash cURL
@@ -126,7 +126,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 ```
 
 ```jsx React
-// fetch()는 업로드 진행률을 알려주지 않으므로, PUT 요청에는 XMLHttpRequest를 사용합니다.
+// fetch() はアップロードの進捗を通知できないため、PUT リクエストには XMLHttpRequest を使用します。
 function putFile(file, uploadUrl, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -144,8 +144,8 @@ function putFile(file, uploadUrl, onProgress) {
   });
 }
 
-// 응답의 파일 목록은 요청한 순서와 동일하므로, `files[index]`는
-// `order.files[index].uploadUrl`에 대응합니다.
+// レスポンスのファイル一覧はリクエストした順序と同じであるため、`files[index]` は
+// `order.files[index].uploadUrl` に対応します。
 await Promise.all(
   files.map((file, index) =>
     putFile(file, order.files[index].uploadUrl, (ratio) =>
@@ -157,12 +157,12 @@ await Promise.all(
 </CodeGroup>
 
 <Note>
-  Presigned URL은 **1시간** 후 만료됩니다. 만료된 경우 [URL 갱신](/ko/api-reference/orders/refresh-urls) 엔드포인트를 사용하여 새 URL을 받으세요.
+  プリサインド URL は **1時間** 後に失効します。失効した場合は、[URL の再発行](/ja/api-reference/orders/refresh-urls) エンドポイントを使用して新しい URL を取得してください。
 </Note>
 
-## 3단계: 주문 확인
+## ステップ3: 注文の確認
 
-모든 파일 업로드 완료 후, 처리를 시작하기 위해 주문을 확인합니다:
+すべてのファイルのアップロードが完了したら、処理を開始するために注文を確認します：
 
 <CodeGroup>
 ```bash cURL
@@ -203,9 +203,9 @@ requests.post(
 ```
 </CodeGroup>
 
-## 4단계: 주문 상태 확인
+## ステップ4: 注文ステータスの確認
 
-주문 상태를 폴링하거나 [웹훅](/ko/webhooks)을 설정하여 처리 완료 알림을 받습니다.
+注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して処理完了の通知を受け取ります。
 
 <CodeGroup>
 ```bash cURL
@@ -224,8 +224,8 @@ const { data } = await res.json();
 ```jsx React
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 대기 시간이 길어질수록 폴링 간격을 늘립니다: 빠른 응답은 빠르게 받고, 오래 걸리는
-// 작업은 API를 과도하게 호출하지 않도록 합니다. 무한정 폴링하지 않고 10분 후에는 포기합니다.
+// 待機時間が長くなるほどポーリング間隔を広げます：素早い応答は素早く受け取り、時間がかかる
+// 処理では API を過度に呼び出さないようにします。無期限にポーリングせず、10分後には諦めます。
 async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {}) {
   const deadline = Date.now() + timeoutMs;
   let delay = 2000;
@@ -251,7 +251,7 @@ status = res.json()['data']['status']
 ```
 </CodeGroup>
 
-**응답:**
+**レスポンス:**
 ```json
 {
   "data": {
@@ -269,18 +269,18 @@ status = res.json()['data']['status']
 }
 ```
 
-주문 상태 흐름:
+注文ステータスの流れ:
 
-| 상태 | 의미 |
+| ステータス | 意味 |
 |------|------|
-| `pending` | 파일 업로드 대기 중 |
-| `inProgress` | 처리 중 |
-| `complete` | 완료 (다운로드 가능) |
-| `failed` | 처리 실패 |
+| `pending` | ファイルのアップロード待ち |
+| `inProgress` | 処理中 |
+| `complete` | 完了（ダウンロード可能） |
+| `failed` | 処理失敗 |
 
-## 5단계: 결과 다운로드
+## ステップ5: 結果のダウンロード
 
-상태가 `complete`이면 다운로드 URL을 받습니다:
+ステータスが `complete` になったら、ダウンロード URL を取得します：
 
 <CodeGroup>
 ```bash cURL
@@ -293,12 +293,12 @@ const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789/downloa
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.downloadUrl — 1시간 유효
+// data.downloadUrl — 1時間有効
 ```
 
 ```jsx React
 const { downloadUrl } = await api(`/orders/${order.orderId}/download`);
-// <a href={downloadUrl} download> 요소에 전달하세요 — URL은 1시간 동안 유효합니다.
+// <a href={downloadUrl} download> 要素に渡してください — この URL は1時間有効です。
 setDownloadUrl(downloadUrl);
 ```
 
@@ -311,7 +311,7 @@ download_url = res.json()['data']['downloadUrl']
 ```
 </CodeGroup>
 
-**응답:**
+**レスポンス:**
 ```json
 {
   "data": {
@@ -321,13 +321,13 @@ download_url = res.json()['data']['downloadUrl']
 }
 ```
 
-`downloadUrl`은 **1시간** 유효한 Presigned S3 URL입니다. 이 URL로 보호된 파일을 직접 다운로드하세요.
+`downloadUrl` は **1時間** 有効なプリサインド S3 URL です。この URL から保護されたファイルを直接ダウンロードしてください。
 
-Anti-AI API에서 지원하는 옵션과 상세한 설명은 [API 레퍼런스](/ko/api-reference/anti-ai/create-order)를 참고하세요.
+Anti-AI API でサポートされているオプションの詳細については、[API リファレンス](/ja/api-reference/anti-ai/create-order)を参照してください。
 
-## 전체 React 예제
+## React 完全なサンプル
 
-위 내용을 모두 하나의 컴포넌트로 연결했습니다: 다중 파일 업로드, 파일별 업로드 진행률, 백오프 폴링, 다운로드 링크까지. React 외에 별도의 의존성은 없습니다.
+上記すべてを1つのコンポーネントにまとめました：複数ファイルのアップロード、ファイルごとのアップロード進捗、バックオフ付きポーリング、ダウンロードリンクまでを含みます。React 以外の依存関係はありません。
 
 ```jsx AntiAiUploader.jsx
 import { useRef, useState } from 'react';
@@ -341,9 +341,9 @@ const MAX_FILES = 100;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
-  // 재시도 시에도 호출자의 idempotency key를 그대로 사용하므로, 재시도된 생성
-  // 요청이 두 번째 주문을 만들지 않습니다. 인증 실패는 `AUTH_*` 코드로 나타나며
-  // 재시도해도 소용없으므로, 아래의 throw로 그대로 전달됩니다.
+  // リトライ時も呼び出し元の idempotency key をそのまま使用するため、リトライされた作成
+  // リクエストが2番目の注文を作成することはありません。認証失敗は `AUTH_*` コードとして現れ、
+  // リトライしても意味がないため、下の throw にそのまま渡されます。
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(`${API_BASE}${path}`, {
       method,
@@ -414,8 +414,8 @@ export default function AntiAiUploader() {
     if (inFlight.current || files.length === 0) return;
     inFlight.current = true;
 
-    // 선택 항목을 스냅샷으로 고정합니다. 요청이 진행되는 동안 사용자가 파일을
-    // 바꿀 수 있으므로, selected[i]는 uploadUrls[i]와 계속 짝을 이뤄야 합니다.
+    // 選択項目をスナップショットとして固定します。リクエストが進行している間にユーザーがファイルを
+    // 変更する可能性があるため、selected[i] は uploadUrls[i] と常にペアになっている必要があります。
     const selected = files;
     setError(null);
     setDownloadUrl(null);
@@ -451,7 +451,7 @@ export default function AntiAiUploader() {
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
       if (finished.status === 'failed') throw new Error('ORDER_FAILED');
 
-      setStatus('다운로드 URL 발급 중');
+      setStatus('ダウンロード URL 発行中');
       const download = await api(`/orders/${order.orderId}/download`);
       setDownloadUrl(download.downloadUrl);
       setStatus('complete');
@@ -473,10 +473,10 @@ export default function AntiAiUploader() {
         onChange={(event) => setFiles([...event.target.files].slice(0, MAX_FILES))}
       />
       <button type="submit" disabled={busy || files.length === 0}>
-        이미지 {files.length}개 보호하기
+        画像を{files.length}件保護する
       </button>
 
-      {status !== 'idle' && <p>상태: {status}</p>}
+      {status !== 'idle' && <p>ステータス: {status}</p>}
 
       <ul>
         {files.map((file, index) => (
@@ -488,42 +488,42 @@ export default function AntiAiUploader() {
 
       {downloadUrl && (
         <a href={downloadUrl} download>
-          보호된 이미지 다운로드
+          保護された画像をダウンロード
         </a>
       )}
-      {error && <p role="alert">실패: {error}</p>}
+      {error && <p role="alert">失敗: {error}</p>}
     </form>
   );
 }
 ```
 
 <Note>
-  `import.meta.env.VITE_MORI_API_TOKEN`은 Vite 문법입니다. Next.js에서는 `process.env.NEXT_PUBLIC_MORI_API_TOKEN`을 사용하거나, 사용 중인 번들러가 클라이언트 코드에 노출하는 방식을 따르세요. `crypto.randomUUID()`는 보안 컨텍스트에서만 동작합니다. HTTPS와 `localhost`에서는 문제없지만, 일반 HTTP LAN 주소에서는 사용할 수 없습니다.
+  `import.meta.env.VITE_MORI_API_TOKEN` は Vite の構文です。Next.js では `process.env.NEXT_PUBLIC_MORI_API_TOKEN` を使用するか、使用中のバンドラーがクライアントコードに公開する方式に従ってください。`crypto.randomUUID()` はセキュアコンテキストでのみ動作します。HTTPS と `localhost` では問題ありませんが、通常の HTTP の LAN アドレスでは使用できません。
 </Note>
 
-## 에러 처리
+## エラー処理
 
-| HTTP 상태 코드 | 의미 | 조치 |
+| HTTP ステータスコード | 意味 | 対応 |
 |----------------|------|------|
-| `400` | 잘못된 요청 | 파라미터 및 파일 형식 확인 |
-| `401` | 인증 실패 | API 키 확인 |
-| `429` | 사용량 초과 | 요청 빈도를 줄이거나 플랜 업그레이드 |
+| `400` | 不正なリクエスト | パラメータとファイル形式を確認 |
+| `401` | 認証失敗 | API キーを確認 |
+| `429` | 使用量超過 | リクエスト頻度を減らすか、プランをアップグレード |
 
-전체 에러 코드는 [에러 코드](/ko/errors) 페이지를 참고하세요.
+エラーコードの一覧は、[エラーコード](/ja/errors) ページを参照してください。
 
-## 다음 단계
+## 次のステップ
 
 <CardGroup cols={2}>
-  <Card title="워터마크 삽입" icon="stamp" href="/ko/quickstart/watermark-embed">
-    이미지에 비가시성 워터마크를 삽입합니다.
+  <Card title="不可視 watermark の埋め込み" icon="stamp" href="/ja/quickstart/watermark-embed">
+    画像に不可視 watermark を埋め込みます。
   </Card>
-  <Card title="워터마크 검출" icon="magnifying-glass" href="/ko/quickstart/watermark-extract">
-    이미지에서 비가시성 워터마크를 검출하고 추출합니다.
+  <Card title="不可視 watermark の抽出" icon="magnifying-glass" href="/ja/quickstart/watermark-extract">
+    画像から不可視 watermark を検出・抽出します。
   </Card>
-  <Card title="AI Detection" icon="robot" href="/ko/quickstart/ai-detection">
-    AI 생성 이미지를 확률 점수로 탐지합니다.
+  <Card title="AI Detection" icon="robot" href="/ja/quickstart/ai-detection">
+    AI 生成画像を確率スコアで検出します。
   </Card>
-  <Card title="웹훅" icon="bell" href="/ko/webhooks">
-    처리 완료 시 알림을 받기 위해 웹훅을 설정합니다.
+  <Card title="Webhook" icon="bell" href="/ja/webhooks">
+    処理完了時に通知を受け取るために Webhook を設定します。
   </Card>
 </CardGroup>

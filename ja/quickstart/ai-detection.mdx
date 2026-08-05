@@ -1,0 +1,474 @@
+---
+title: "AI Detection"
+description: "確率スコアで AI 生成画像を検出する"
+---
+
+このガイドでは、画像が AI によって生成されたかどうかを検出する手順を説明します — 画像のアップロードから検出結果の確認までです。
+
+このドキュメントのすべてのエンドポイントは純粋な HTTPS と JSON を使用するため、サーバーからでもブラウザからでも同じように呼び出せます。各ステップには **React** タブが含まれており、そのままコピーして使える[完全なコンポーネントのサンプル](#react-完全なサンプル)はページ下部にあります。
+
+## 事前準備
+
+- BIZ MORI API キー（[こちらから発行](https://app.bizmori.com/keys)）
+- 分析する画像ファイル（`jpeg`、`jpg`、`png`、`webp`、`bmp`、または `tiff`）
+
+## ステップ1: 注文の作成
+
+画像ファイル名を指定して AI Detection 注文を作成します。
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "idempotencyKey": "my-detection-001",
+    "fileName": "photo.jpg"
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://api.bizmori.com/api/v2/orders/ai-detection', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    idempotencyKey: 'my-detection-001',
+    fileName: 'photo.jpg',
+  }),
+});
+const { data } = await response.json();
+```
+
+```jsx React
+// すべての JSON 呼び出しで使用するヘルパー関数です。失敗時に API は `{ code: "ERROR_CODE" }` を
+// 返すため、単純なステータスコードの代わりにこの code を表面化します。
+const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
+
+async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${API_TOKEN}`,
+      ...(body && { 'Content-Type': 'application/json' }),
+    },
+    body: body && JSON.stringify({ idempotencyKey, ...body }),
+  });
+
+  if (!res.ok) {
+    const { code } = await res.json().catch(() => ({}));
+    throw new Error(code ?? `HTTP_${res.status}`);
+  }
+  return (await res.json()).data;
+}
+
+// `file` はユーザーが選択した単一の File オブジェクトです
+const order = await api('/orders/ai-detection', {
+  method: 'POST',
+  idempotencyKey: crypto.randomUUID(),
+  body: { fileName: file.name },
+});
+```
+
+```python Python
+import requests
+
+res = requests.post(
+    'https://api.bizmori.com/api/v2/orders/ai-detection',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    json={
+        'idempotencyKey': 'my-detection-001',
+        'fileName': 'photo.jpg',
+    },
+)
+data = res.json()['data']
+```
+</CodeGroup>
+
+**レスポンス:**
+```json
+{
+  "data": {
+    "orderId": "123456789",
+    "orderName": "ai_detection_2026-03-18",
+    "status": "pending",
+    "file": {
+      "fileId": 1,
+      "fileName": "photo.jpg",
+      "uploadUrl": "https://s3.amazonaws.com/...",
+      "fileKey": "ai-detection/123456789/1/photo.jpg"
+    }
+  }
+}
+```
+
+<Tip>
+  ダッシュボードでの識別用にサムネイル、ヒートマップ、オーバーレイ画像を生成するには、[AI Detection API リファレンス](/ja/api-reference/ai-detection/create-order)を参照してください。
+</Tip>
+
+## ステップ2: ファイルのアップロード
+
+ステップ1のレスポンスの `uploadUrl` にファイルを PUT アップロードします。**Authorization ヘッダーは不要です** — S3 への直接アップロードです。
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://s3.amazonaws.com/..." \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @photo.jpg
+```
+
+```jsx React
+// fetch() はアップロードの進捗を通知しないため、PUT には XMLHttpRequest を使用します。
+function putFile(file, uploadUrl, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', file.type);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(event.loaded / event.total);
+    };
+    xhr.onload = () =>
+      xhr.status < 300 ? resolve() : reject(new Error(`UPLOAD_FAILED_${xhr.status}`));
+    xhr.onerror = () => reject(new Error('UPLOAD_NETWORK_ERROR'));
+
+    xhr.send(file);
+  });
+}
+
+// 注文レスポンスは `files` 配列ではなく単一の `file` を持っています。
+await putFile(file, order.file.uploadUrl, (ratio) => setProgress(ratio));
+```
+</CodeGroup>
+
+<Note>
+  プリサインドアップロード URL は **1時間** 後に失効します。失効する前に画像をアップロードしてください。
+</Note>
+
+## ステップ3: 注文の確認
+
+アップロード完了後、検出処理を開始するために注文を確認します：
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection/confirm \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"idempotencyKey": "YOUR_IDEMPOTENCY_KEY", "orderId": "123456789"}'
+```
+
+```javascript Node.js
+await fetch('https://api.bizmori.com/api/v2/orders/ai-detection/confirm', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    idempotencyKey: 'YOUR_IDEMPOTENCY_KEY',
+    orderId: '123456789',
+  }),
+});
+```
+
+```jsx React
+await api('/orders/ai-detection/confirm', {
+  method: 'POST',
+  idempotencyKey: crypto.randomUUID(),
+  body: { orderId: order.orderId },
+});
+```
+
+```python Python
+requests.post(
+    'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    json={'idempotencyKey': 'YOUR_IDEMPOTENCY_KEY', 'orderId': '123456789'},
+)
+```
+</CodeGroup>
+
+## ステップ4: 結果の確認
+
+注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して検出完了の通知を受け取ります。検出結果は注文の詳細に直接含まれており、別途ダウンロードのステップはありません。
+
+<CodeGroup>
+```bash cURL
+curl https://api.bizmori.com/api/v2/orders/123456789 \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript Node.js
+const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
+  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
+});
+const { data } = await res.json();
+// data.probability: 0-1
+// data.statusCode: 'likely_ai' | 'uncertain_ai' | 'uncertain_real' | 'likely_real'
+```
+
+```jsx React
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// 待機時間が長くなるほど、リトライの間隔を徐々に広げます：素早い応答は素早く処理され、
+// 時間がかかる処理は API を叩き続けません。無期限にポーリングする代わりに、10分後に諦めます。
+async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let delay = 2000;
+
+  while (Date.now() < deadline) {
+    const order = await api(`/orders/${orderId}`);
+    onStatus?.(order.status);
+    if (order.status === 'complete' || order.status === 'failed') return order;
+
+    await sleep(delay);
+    delay = Math.min(delay * 1.5, 15000);
+  }
+  throw new Error('ORDER_POLL_TIMEOUT');
+}
+```
+
+```python Python
+res = requests.get(
+    'https://api.bizmori.com/api/v2/orders/123456789',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+)
+data = res.json()['data']
+probability = data['probability']
+status_code = data['statusCode']
+```
+</CodeGroup>
+
+**レスポンス:**
+```json
+{
+  "data": {
+    "type": "aiDetection",
+    "orderId": "123456789",
+    "channel": "api",
+    "thumbnailImageUrl": "https://s3.amazonaws.com/...",
+    "status": "complete",
+    "orderName": "ai_detection_2026-03-18",
+    "fileCount": 1,
+    "createdAt": "2026-03-18T12:00:00.000Z",
+    "updatedAt": "2026-03-18T12:01:30.000Z",
+    "errors": null,
+    "probability": 0.92,
+    "statusCode": "likely_ai",
+    "options": {
+      "generateHeatmap": false,
+      "generateOverlay": false,
+      "generateThumbnail": false
+    },
+    "originalImageUrl": "https://s3.amazonaws.com/..."
+  }
+}
+```
+
+<Note>
+  `heatmapUrl`、`overlayUrl`、`thumbnailImageUrl` は、注文作成時にそれぞれ `options.generateHeatmap`、`options.generateOverlay`、`options.generateThumbnail` をリクエストした場合にのみレスポンスに含まれます。
+</Note>
+
+### 結果の解釈
+
+`probability` フィールド（0〜1）は、画像が AI によって生成された確率を示します。`statusCode` はこれを人が読みやすい形で解釈した値です：
+
+| `statusCode` | 意味 |
+|---|---|
+| `likely_real` | 人間による作成の可能性が非常に高い |
+| `uncertain_real` | 人間による作成の可能性が高い |
+| `uncertain_ai` | AI 生成の可能性が高い |
+| `likely_ai` | AI 生成の可能性が非常に高い |
+
+## React 完全なサンプル
+
+上記すべてを1つのコンポーネントにまとめました：進捗表示付きの画像アップロード、バックオフ付きポーリング、そして検出結果の表示までを含みます。React 以外の依存関係はありません。
+
+```jsx AiDetectionChecker.jsx
+import { useRef, useState } from 'react';
+
+const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
+
+const ACCEPT_FORMATS = 'image/jpeg, image/png, image/webp, image/tiff, image/bmp';
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
+  // リトライは呼び出し元の idempotency キーを再利用するため、リトライされた作成リクエストが2番目の
+  // 注文を作成することはありません。認証失敗は `AUTH_*` コードとして現れ、この場合は
+  // リトライしても意味がないため、下の throw にそのまま渡されます。
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        ...(body && { 'Content-Type': 'application/json' }),
+      },
+      body: body && JSON.stringify({ idempotencyKey, ...body }),
+    });
+
+    if (res.status === 429 && attempt < 3) {
+      await sleep((Number(res.headers.get('Retry-After')) || 2 ** attempt) * 1000);
+      continue;
+    }
+    if (!res.ok) {
+      const { code } = await res.json().catch(() => ({}));
+      throw new Error(code ?? `HTTP_${res.status}`);
+    }
+    return (await res.json()).data;
+  }
+}
+
+function putFile(file, uploadUrl, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', file.type);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(event.loaded / event.total);
+    };
+    xhr.onload = () =>
+      xhr.status < 300 ? resolve() : reject(new Error(`UPLOAD_FAILED_${xhr.status}`));
+    xhr.onerror = () => reject(new Error('UPLOAD_NETWORK_ERROR'));
+
+    xhr.send(file);
+  });
+}
+
+
+async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let delay = 2000;
+
+  while (Date.now() < deadline) {
+    const order = await api(`/orders/${orderId}`);
+    onStatus?.(order.status);
+    if (order.status === 'complete' || order.status === 'failed') return order;
+
+    await sleep(delay);
+    delay = Math.min(delay * 1.5, 15000);
+  }
+  throw new Error('ORDER_POLL_TIMEOUT');
+}
+
+export default function AiDetectionChecker() {
+  const [file, setFile] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState('idle');
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const inFlight = useRef(false);
+
+  const busy = status !== 'idle' && status !== 'complete';
+
+  async function detectImage(event) {
+    event.preventDefault();
+    if (inFlight.current || !file) return;
+    inFlight.current = true;
+
+    // 選択したファイルをスナップショットとして保存します。リクエストが進行中の間もユーザーがファイルを
+    // 変更する可能性があるため、`selected` は自身が作成した注文と常にペアになっている必要があります。
+    const selected = file;
+    setError(null);
+    setResult(null);
+    setProgress(0);
+
+    try {
+      setStatus('creating order');
+      const order = await api('/orders/ai-detection', {
+        method: 'POST',
+        idempotencyKey: crypto.randomUUID(),
+        body: {
+          fileName: selected.name,
+          options: { generateHeatmap: true, generateOverlay: true },
+        },
+      });
+
+      setStatus('uploading');
+      await putFile(selected, order.file.uploadUrl, setProgress);
+
+      setStatus('confirming');
+      await api('/orders/ai-detection/confirm', {
+        method: 'POST',
+        idempotencyKey: crypto.randomUUID(),
+        body: { orderId: order.orderId },
+      });
+
+      const finished = await pollOrder(order.orderId, { onStatus: setStatus });
+      if (finished.status === 'failed') throw new Error('ORDER_FAILED');
+
+      setResult(finished);
+      setStatus('complete');
+    } catch (caught) {
+      setError(caught.message);
+      setStatus('idle');
+    } finally {
+      inFlight.current = false;
+    }
+  }
+
+  return (
+    <form onSubmit={detectImage}>
+      <input
+        type="file"
+        accept={ACCEPT_FORMATS}
+        disabled={busy}
+        onChange={(event) => setFile(event.target.files[0] ?? null)}
+      />
+      <button type="submit" disabled={busy || !file}>
+        画像を検出
+      </button>
+
+      {status !== 'idle' && <p>ステータス: {status}</p>}
+      {status === 'uploading' && <p>アップロード進捗: {Math.round(progress * 100)}%</p>}
+
+      {result && (
+        <div>
+          <p>
+            確率: {Math.round(result.probability * 100)}% — {result.statusCode}
+          </p>
+          {result.heatmapUrl && <img src={result.heatmapUrl} alt="AI 検出ヒートマップ" />}
+          {result.overlayUrl && <img src={result.overlayUrl} alt="AI 検出オーバーレイ" />}
+        </div>
+      )}
+      {error && <p role="alert">失敗: {error}</p>}
+    </form>
+  );
+}
+```
+
+<Note>
+  `import.meta.env.VITE_MORI_API_TOKEN` は Vite の構文です。Next.js では `process.env.NEXT_PUBLIC_MORI_API_TOKEN` を使用するか、使用中のバンドラーがクライアントコードに公開する方式に従ってください。`crypto.randomUUID()` はセキュアコンテキストでのみ動作します。HTTPS と `localhost` では問題ありませんが、通常の HTTP の LAN アドレスでは使用できません。
+</Note>
+
+## エラー処理
+
+| HTTP ステータスコード | 意味 | 対応 |
+|----------------|------|------|
+| `400` | 不正なリクエスト | パラメータとファイル形式を確認 |
+| `401` | 認証失敗 | API キーを確認 |
+| `429` | 使用量超過 | リクエスト頻度を減らすか、プランをアップグレード |
+
+エラーコードの一覧は、[エラーコード](/ja/errors) ページを参照してください。
+
+## 次のステップ
+
+<CardGroup cols={2}>
+  <Card title="Anti-AI" icon="shield" href="/ja/quickstart/anti-ai">
+    画像を AI 学習および生成から保護します。
+  </Card>
+  <Card title="不可視 watermark の埋め込み" icon="stamp" href="/ja/quickstart/watermark-embed">
+    画像に不可視 watermark を埋め込みます。
+  </Card>
+  <Card title="不可視 watermark の抽出" icon="magnifying-glass" href="/ja/quickstart/watermark-extract">
+    画像から不可視 watermark を検出・抽出します。
+  </Card>
+  <Card title="Webhook" icon="bell" href="/ja/webhooks">
+    処理完了時に通知を受け取るために Webhook を設定します。
+  </Card>
+</CardGroup>

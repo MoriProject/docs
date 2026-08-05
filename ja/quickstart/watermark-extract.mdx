@@ -1,20 +1,20 @@
 ---
-title: "비가시성 워터마크 검출"
-description: "이미지에서 비가시성 워터마크를 검출하고 추출하기"
+title: "不可視 watermark の抽出"
+description: "画像から不可視 watermark を検出・抽出する"
 ---
 
-이 가이드는 이미지에서 비가시성 워터마크를 검출하는 과정을 안내합니다 — 주문 생성부터 검출 결과 확인까지.
+このガイドでは、画像から不可視 watermark を検出する手順を説明します — 注文の作成から検出結果の確認までです。
 
-모든 엔드포인트는 순수 HTTPS와 JSON을 사용하므로 서버에서든 브라우저에서든 동일하게 호출할 수 있습니다. 각 단계에는 **React** 탭이 포함되어 있으며, 페이지 하단에서 [전체 복사 붙여넣기 컴포넌트](#전체-react-예제)를 확인할 수 있습니다.
+すべてのエンドポイントは純粋な HTTPS と JSON を使用するため、サーバーからでもブラウザからでも同じように呼び出せます。各ステップには **React** タブが含まれており、ページ下部で[コピー&ペーストしてそのまま使える完全なコンポーネント](#react-完全なサンプル)を確認できます。
 
-## 사전 준비
+## 事前準備
 
-- BIZ MORI API 키 ([여기서 발급](https://app.bizmori.com/keys))
-- 비가시성 워터마크가 삽입된 이미지 파일 (`jpeg`, `jpg`, `png`, `webp`, `bmp`, 또는 `tiff`) 또는 PDF
+- BIZ MORI API キー（[こちらから発行](https://app.bizmori.com/keys)）
+- 不可視 watermark が埋め込まれた画像ファイル（`jpeg`、`jpg`、`png`、`webp`、`bmp`、または `tiff`）または PDF
 
-## 1단계: 주문 생성
+## ステップ1: 注文の作成
 
-비가시성 워터마크 검출 주문을 생성합니다.
+不可視 watermark 検出注文を作成します。
 
 <CodeGroup>
 ```bash cURL
@@ -47,8 +47,8 @@ const { data } = await response.json();
 ```
 
 ```jsx React
-// 모든 JSON 호출에 사용하는 헬퍼 함수입니다. API는 실패 시 `{ code: "ERROR_CODE" }`를
-// 반환하므로, 단순한 상태 코드 대신 이 코드를 그대로 노출합니다.
+// すべての JSON 呼び出しで使用するヘルパー関数です。API は失敗時に `{ code: "ERROR_CODE" }` を
+// 返すため、単純なステータスコードの代わりにこの code をそのまま公開します。
 const API_BASE = 'https://api.bizmori.com/api/v2';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
@@ -69,7 +69,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   return (await res.json()).data;
 }
 
-// `file`은 사용자가 선택한 단일 File입니다
+// `file` はユーザーが選択した単一の File です
 const order = await api('/orders/wtr-extract', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
@@ -96,7 +96,7 @@ data = res.json()['data']
 ```
 </CodeGroup>
 
-**응답:**
+**レスポンス:**
 ```json
 {
   "data": {
@@ -113,12 +113,12 @@ data = res.json()['data']
 ```
 
 <Tip>
-  보다 정확한 검출을 위해 원본(비가시성 워터마크 삽입 전) 이미지를 함께 제공할 수 있습니다. 자세한 사용 방법은 [API 레퍼런스](/api-reference/watermark-extract/create-order)를 참고하세요.
+  より正確な検出のために、元の（不可視 watermark 埋め込み前の）画像を併せて提供できます。詳しい使用方法については、[API リファレンス](/ja/api-reference/watermark-extract/create-order)を参照してください。
 </Tip>
 
-## 2단계: 파일 업로드
+## ステップ2: ファイルのアップロード
 
-1단계 응답의 `uploadUrl`로 파일을 PUT 업로드합니다. **Authorization 헤더는 필요 없습니다** — S3 직접 업로드입니다.
+ステップ1のレスポンスの `uploadUrl` にファイルを PUT アップロードします。**Authorization ヘッダーは不要です** — S3 への直接アップロードです。
 
 <CodeGroup>
 ```bash cURL
@@ -128,7 +128,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 ```
 
 ```jsx React
-// fetch()는 업로드 진행률을 알려줄 수 없으므로, PUT 요청에는 XMLHttpRequest를 사용합니다.
+// fetch() はアップロードの進捗を通知できないため、PUT リクエストには XMLHttpRequest を使用します。
 function putFile(file, uploadUrl, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
@@ -146,22 +146,22 @@ function putFile(file, uploadUrl, onProgress) {
   });
 }
 
-// 주문 응답에는 `files` 배열이 아니라 단일 `file`이 담겨 있습니다.
+// 注文レスポンスには `files` 配列ではなく単一の `file` が含まれています。
 await putFile(file, order.file.uploadUrl, (ratio) => setProgress(ratio));
 ```
 </CodeGroup>
 
 <Info>
-  **별도의 확인(confirm) 단계가 필요 없습니다.** 비가시성 워터마크 삽입과 마찬가지로, 파일 업로드가 완료되면 검출 처리가 자동으로 시작됩니다. 업로드 후 바로 결과를 확인하시면 됩니다.
+  **別途、確認（confirm）ステップは必要ありません。** 不可視 watermark の埋め込みと同様に、ファイルのアップロードが完了すると検出処理が自動的に開始されます。アップロード後はそのまま結果を確認してください。
 </Info>
 
 <Note>
-  Presigned URL은 **1시간** 후 만료됩니다. 만료된 경우 [URL 갱신](/ko/api-reference/orders/refresh-urls) 엔드포인트를 사용하여 새 URL을 받으세요.
+  プリサインド URL は **1時間** 後に失効します。失効した場合は、[URL の再発行](/ja/api-reference/orders/refresh-urls) エンドポイントを使用して新しい URL を取得してください。
 </Note>
 
-## 3단계: 결과 확인
+## ステップ3: 結果の確認
 
-주문 상태를 폴링하거나 [웹훅](/ko/webhooks)을 설정하여 검출 완료 알림을 받습니다.
+注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して検出完了の通知を受け取ります。
 
 <CodeGroup>
 ```bash cURL
@@ -179,9 +179,9 @@ const { data } = await res.json();
 ```jsx React
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// 기다리는 시간이 길어질수록 간격을 늘립니다: 빠른 응답은 빠르게 받고, 오래 걸리는
-// 작업은 API를 계속 두드리지 않습니다. 영원히 폴링하지 않도록 10분 후에는 포기합니다.
-// `status`로 완료 여부를 판단합니다 — 검출 결과는 `statusCode`로 따로 옵니다.
+// 待つ時間が長くなるほど間隔を広げます：素早い応答は素早く受け取り、時間がかかる
+// 処理では API を叩き続けません。永遠にポーリングしないよう、10分後には諦めます。
+// `status` で完了かどうかを判断します — 検出結果は `statusCode` で別途届きます。
 async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {}) {
   const deadline = Date.now() + timeoutMs;
   let delay = 2000;
@@ -207,7 +207,7 @@ data = res.json()['data']
 ```
 </CodeGroup>
 
-**응답 (비가시성 워터마크 검출됨):**
+**レスポンス（不可視 watermark が検出された場合）:**
 ```json
 {
   "data": {
@@ -227,7 +227,7 @@ data = res.json()['data']
 }
 ```
 
-**응답 (비가시성 워터마크 미검출):**
+**レスポンス（不可視 watermark が検出されなかった場合）:**
 ```json
 {
   "data": {
@@ -247,23 +247,23 @@ data = res.json()['data']
 }
 ```
 
-`status`로 작업 완료 여부를 확인한 뒤, `statusCode`로 결과를 읽으세요:
+`status` で作業の完了を確認した後、`statusCode` で結果を読み取ってください：
 
-| `status` | 의미 |
+| `status` | 意味 |
 |------|------|
-| `pending` | 파일 업로드 대기 중 |
-| `inProgress` | 검출 처리 중 |
-| `complete` | 완료 — `statusCode`를 확인하세요 |
-| `failed` | 검출 실패 |
+| `pending` | ファイルのアップロード待ち |
+| `inProgress` | 検出処理中 |
+| `complete` | 完了 — `statusCode` を確認してください |
+| `failed` | 検出失敗 |
 
-| `statusCode` | 의미 |
+| `statusCode` | 意味 |
 |------|------|
-| `detected` | 비가시성 워터마크 검출됨 — `watermarkText`에서 추출된 텍스트를 확인하세요 |
-| `undetected` | 이미지에서 비가시성 워터마크가 검출되지 않음 |
+| `detected` | 不可視 watermark が検出されました — `watermarkText` で抽出されたテキストを確認してください |
+| `undetected` | 画像から不可視 watermark が検出されませんでした |
 
-## 전체 React 예제
+## React 完全なサンプル
 
-위 내용을 모두 하나의 컴포넌트로 연결했습니다: 진행률을 보여주는 단일 파일 업로드, 백오프 폴링, 그리고 `statusCode`로 렌더링하는 검출 결과까지. React 외에 별도의 의존성은 없습니다.
+上記すべてを1つのコンポーネントにまとめました：進捗を表示する単一ファイルのアップロード、バックオフ付きポーリング、そして `statusCode` に基づいてレンダリングする検出結果までを含みます。React 以外の依存関係はありません。
 
 ```jsx WatermarkExtractChecker.jsx
 import { useRef, useState } from 'react';
@@ -276,9 +276,9 @@ const ACCEPT_FORMATS = 'image/jpeg, image/png, image/webp, image/tiff, image/bmp
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
-  // 재시도는 호출자의 idempotency key를 그대로 재사용하므로, 재시도된 생성 요청이
-  // 두 번째 주문을 만드는 일은 없습니다. 인증 실패는 `AUTH_*` 코드로 나타나며,
-  // 재시도해도 소용없으므로 아래의 throw로 그대로 넘어갑니다.
+  // リトライは呼び出し元の idempotency key をそのまま再利用するため、リトライされた作成リクエストが
+  // 2番目の注文を作成することはありません。認証失敗は `AUTH_*` コードとして現れ、
+  // リトライしても意味がないため、下の throw にそのまま渡されます。
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(`${API_BASE}${path}`, {
       method,
@@ -349,8 +349,8 @@ export default function WatermarkExtractChecker() {
     if (inFlight.current || !file) return;
     inFlight.current = true;
 
-    // 선택된 파일을 스냅샷으로 저장합니다. 요청이 진행되는 동안 사용자가 파일을
-    // 바꿀 수 있으므로, `selected`는 해당 주문의 업로드 URL과 짝을 이뤄야 합니다.
+    // 選択されたファイルをスナップショットとして保存します。リクエストが進行している間にユーザーがファイルを
+    // 変更する可能性があるため、`selected` はその注文のアップロード URL とペアになっている必要があります。
     const selected = file;
     setError(null);
     setResult(null);
@@ -387,53 +387,53 @@ export default function WatermarkExtractChecker() {
         onChange={(event) => setFile(event.target.files[0] ?? null)}
       />
       <button type="submit" disabled={busy || !file}>
-        비가시성 워터마크 확인
+        不可視 watermark を確認
       </button>
 
-      {status !== 'idle' && <p>상태: {status}</p>}
-      {status === 'uploading' && <p>업로드 중: {Math.round(progress * 100)}%</p>}
+      {status !== 'idle' && <p>ステータス: {status}</p>}
+      {status === 'uploading' && <p>アップロード中: {Math.round(progress * 100)}%</p>}
 
-      {/* `status`는 작업 완료 여부를, `statusCode`는 검출 결과를 나타냅니다. */}
+      {/* `status` は作業の完了を、`statusCode` は検出結果を表します。 */}
       {result?.statusCode === 'detected' && (
         <p>
-          비가시성 워터마크 검출됨: <strong>{result.watermarkText}</strong>
+          不可視 watermark を検出: <strong>{result.watermarkText}</strong>
         </p>
       )}
-      {result?.statusCode === 'undetected' && <p>이 이미지에서 비가시성 워터마크가 검출되지 않았습니다.</p>}
-      {result?.status === 'failed' && <p role="alert">검출 실패.</p>}
-      {error && <p role="alert">실패: {error}</p>}
+      {result?.statusCode === 'undetected' && <p>この画像から不可視 watermark は検出されませんでした。</p>}
+      {result?.status === 'failed' && <p role="alert">検出に失敗しました。</p>}
+      {error && <p role="alert">失敗: {error}</p>}
     </form>
   );
 }
 ```
 
 <Note>
-  `import.meta.env.VITE_MORI_API_TOKEN`은 Vite 문법입니다. Next.js에서는 `process.env.NEXT_PUBLIC_MORI_API_TOKEN`을 사용하거나, 사용 중인 번들러가 클라이언트 코드에 노출하는 방식을 사용하세요. `crypto.randomUUID()`는 보안 컨텍스트에서만 동작합니다. HTTPS와 `localhost`에서는 문제없지만, 일반 HTTP LAN 주소에서는 사용할 수 없습니다.
+  `import.meta.env.VITE_MORI_API_TOKEN` は Vite の構文です。Next.js では `process.env.NEXT_PUBLIC_MORI_API_TOKEN` を使用するか、使用中のバンドラーがクライアントコードに公開する方式に従ってください。`crypto.randomUUID()` はセキュアコンテキストでのみ動作します。HTTPS と `localhost` では問題ありませんが、通常の HTTP の LAN アドレスでは使用できません。
 </Note>
 
-## 에러 처리
+## エラー処理
 
-| HTTP 상태 코드 | 의미 | 조치 |
+| HTTP ステータスコード | 意味 | 対応 |
 |----------------|------|------|
-| `400` | 잘못된 요청 | 파라미터 및 파일 형식 확인 |
-| `401` | 인증 실패 | API 키 확인 |
-| `429` | 사용량 초과 | 요청 빈도를 줄이거나 플랜 업그레이드 |
+| `400` | 不正なリクエスト | パラメータとファイル形式を確認 |
+| `401` | 認証失敗 | API キーを確認 |
+| `429` | 使用量超過 | リクエスト頻度を減らすか、プランをアップグレード |
 
-전체 에러 코드는 [에러 코드](/ko/errors) 페이지를 참고하세요.
+エラーコードの一覧は、[エラーコード](/ja/errors) ページを参照してください。
 
-## 다음 단계
+## 次のステップ
 
 <CardGroup cols={2}>
-  <Card title="Anti-AI" icon="shield" href="/ko/quickstart/anti-ai">
-    이미지를 AI 학습 및 생성으로부터 보호합니다.
+  <Card title="Anti-AI" icon="shield" href="/ja/quickstart/anti-ai">
+    画像を AI 学習および生成から保護します。
   </Card>
-  <Card title="워터마크 삽입" icon="stamp" href="/ko/quickstart/watermark-embed">
-    이미지에 비가시성 워터마크를 삽입합니다.
+  <Card title="不可視 watermark の埋め込み" icon="stamp" href="/ja/quickstart/watermark-embed">
+    画像に不可視 watermark を埋め込みます。
   </Card>
-  <Card title="AI Detection" icon="robot" href="/ko/quickstart/ai-detection">
-    AI 생성 이미지를 확률 점수로 탐지합니다.
+  <Card title="AI Detection" icon="robot" href="/ja/quickstart/ai-detection">
+    AI 生成画像を確率スコアで検出します。
   </Card>
-  <Card title="웹훅" icon="bell" href="/ko/webhooks">
-    처리 완료 시 알림을 받기 위해 웹훅을 설정합니다.
+  <Card title="Webhook" icon="bell" href="/ja/webhooks">
+    処理完了時に通知を受け取るために Webhook を設定します。
   </Card>
 </CardGroup>
