@@ -204,7 +204,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   while (Date.now() < deadline) {
     const order = await api(`/orders/${orderId}`);
     onStatus?.(order.status);
-    if (order.status === 'complete' || order.status === 'failed') return order;
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
     await sleep(delay);
     delay = Math.min(delay * 1.5, 15000);
@@ -276,7 +276,7 @@ The `url` is a presigned S3 URL valid for **7 days**.
 Everything above, wired into one component: single-file upload with progress, a watermark text list with add/remove and duplicate detection, backoff polling, and a download link. No dependencies beyond React.
 
 ```jsx WatermarkEmbedUploader.jsx
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 const API_BASE = 'https://api.bizmori.com/api/v2';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
@@ -340,7 +340,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   while (Date.now() < deadline) {
     const order = await api(`/orders/${orderId}`);
     onStatus?.(order.status);
-    if (order.status === 'complete' || order.status === 'failed') return order;
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
     await sleep(delay);
     delay = Math.min(delay * 1.5, 15000);
@@ -363,7 +363,7 @@ export default function WatermarkEmbedUploader() {
 
   // Flags every text after the first occurrence as a duplicate. Blank rows
   // are exempt — they're already caught by the "no blank text" rule below.
-  const duplicateIds = (() => {
+  const duplicateIds = useMemo(() => {
     const seen = new Map();
     const duplicates = new Set();
     watermarks.forEach((watermark) => {
@@ -373,7 +373,7 @@ export default function WatermarkEmbedUploader() {
       else seen.set(text, watermark.id);
     });
     return duplicates;
-  })();
+  }, [watermarks]);
 
   const canSubmit =
     file !== null &&
@@ -430,7 +430,8 @@ export default function WatermarkEmbedUploader() {
 
       // No confirm step — processing starts automatically once the upload completes.
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      if (finished.status === 'failed') throw new Error('ORDER_FAILED');
+      // `expired` is terminal too: the cleanup job drops the files after 7 days.
+      if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setStatus('fetching download URL');
       const { url } = await api(`/orders/${order.orderId}/download`);

@@ -204,7 +204,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   while (Date.now() < deadline) {
     const order = await api(`/orders/${orderId}`);
     onStatus?.(order.status);
-    if (order.status === 'complete' || order.status === 'failed') return order;
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
     await sleep(delay);
     delay = Math.min(delay * 1.5, 15000);
@@ -297,7 +297,7 @@ download_url = res.json()['data']['url']
 上記すべてを1つのコンポーネントにまとめました：進捗を表示する単一ファイルのアップロード、追加・削除と重複チェックが可能な watermark テキストのリスト、バックオフ付きポーリング、ダウンロードリンクまでを含みます。React 以外の依存関係はありません。
 
 ```jsx WatermarkEmbedUploader.jsx
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 const API_BASE = 'https://api.bizmori.com/api/v2';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
@@ -361,7 +361,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   while (Date.now() < deadline) {
     const order = await api(`/orders/${orderId}`);
     onStatus?.(order.status);
-    if (order.status === 'complete' || order.status === 'failed') return order;
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
     await sleep(delay);
     delay = Math.min(delay * 1.5, 15000);
@@ -384,7 +384,7 @@ export default function WatermarkEmbedUploader() {
 
   // 最初に出現した後に現れる同じテキストをすべて重複としてマークします。空の値は
   // 例外です — 下の「空テキスト禁止」ルールで既に除外されているためです。
-  const duplicateIds = (() => {
+  const duplicateIds = useMemo(() => {
     const seen = new Map();
     const duplicates = new Set();
     watermarks.forEach((watermark) => {
@@ -394,7 +394,7 @@ export default function WatermarkEmbedUploader() {
       else seen.set(text, watermark.id);
     });
     return duplicates;
-  })();
+  }, [watermarks]);
 
   const canSubmit =
     file !== null &&
@@ -451,7 +451,8 @@ export default function WatermarkEmbedUploader() {
 
       // 別途、確認（confirm）ステップはありません — アップロードが完了すると処理が自動的に開始されます。
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      if (finished.status === 'failed') throw new Error('ORDER_FAILED');
+      // `expired` も終了状態です。クリーンアップ処理が 7日後にファイルを削除します。
+      if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setStatus('fetching download URL');
       const { url } = await api(`/orders/${order.orderId}/download`);

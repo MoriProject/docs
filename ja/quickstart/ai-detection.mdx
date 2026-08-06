@@ -222,7 +222,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   while (Date.now() < deadline) {
     const order = await api(`/orders/${orderId}`);
     onStatus?.(order.status);
-    if (order.status === 'complete' || order.status === 'failed') return order;
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
     await sleep(delay);
     delay = Math.min(delay * 1.5, 15000);
@@ -350,7 +350,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   while (Date.now() < deadline) {
     const order = await api(`/orders/${orderId}`);
     onStatus?.(order.status);
-    if (order.status === 'complete' || order.status === 'failed') return order;
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
     await sleep(delay);
     delay = Math.min(delay * 1.5, 15000);
@@ -405,7 +405,8 @@ export default function AiDetectionChecker() {
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      if (finished.status === 'failed') throw new Error('ORDER_FAILED');
+      // `expired` も終了状態です。クリーンアップ処理が 7日後にファイルを削除します。
+      if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setResult(finished);
       setStatus('complete');

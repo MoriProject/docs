@@ -189,7 +189,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   while (Date.now() < deadline) {
     const order = await api(`/orders/${orderId}`);
     onStatus?.(order.status);
-    if (order.status === 'complete' || order.status === 'failed') return order;
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
     await sleep(delay);
     delay = Math.min(delay * 1.5, 15000);
@@ -327,7 +327,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   while (Date.now() < deadline) {
     const order = await api(`/orders/${orderId}`);
     onStatus?.(order.status);
-    if (order.status === 'complete' || order.status === 'failed') return order;
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
     await sleep(delay);
     delay = Math.min(delay * 1.5, 15000);
@@ -344,7 +344,7 @@ export default function WatermarkExtractChecker() {
   const [orderId, setOrderId] = useState(null);
   const inFlight = useRef(false);
 
-  const busy = status !== 'idle' && status !== 'complete' && status !== 'failed';
+  const busy = status !== 'idle' && status !== 'complete';
 
   async function checkWatermark(event) {
     event.preventDefault();
@@ -372,8 +372,11 @@ export default function WatermarkExtractChecker() {
       await putFile(selected, order.file.uploadUrl, setProgress);
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
+      // `expired`도 종료 상태입니다. 정리 작업이 7일 후 파일을 삭제합니다.
+      if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
+
       setResult(finished);
-      setStatus(finished.status);
+      setStatus('complete');
     } catch (caught) {
       setError(caught.message);
       setStatus('idle');
@@ -409,7 +412,6 @@ export default function WatermarkExtractChecker() {
         </p>
       )}
       {result?.statusCode === 'undetected' && <p>이 이미지에서 비가시성 워터마크가 검출되지 않았습니다.</p>}
-      {result?.status === 'failed' && <p role="alert">검출 실패.</p>}
       {error && <p role="alert">실패: {error}{orderId && ` (orderId: ${orderId})`}</p>}
     </form>
   );
