@@ -12,7 +12,8 @@ info:
 
     - **AI Detection**: Detect whether an image is AI-generated
 
-    - **Test API keys**: Keys with the `sk_test_` prefix use the same Bearer authentication but return mock responses for integration testing without running processing services or consuming credits
+    - **Test API keys**: Keys with the `sk_test_` prefix use the same Bearer authentication but return
+    mock responses for integration testing without running processing services or consuming credits
 
     '
   contact:
@@ -26,7 +27,8 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-      description: 'Bearer API key for external client access. Live keys use the `sk_` prefix; test keys use the `sk_test_` prefix and return mock responses without processing or credit usage.'
+      description: Bearer API key for external client access. Live keys use the `sk_` prefix; test keys
+        use the `sk_test_` prefix and return mock responses without processing or credit usage.
   schemas:
     BaseResponse:
       type: object
@@ -311,14 +313,14 @@ components:
           type: string
           format: uri
           nullable: true
-          description: Thumbnail image URL (presigned URL, 1-hour expiry). For aiDetection
-            orders, only returned when generateThumbnail option is used. null when expired.
+          description: Thumbnail image URL (presigned URL, 1-hour expiry). For aiDetection orders, only
+            returned when generateThumbnail option is used. null when expired.
         originalImageUrl:
           type: string
           format: uri
           nullable: true
-          description: Original input image download URL (presigned URL, 1-hour expiry).
-            aiDetection orders only. null when expired.
+          description: Original input image download URL (presigned URL, 1-hour expiry). aiDetection orders
+            only. null when expired.
         createdAt:
           type: string
           format: date-time
@@ -389,14 +391,14 @@ components:
           type: string
           format: uri
           nullable: true
-          description: AI detection heatmap image download URL (aiDetection orders
-            only, when generateHeatmap option is used)
+          description: AI detection heatmap image download URL (aiDetection orders only, when generateHeatmap
+            option is used)
         overlayUrl:
           type: string
           format: uri
           nullable: true
-          description: Heatmap overlay on original image download URL (aiDetection
-            orders only, when generateOverlay option is used)
+          description: Heatmap overlay on original image download URL (aiDetection orders only, when generateOverlay
+            option is used)
     UsageStats:
       type: object
       properties:
@@ -634,14 +636,11 @@ paths:
 
         ## Input Modes (Upload / URL / Mixed)
 
-        The input mode is determined by the presence of `originalFileUrl` in each
-        file object:
+        The input mode is determined by the presence of `originalFileUrl` in each file object:
 
-        - **Upload mode** (no `originalFileUrl`): Presigned URL issued → Client uploads
-        to S3 → Call `/confirm`
+        - **Upload mode** (no `originalFileUrl`): Presigned URL issued → Client uploads to S3 → Call `/confirm`
 
-        - **URL mode** (`originalFileUrl` provided): Image downloaded from the URL
-        and processed immediately
+        - **URL mode** (`originalFileUrl` provided): Image downloaded from the URL and processed immediately
 
         - **Mixed mode**: Some files in Upload mode, others in URL mode simultaneously
 
@@ -652,20 +651,17 @@ paths:
 
         |-----------|-------------|-----------------|
 
-        | All files have `originalFileUrl` | `inProgress` | No (immediate processing)
-        |
+        | All files have `originalFileUrl` | `inProgress` | No (immediate processing) |
 
-        | Any file without `originalFileUrl` | `pending` | Yes (upload then confirm)
-        |
+        | Any file without `originalFileUrl` | `pending` | Yes (upload then confirm) |
 
 
         ## Zero Copy Mode
 
-        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided
-        presigned URLs.
+        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided presigned
+        URLs.
 
-        In this case, `outputTargets` array is required and must match the length
-        of `files` array.
+        In this case, `outputTargets` array is required and must match the length of `files` array.
 
         '
       tags:
@@ -707,11 +703,9 @@ paths:
                         format: uri
                         description: 'Original image URL (optional)
 
-                          - Provided: URL mode (no presigned URL issued, immediate
-                          processing)
+                          - Provided: URL mode (no presigned URL issued, immediate processing)
 
-                          - Not provided: Upload mode (presigned URL issued, confirm
-                          required)
+                          - Not provided: Upload mode (presigned URL issued, confirm required)
 
                           '
                         example: https://example.com/image.jpg
@@ -725,8 +719,8 @@ paths:
                       description: Enable Zero Copy mode
                 outputTargets:
                   type: array
-                  description: Output upload targets for Zero Copy mode (required
-                    when mode.zeroCopy is true)
+                  description: Output upload targets for Zero Copy mode (required when mode.zeroCopy is
+                    true)
                   items:
                     type: object
                     required:
@@ -844,26 +838,23 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \\\n  -H\
-          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-001\",\n    \"files\": [\n\
-          \      {\"fileName\": \"image1.jpg\"},\n      {\"fileName\": \"image2.png\"\
-          }\n    ],\n    \"options\": {\"strength\": \"high\"}\n  }'"
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-001\",\n    \"files\": [\n      {\"fileName\": \"image1.jpg\"},\n      {\"fileName\"\
+          : \"image2.png\"}\n    ],\n    \"options\": {\"strength\": \"high\"}\n  }'"
       - lang: javascript
         label: JavaScript
-        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai',\
-          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-001',\n    files: [\n      { fileName: 'image1.jpg'\
-          \ },\n      { fileName: 'image2.png' }\n    ],\n    options: { strength:\
-          \ 'high' }\n  })\n});\nconst data = await response.json();"
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai', {\n  method:\
+          \ 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-001',\n    files:\
+          \ [\n      { fileName: 'image1.jpg' },\n      { fileName: 'image2.png' }\n    ],\n    options:\
+          \ { strength: 'high' }\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/anti-ai',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
-          \ 'key-001',\n        'files': [\n            {'fileName': 'image1.jpg'},\n\
-          \            {'fileName': 'image2.png'}\n        ],\n        'options':\
-          \ {'strength': 'high'}\n    }\n)\ndata = response.json()"
+          \ 'key-001',\n        'files': [\n            {'fileName': 'image1.jpg'},\n            {'fileName':\
+          \ 'image2.png'}\n        ],\n        'options': {'strength': 'high'}\n    }\n)\ndata = response.json()"
   /api/v2/orders/anti-ai/confirm:
     post:
       summary: Confirm Anti-AI order
@@ -873,11 +864,9 @@ paths:
 
         - Status changes to `inProgress` when processing starts
 
-        - In mixed mode, only upload files are checked for S3 presence; URL files
-        are already ready
+        - In mixed mode, only upload files are checked for S3 presence; URL files are already ready
 
-        - Orders where all files are in URL mode are already `inProgress` and don''t
-        need confirm
+        - Orders where all files are in URL mode are already `inProgress` and don''t need confirm
 
         '
       tags:
@@ -916,17 +905,15 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/confirm \\\
-          \n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-confirm-001\",\n    \"orderId\"\
-          : \"ORDER_ID\"\n  }'"
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/confirm \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-confirm-001\",\n    \"orderId\": \"ORDER_ID\"\n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm',\
-          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-confirm-001',\n    orderId: 'ORDER_ID'\n  })\n\
-          });\nconst data = await response.json();"
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-confirm-001',\n\
+          \    orderId: 'ORDER_ID'\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/anti-ai/confirm',\n\
@@ -936,8 +923,7 @@ paths:
     post:
       summary: Create Anti-AI order with URLs
       deprecated: true
-      description: '**Deprecated**: Use `/anti-ai` endpoint with `originalFileUrl`
-        field instead.
+      description: '**Deprecated**: Use `/anti-ai` endpoint with `originalFileUrl` field instead.
 
 
         Provide image URLs directly for processing.
@@ -949,8 +935,8 @@ paths:
 
         ## Zero Copy Mode
 
-        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided
-        presigned URLs.
+        When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided presigned
+        URLs.
 
         '
       tags:
@@ -1044,29 +1030,25 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/with-urls\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-url-001\",\n    \"files\":\
-          \ [\n      {\n        \"fileName\": \"image1.jpg\",\n        \"imageUrl\"\
-          : \"https://example.com/image1.jpg\"\n      }\n    ],\n    \"options\":\
-          \ {\"strength\": \"high\"}\n  }'"
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/with-urls \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-url-001\",\n    \"files\": [\n      {\n        \"fileName\": \"image1.jpg\",\n     \
+          \   \"imageUrl\": \"https://example.com/image1.jpg\"\n      }\n    ],\n    \"options\": {\"\
+          strength\": \"high\"}\n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/with-urls',\
-          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-url-001',\n    files: [\n      {\n        fileName:\
-          \ 'image1.jpg',\n        imageUrl: 'https://example.com/image1.jpg'\n  \
-          \    }\n    ],\n    options: { strength: 'high' }\n  })\n});\nconst data\
-          \ = await response.json();"
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-url-001',\n \
+          \   files: [\n      {\n        fileName: 'image1.jpg',\n        imageUrl: 'https://example.com/image1.jpg'\n\
+          \      }\n    ],\n    options: { strength: 'high' }\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/anti-ai/with-urls',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
-          \ 'key-url-001',\n        'files': [\n            {\n                'fileName':\
-          \ 'image1.jpg',\n                'imageUrl': 'https://example.com/image1.jpg'\n\
-          \            }\n        ],\n        'options': {'strength': 'high'}\n  \
-          \  }\n)\ndata = response.json()"
+          \ 'key-url-001',\n        'files': [\n            {\n                'fileName': 'image1.jpg',\n\
+          \                'imageUrl': 'https://example.com/image1.jpg'\n            }\n        ],\n \
+          \       'options': {'strength': 'high'}\n    }\n)\ndata = response.json()"
   /api/v2/orders/wtr-embed:
     post:
       summary: Create watermark embed order
@@ -1083,14 +1065,12 @@ paths:
 
         ## Input Modes (Upload / URL / Mixed)
 
-        The input mode is determined by the presence of `originalFileUrl` in each
-        file object:
+        The input mode is determined by the presence of `originalFileUrl` in each file object:
 
-        - **Upload mode** (no `originalFileUrl`): Presigned URL issued → Client uploads
-        to S3 → Processing starts automatically
+        - **Upload mode** (no `originalFileUrl`): Presigned URL issued → Client uploads to S3 → Processing
+        starts automatically
 
-        - **URL mode** (`originalFileUrl` provided): Image downloaded from the URL
-        and processed immediately
+        - **URL mode** (`originalFileUrl` provided): Image downloaded from the URL and processed immediately
 
         - **Mixed mode**: Some files in Upload mode, others in URL mode simultaneously
 
@@ -1101,16 +1081,13 @@ paths:
 
         |-----------|-------------|-----------------|
 
-        | All files have `originalFileUrl` | `pending` | No (auto-starts after
-        server downloads) |
+        | All files have `originalFileUrl` | `pending` | No (auto-starts after server downloads) |
 
-        | Any file without `originalFileUrl` | `pending` | No (auto-starts after
-        upload) |
+        | Any file without `originalFileUrl` | `pending` | No (auto-starts after upload) |
 
 
-        <Note>Unlike Anti-AI and AI Detection, Watermark Embed does not require
-        a separate confirm step. Processing starts automatically after file upload
-        completes.</Note>
+        <Note>Unlike Anti-AI and AI Detection, Watermark Embed does not require a separate confirm step.
+        Processing starts automatically after file upload completes.</Note>
 
         '
       tags:
@@ -1149,8 +1126,7 @@ paths:
                         format: uri
                         description: 'Original image URL (optional)
 
-                          - Provided: URL mode (no presigned URL issued, immediate
-                          processing)
+                          - Provided: URL mode (no presigned URL issued, immediate processing)
 
                           - Not provided: Upload mode (presigned URL issued)
 
@@ -1234,10 +1210,11 @@ paths:
                         type: array
                         items:
                           type: object
-                          description: "File info (fields vary by mode)\n- Upload mode:\
-                            \ fileId, fileName, uploadUrl, fileKey, fileFormat, fileType\n\
-                            - URL mode: fileId, fileName, originalFileUrl, fileKey, fileFormat,\
-                            \ fileType"
+                          description: 'File info (fields vary by mode)
+
+                            - Upload mode: fileId, fileName, uploadUrl, fileKey, fileFormat, fileType
+
+                            - URL mode: fileId, fileName, originalFileUrl, fileKey, fileFormat, fileType'
                           properties:
                             fileId:
                               type: integer
@@ -1246,13 +1223,12 @@ paths:
                             uploadUrl:
                               type: string
                               format: uri
-                              description: Presigned upload URL. Returned in upload mode
-                                only.
+                              description: Presigned upload URL. Returned in upload mode only.
                             originalFileUrl:
                               type: string
                               format: uri
-                              description: Public image URL provided in the request. Returned
-                                in URL mode only.
+                              description: Public image URL provided in the request. Returned in URL mode
+                                only.
                             fileKey:
                               type: string
                               description: S3 object key for the file.
@@ -1336,26 +1312,24 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \\\n  -H\
-          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-embed-001\",\n    \"files\"\
-          : [\n      {\n        \"fileName\": \"image.jpg\",\n        \"watermarks\"\
-          : [{\"text\": \"MORI_WATERMARK\"}]\n      }\n    ]\n  }'"
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-embed-001\",\n    \"files\": [\n      {\n        \"fileName\": \"image.jpg\",\n    \
+          \    \"watermarks\": [{\"text\": \"MORI_WATERMARK\"}]\n      }\n    ]\n  }'"
       - lang: javascript
         label: JavaScript
-        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-embed',\
-          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-embed-001',\n    files: [\n      {\n        fileName:\
-          \ 'image.jpg',\n        watermarks: [{ text: 'MORI_WATERMARK' }]\n     \
-          \ }\n    ]\n  })\n});\nconst data = await response.json();"
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-embed', {\n \
+          \ method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-embed-001',\n\
+          \    files: [\n      {\n        fileName: 'image.jpg',\n        watermarks: [{ text: 'MORI_WATERMARK'\
+          \ }]\n      }\n    ]\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/wtr-embed',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
-          \ 'key-embed-001',\n        'files': [\n            {\n                'fileName':\
-          \ 'image.jpg',\n                'watermarks': [{'text': 'MORI_WATERMARK'}]\n\
-          \            }\n        ]\n    }\n)\ndata = response.json()"
+          \ 'key-embed-001',\n        'files': [\n            {\n                'fileName': 'image.jpg',\n\
+          \                'watermarks': [{'text': 'MORI_WATERMARK'}]\n            }\n        ]\n    }\n\
+          )\ndata = response.json()"
   /api/v2/orders/wtr-extract:
     post:
       summary: Create watermark extract order
@@ -1408,8 +1382,7 @@ paths:
                         '
                     originalFile:
                       type: object
-                      description: Original file info (required when includeOriginal
-                        is true)
+                      description: Original file info (required when includeOriginal is true)
                       required:
                       - fileName
                       properties:
@@ -1507,28 +1480,25 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST https://api.bizmori.com/api/v2/orders/wtr-extract \\\n\
-          \  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-extract-001\",\n    \"file\"\
-          : {\n      \"fileName\": \"watermarked.jpg\"\n    }\n  }'"
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/wtr-extract \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-extract-001\",\n    \"file\": {\n      \"fileName\": \"watermarked.jpg\"\n    }\n  }'"
       - lang: javascript
         label: JavaScript
-        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-extract',\
-          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-extract-001',\n    file: {\n      fileName: 'watermarked.jpg'\n\
-          \    }\n  })\n});\nconst data = await response.json();"
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-extract', {\n\
+          \  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-extract-001',\n\
+          \    file: {\n      fileName: 'watermarked.jpg'\n    }\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/wtr-extract',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
-          \ 'key-extract-001',\n        'file': {\n            'fileName': 'watermarked.jpg'\n\
-          \        }\n    }\n)\ndata = response.json()"
+          \ 'key-extract-001',\n        'file': {\n            'fileName': 'watermarked.jpg'\n       \
+          \ }\n    }\n)\ndata = response.json()"
   /api/v2/orders/ai-detection:
     post:
       summary: Create AI Detection order
-      description: 'Creates an AI Detection order and issues a presigned S3 upload
-        URL for the image.
+      description: 'Creates an AI Detection order and issues a presigned S3 upload URL for the image.
 
 
         ## Flow
@@ -1538,8 +1508,7 @@ paths:
 
         2. Upload the image directly to S3 using the presigned URL
 
-        3. Call `POST /api/v2/orders/ai-detection/confirm` to start async
-        detection
+        3. Call `POST /api/v2/orders/ai-detection/confirm` to start async detection
 
         4. Use webhooks or poll the order detail endpoint for the result
 
@@ -1591,13 +1560,13 @@ paths:
                   example: my-detection-order
                 fileName:
                   type: string
-                  description: 'Image file name with extension. Supported: jpg, jpeg,
-                    png, webp, bmp, tiff'
+                  description: 'Image file name with extension. Supported: jpg, jpeg, png, webp, bmp,
+                    tiff'
                   example: photo.jpg
                 options:
                   type: object
-                  description: Output options (optional). Generated files are included
-                    in the order detail response.
+                  description: Output options (optional). Generated files are included in the order detail
+                    response.
                   properties:
                     generateHeatmap:
                       type: boolean
@@ -1658,37 +1627,32 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type:\
-          \ application/json\" \\\n  -d '{\"idempotencyKey\": \"key-ai-001\", \"fileName\"\
-          : \"photo.jpg\"}'"
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"idempotencyKey\"\
+          : \"key-ai-001\", \"fileName\": \"photo.jpg\"}'"
       - lang: javascript
         label: JavaScript
-        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/ai-detection',\
-          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-ai-001',\n    fileName: 'photo.jpg'\n  })\n});\n\
-          const data = await response.json();"
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/ai-detection', {\n\
+          \  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-ai-001',\n  \
+          \  fileName: 'photo.jpg'\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/ai-detection',\n\
-          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey':\
-          \ 'key-ai-001', 'fileName': 'photo.jpg'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey': 'key-ai-001',\
+          \ 'fileName': 'photo.jpg'}\n)\ndata = response.json()"
   /api/v2/orders/ai-detection/confirm:
     post:
       summary: Confirm AI Detection order
-      description: 'Confirms that the image has been uploaded to S3 and starts async
-        AI detection processing.
+      description: 'Confirms that the image has been uploaded to S3 and starts async AI detection processing.
 
 
-        Call this endpoint after uploading the image to the presigned URL received
-        from the create order endpoint. The order status will change from `pending`
-        to `inProgress`.
+        Call this endpoint after uploading the image to the presigned URL received from the create order
+        endpoint. The order status will change from `pending` to `inProgress`.
 
 
-        The detection result is delivered via webhook (`order.aiDetection.completed`
-        or `order.aiDetection.failed`), or can be retrieved by polling the [Get order](/api-reference/orders/get-order)
-        endpoint.
+        The detection result is delivered via webhook (`order.aiDetection.completed` or `order.aiDetection.failed`),
+        or can be retrieved by polling the [Get order](/api-reference/orders/get-order) endpoint.
 
         '
       tags:
@@ -1707,9 +1671,8 @@ paths:
               properties:
                 idempotencyKey:
                   type: string
-                  description: Unique key to prevent duplicate requests. If the same
-                    key is used in a retry, the current order status is returned without
-                    reprocessing.
+                  description: Unique key to prevent duplicate requests. If the same key is used in a
+                    retry, the current order status is returned without reprocessing.
                   example: 01950c7e-f6b2-7000-8000-abcdef123456
                 orderId:
                   type: string
@@ -1742,22 +1705,20 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST \"https://api.bizmori.com/api/v2/orders/ai-detection/confirm\"\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type:\
-          \ application/json\" \\\n  -d '{\"idempotencyKey\": \"YOUR_IDEMPOTENCY_KEY\"\
-          , \"orderId\": \"ORDER_ID\"}'"
+        source: "curl -X POST \"https://api.bizmori.com/api/v2/orders/ai-detection/confirm\" \\\n  -H\
+          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n\
+          \  -d '{\"idempotencyKey\": \"YOUR_IDEMPOTENCY_KEY\", \"orderId\": \"ORDER_ID\"}'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
-          \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer\
-          \ YOUR_API_TOKEN',\n      'Content-Type': 'application/json'\n    },\n \
-          \   body: JSON.stringify({ idempotencyKey: 'YOUR_IDEMPOTENCY_KEY', orderId:\
-          \ 'ORDER_ID' })\n  }\n);\nconst data = await response.json();"
+          \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
+          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({ idempotencyKey:\
+          \ 'YOUR_IDEMPOTENCY_KEY', orderId: 'ORDER_ID' })\n  }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
-          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey':\
-          \ 'YOUR_IDEMPOTENCY_KEY', 'orderId': 'ORDER_ID'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey': 'YOUR_IDEMPOTENCY_KEY',\
+          \ 'orderId': 'ORDER_ID'}\n)\ndata = response.json()"
   /api/v2/orders:
     get:
       summary: List orders
@@ -1851,19 +1812,18 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X GET \"https://api.bizmori.com/api/v2/orders?page=1&limit=10&status=all\"\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X GET \"https://api.bizmori.com/api/v2/orders?page=1&limit=10&status=all\" \\\n\
+          \  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
-        source: "const params = new URLSearchParams({ page: 1, limit: 10, status:\
-          \ 'all' });\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders?${params}`,\n\
-          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
-          \ response.json();"
+        source: "const params = new URLSearchParams({ page: 1, limit: 10, status: 'all' });\nconst response\
+          \ = await fetch(\n  `https://api.bizmori.com/api/v2/orders?${params}`,\n  { headers: { 'Authorization':\
+          \ 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.get(\n    'https://api.bizmori.com/api/v2/orders',\n\
-          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit':\
-          \ 10, 'status': 'all'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit': 10,\
+          \ 'status': 'all'}\n)\ndata = response.json()"
   /api/v2/orders/stats/recent:
     get:
       summary: Recent usage statistics
@@ -1894,13 +1854,12 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X GET https://api.bizmori.com/api/v2/orders/stats/recent \\\n\
-          \  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/stats/recent \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/stats/recent',\n\
-          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
-          \ response.json();"
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.get(\n    'https://api.bizmori.com/api/v2/orders/stats/recent',\n\
@@ -1969,7 +1928,7 @@ paths:
                       orderId: '1234567890123456791'
                       channel: api
                       thumbnailImageUrl: https://s3.amazonaws.com/...
-                      status: detected
+                      status: complete
                       orderName: wtr_extract_2026-03-12
                       fileCount: 1
                       createdAt: '2026-03-12T10:00:00.000Z'
@@ -2003,18 +1962,16 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X GET https://api.bizmori.com/api/v2/orders/ORDER_ID \\\n  -H\
-          \ \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/ORDER_ID \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/${orderId}`,\n\
-          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
-          \ response.json();"
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
-        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n\
-          \    f'https://api.bizmori.com/api/v2/orders/{order_id}',\n    headers={'Authorization':\
-          \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
+        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/{orderId}/download:
     get:
       summary: Get download URL
@@ -2026,8 +1983,7 @@ paths:
 
         - Order files are available for download for up to 7 days after order creation
 
-        - After 7 days, the order transitions to `expired` status and files can no longer
-        be downloaded
+        - After 7 days, the order transitions to `expired` status and files can no longer be downloaded
 
         '
       tags:
@@ -2052,14 +2008,10 @@ paths:
                   data:
                     type: object
                     properties:
-                      downloadUrl:
+                      url:
                         type: string
                         format: uri
                         description: Download URL (presigned)
-                      expiresIn:
-                        type: integer
-                        description: URL expiration time (seconds)
-                        example: 3600
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -2067,19 +2019,17 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X GET https://api.bizmori.com/api/v2/orders/ORDER_ID/download\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/ORDER_ID/download \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/${orderId}/download`,\n\
-          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
-          \ response.json();\n// data.data.downloadUrl contains the presigned download\
-          \ URL"
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();\n\
+          // data.data.url contains the presigned download URL"
       - lang: python
         label: Python
-        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n\
-          \    f'https://api.bizmori.com/api/v2/orders/{order_id}/download',\n    headers={'Authorization':\
-          \ 'YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['downloadUrl']\
+        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}/download',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['url']\
           \ contains the presigned download URL"
   /api/v2/orders/{orderId}/refresh-urls:
     post:
@@ -2122,18 +2072,17 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST https://api.bizmori.com/api/v2/orders/ORDER_ID/refresh-urls\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/ORDER_ID/refresh-urls \\\n  -H \"\
+          Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
         source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/${orderId}/refresh-urls`,\n\
-          \  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n\
-          \  }\n);\nconst data = await response.json();"
+          \  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n  }\n\
+          );\nconst data = await response.json();"
       - lang: python
         label: Python
-        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.post(\n\
-          \    f'https://api.bizmori.com/api/v2/orders/{order_id}/refresh-urls',\n  \
-          \  headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}/refresh-urls',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
   /api/v2/orders/webhook:
     post:
       summary: Register webhook (Legacy)
@@ -2141,8 +2090,7 @@ paths:
       description: '**Deprecated**: This API has been replaced by `/webhooks`.
 
 
-        Register a webhook URL to receive notifications when order processing completes
-        or fails.
+        Register a webhook URL to receive notifications when order processing completes or fails.
 
         '
       tags:
@@ -2169,15 +2117,15 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhook \\\n  -H\
-          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\"url\": \"https://example.com/webhook\"}'"
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhook \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"url\": \"\
+          https://example.com/webhook\"}'"
       - lang: javascript
         label: JavaScript
-        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/webhook',\
-          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\
-          \ url: 'https://example.com/webhook' })\n});\nconst data = await response.json();"
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/webhook', {\n  method:\
+          \ 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({ url: 'https://example.com/webhook' })\n\
+          });\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/webhook',\n\
@@ -2208,13 +2156,12 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X GET https://api.bizmori.com/api/v2/orders/webhook \\\n  -H \"\
-          Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/webhook \\\n  -H \"Authorization: Bearer\
+          \ YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
-        source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/webhook',\n\
-          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
-          \ response.json();"
+        source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/webhook',\n \
+          \ { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.get(\n    'https://api.bizmori.com/api/v2/orders/webhook',\n\
@@ -2241,13 +2188,13 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X DELETE https://api.bizmori.com/api/v2/orders/webhook \\\n  -H\
-          \ \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X DELETE https://api.bizmori.com/api/v2/orders/webhook \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
-        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/webhook',\
-          \ {\n  method: 'DELETE',\n  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n});\n\
-          const data = await response.json();"
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/webhook', {\n  method:\
+          \ 'DELETE',\n  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n});\nconst data = await\
+          \ response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.delete(\n    'https://api.bizmori.com/api/v2/orders/webhook',\n\
@@ -2307,36 +2254,32 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X GET \"https://api.bizmori.com/api/v2/orders/webhooks?page=1&limit=10\"\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X GET \"https://api.bizmori.com/api/v2/orders/webhooks?page=1&limit=10\" \\\n \
+          \ -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
-        source: "const params = new URLSearchParams({ page: 1, limit: 10 });\nconst\
-          \ response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks?${params}`,\n\
-          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
-          \ response.json();"
+        source: "const params = new URLSearchParams({ page: 1, limit: 10 });\nconst response = await fetch(\n\
+          \  `https://api.bizmori.com/api/v2/orders/webhooks?${params}`,\n  { headers: { 'Authorization':\
+          \ 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.get(\n    'https://api.bizmori.com/api/v2/orders/webhooks',\n\
-          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit':\
-          \ 10}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit': 10}\n\
+          )\ndata = response.json()"
     post:
       summary: Create webhook
-      description: "Register a new webhook.\n- Multiple webhooks can be registered\n\
-        - A signing secret is returned upon registration\n\n**Important**: The secret\
-        \ is only shown in this response. Store it securely.\n\n## Webhook Event Types\n\
-        \n| Event Type | Description |\n|-----------|-------------|\n| `order.antiAi.completed`\
-        \ | Anti-AI processing completed |\n| `order.antiAi.failed` | Anti-AI processing\
-        \ failed |\n| `order.watermarkEmbed.completed` | Watermark embedding completed\
-        \ |\n| `order.watermarkEmbed.failed` | Watermark embedding failed |\n| `order.watermarkExtract.completed`\
-        \ | Watermark extraction completed |\n| `order.watermarkExtract.failed` |\
-        \ Watermark extraction failed |\n\n## Signature Verification\n\nWebhook requests\
-        \ include an `X-MoriBiz-Signature` header.\nThe signature is generated using\
-        \ HMAC-SHA256 with the secret issued at registration.\n\n```javascript\nconst\
-        \ crypto = require('crypto');\nconst signature = crypto.createHmac('sha256',\
-        \ secret)\n  .update(JSON.stringify(payload))\n  .digest('hex');\n```\n\n\
-        ## Retry Policy\n\n- Max 3 retries\n- Exponential backoff (1s, 2s, 4s)\n-\
-        \ Success response: 2xx status code\n"
+      description: "Register a new webhook.\n- Multiple webhooks can be registered\n- A signing secret\
+        \ is returned upon registration\n\n**Important**: The secret is only shown in this response. Store\
+        \ it securely.\n\n## Webhook Event Types\n\n| Event Type | Description |\n|-----------|-------------|\n\
+        | `order.antiAi.completed` | Anti-AI processing completed |\n| `order.antiAi.failed` | Anti-AI\
+        \ processing failed |\n| `order.watermarkEmbed.completed` | Watermark embedding completed |\n\
+        | `order.watermarkEmbed.failed` | Watermark embedding failed |\n| `order.watermarkExtract.completed`\
+        \ | Watermark extraction completed |\n| `order.watermarkExtract.failed` | Watermark extraction\
+        \ failed |\n\n## Signature Verification\n\nWebhook requests include an `X-MoriBiz-Signature` header.\n\
+        The signature is generated using HMAC-SHA256 with the secret issued at registration.\n\n```javascript\n\
+        const crypto = require('crypto');\nconst signature = crypto.createHmac('sha256', secret)\n  .update(JSON.stringify(payload))\n\
+        \  .digest('hex');\n```\n\n## Retry Policy\n\n- Max 3 retries\n- Exponential backoff (1s, 2s,\
+        \ 4s)\n- Success response: 2xx status code\n"
       tags:
       - Webhooks
       security:
@@ -2368,8 +2311,7 @@ paths:
                         type: string
                         description: 'Webhook signing secret.
 
-                          **Warning**: This value cannot be retrieved again. Store
-                          it securely.
+                          **Warning**: This value cannot be retrieved again. Store it securely.
 
                           '
         '400':
@@ -2379,25 +2321,22 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \\\n  -H\
-          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"name\": \"My Webhook\",\n    \"url\": \"https://example.com/webhook\"\
-          \n  }'"
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"name\"\
+          : \"My Webhook\",\n    \"url\": \"https://example.com/webhook\"\n  }'"
       - lang: javascript
         label: JavaScript
-        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/webhooks',\
-          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    name: 'My Webhook',\n    url: 'https://example.com/webhook'\n  })\n\
-          });\nconst data = await response.json();\n// Save data.data.secret securely\
-          \ — it won't be shown again"
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/webhooks', {\n  method:\
+          \ 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    name: 'My Webhook',\n    url: 'https://example.com/webhook'\n\
+          \  })\n});\nconst data = await response.json();\n// Save data.data.secret securely — it won't\
+          \ be shown again"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/webhooks',\n\
-          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'name':\
-          \ 'My Webhook',\n        'url': 'https://example.com/webhook'\n    }\n)\n\
-          data = response.json()\n# Save data['data']['secret'] securely — it won't\
-          \ be shown again"
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'name': 'My Webhook',\n\
+          \        'url': 'https://example.com/webhook'\n    }\n)\ndata = response.json()\n# Save data['data']['secret']\
+          \ securely — it won't be shown again"
   /api/v2/orders/webhooks/{webhookId}:
     get:
       summary: Get webhook details
@@ -2430,18 +2369,16 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X GET https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
-        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n\
-          \  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}`,\n  { headers:\
-          \ { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
+        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}`,\n\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
-        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n\
-          \    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n    headers={'Authorization':\
-          \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
     put:
       summary: Update webhook
       description: Update webhook information.
@@ -2494,24 +2431,21 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X PUT https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"name\": \"Updated Webhook\",\n    \"url\": \"https://example.com/webhook-v2\"\
-          \n  }'"
+        source: "curl -X PUT https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"name\"\
+          : \"Updated Webhook\",\n    \"url\": \"https://example.com/webhook-v2\"\n  }'"
       - lang: javascript
         label: JavaScript
-        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n\
-          \  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}`,\n  {\n  \
-          \  method: 'PUT',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n\
-          \      name: 'Updated Webhook',\n      url: 'https://example.com/webhook-v2'\n\
-          \    })\n  }\n);\nconst data = await response.json();"
+        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}`,\n\
+          \  {\n    method: 'PUT',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
+          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      name: 'Updated\
+          \ Webhook',\n      url: 'https://example.com/webhook-v2'\n    })\n  }\n);\nconst data = await\
+          \ response.json();"
       - lang: python
         label: Python
-        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.put(\n\
-          \    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n    headers={'Authorization':\
-          \ 'YOUR_API_KEY'},\n    json={\n        'name': 'Updated Webhook',\n   \
-          \     'url': 'https://example.com/webhook-v2'\n    }\n)\ndata = response.json()"
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.put(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'},\n    json={\n        'name': 'Updated Webhook',\n\
+          \        'url': 'https://example.com/webhook-v2'\n    }\n)\ndata = response.json()"
     delete:
       summary: Delete webhook
       description: Delete a webhook.
@@ -2540,19 +2474,17 @@ paths:
       x-codeSamples:
       - lang: curl
         label: cURL
-        source: "curl -X DELETE https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+        source: "curl -X DELETE https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID \\\n  -H \"\
+          Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
-        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n\
-          \  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}`,\n  {\n  \
-          \  method: 'DELETE',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n  }\n\
+        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}`,\n\
+          \  {\n    method: 'DELETE',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n  }\n\
           );\nconst data = await response.json();"
       - lang: python
         label: Python
-        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.delete(\n\
-          \    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n    headers={'Authorization':\
-          \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.delete(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/webhooks/{webhookId}/events:
     get:
       summary: List webhook events
@@ -2615,16 +2547,14 @@ paths:
           \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
       - lang: javascript
         label: JavaScript
-        source: "const webhookId = 'WEBHOOK_ID';\nconst params = new URLSearchParams({\
-          \ page: 1, limit: 20 });\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events?${params}`,\n\
-          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await\
-          \ response.json();"
+        source: "const webhookId = 'WEBHOOK_ID';\nconst params = new URLSearchParams({ page: 1, limit:\
+          \ 20 });\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events?${params}`,\n\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
-        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n\
-          \    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events',\n\
-          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit':\
-          \ 20}\n)\ndata = response.json()"
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit': 20}\n\
+          )\ndata = response.json()"
   /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry:
     post:
       summary: Retry webhook event
@@ -2634,7 +2564,8 @@ paths:
 
         - On success, the event status changes to `SENT`
 
-        - If the retry fails, the event remains `FAILED` and a scheduler-based retry is queued for 30 minutes later
+        - If the retry fails, the event remains `FAILED` and a scheduler-based retry is queued for 30
+        minutes later
 
         '
       tags:
@@ -2673,8 +2604,7 @@ paths:
                         description: Whether the retry was successful
                       status_code:
                         type: integer
-                        description: HTTP response code from the webhook endpoint (when
-                          success is true)
+                        description: HTTP response code from the webhook endpoint (when success is true)
                       status:
                         type: string
                         description: Event status (when retry fails)
@@ -2700,8 +2630,8 @@ paths:
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events/${eventId}/retry`,\n\
-          \  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN'\
-          \ }\n  }\n);\nconst data = await response.json();"
+          \  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n  }\n\
+          );\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events/{event_id}/retry',\n\
@@ -2747,8 +2677,7 @@ paths:
                 toDate:
                   type: string
                   format: date
-                  description: End date (ISO 8601 format, e.g. 2026-01-07). Must be
-                    within 7 days of fromDate.
+                  description: End date (ISO 8601 format, e.g. 2026-01-07). Must be within 7 days of fromDate.
                   example: '2026-01-07'
       responses:
         '200':
@@ -2763,8 +2692,7 @@ paths:
                     properties:
                       total:
                         type: integer
-                        description: Total number of failed events found in the date
-                          range
+                        description: Total number of failed events found in the date range
                       succeeded:
                         type: integer
                         description: Number of events successfully resent
@@ -2785,19 +2713,16 @@ paths:
       - lang: curl
         label: cURL
         source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID/events/retry-failed\
-          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type:\
-          \ application/json\" \\\n  -d '{\n    \"fromDate\": \"2026-01-01\",\n    \"\
-          toDate\": \"2026-01-07\"\n  }'"
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\n    \"fromDate\": \"2026-01-01\",\n    \"toDate\": \"2026-01-07\"\n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events/retry-failed`,\n\
           \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
-          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n\
-          \      fromDate: '2026-01-01',\n      toDate: '2026-01-07'\n    })\n  }\n);\n\
-          const data = await response.json();"
+          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      fromDate:\
+          \ '2026-01-01',\n      toDate: '2026-01-07'\n    })\n  }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events/retry-failed',\n\
-          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n     \
-          \   'fromDate': '2026-01-01',\n        'toDate': '2026-01-07'\n    }\n)\ndata\
-          \ = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'fromDate': '2026-01-01',\n\
+          \        'toDate': '2026-01-07'\n    }\n)\ndata = response.json()"

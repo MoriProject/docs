@@ -1,0 +1,358 @@
+---
+title: "Webhook"
+description: "注文が完了または失敗した際にリアルタイムでプッシュ通知を受け取る"
+---
+
+Webhookは、注文処理が完了または失敗した際にサーバーへ HTTP `POST` コールバックを送信します。[注文の取得](/ja/api-reference/orders/get-order) エンドポイントを繰り返しポーリングする代わりにWebhookを使用すると、結果が準備でき次第すぐに通知を受け取ることができます。
+
+## Webhookの設定
+
+<Steps>
+  <Step title="Webhookエンドポイントの登録">
+    APIまたは [BIZ MORI ダッシュボード](https://app.bizmori.com/webhooks) からWebhookエンドポイントを作成できます。APIを使って作成するには、[Webhookの作成](/ja/api-reference/webhooks/create-webhook) エンドポイントを使用します:
+
+    ```bash
+    curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
+      -H "Authorization: Bearer YOUR_API_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "name": "マイWebhook",
+        "url": "https://your-server.com/webhook"
+      }'
+    ```
+
+    **レスポンス:**
+    ```json
+    {
+      "data": {
+        "id": 1,
+        "name": "マイWebhook",
+        "secret": "whsec_xxxxxxxxxxxxxxxxxx"
+      }
+    }
+    ```
+
+    <Warning>
+      `secret` はすぐに保存してください — **一度だけ表示され**、再度取得することはできません。受信するすべてのWebhook署名の検証に必要です。
+    </Warning>
+  </Step>
+  <Step title="エンドポイントの実装">
+    Webhookハンドラーは次を実行する必要があります:
+    - JSON本文で `POST` リクエストを受け付ける
+    - **5秒以内**に `2xx` ステータスコードで応答する
+    - 処理前に `X-MoriBiz-Signature` ヘッダーを検証する
+  </Step>
+  <Step title="署名の検証">
+    すべてのリクエストには `X-MoriBiz-Signature` ヘッダーが含まれます。使用している言語での実装については、以下の [署名検証](#署名検証) を参照してください。
+  </Step>
+</Steps>
+
+## イベントタイプ
+
+| イベントタイプ | 説明 |
+|-----------|------|
+| `order.antiAi.completed` | Anti-AI処理が正常に完了しました |
+| `order.antiAi.failed` | Anti-AI処理が失敗しました |
+| `order.watermarkEmbed.completed` | watermark 埋め込みが正常に完了しました |
+| `order.watermarkEmbed.failed` | watermark 埋め込みが失敗しました |
+| `order.watermarkExtract.completed` | watermark 抽出が正常に完了しました |
+| `order.watermarkExtract.failed` | watermark 抽出が失敗しました |
+| `order.aiDetection.completed` | AI Detectionが正常に完了しました |
+| `order.aiDetection.failed` | AI Detectionが失敗しました |
+
+## Webhookペイロード
+
+すべてのWebhookペイロードは次の構造に従います:
+
+```json
+{
+  "eventId": "550e8400-e29b-41d4-a716-446655440000",
+  "eventType": "order.antiAi.completed",
+  "occurredAt": "2026-02-19T12:00:00.000Z",
+  "data": {
+    "orderId": "123456789",
+    "orderName": "anti_ai_2026-02-19",
+    "createdAt": "2026-02-19T11:50:00.000Z",
+    "updatedAt": "2026-02-19T12:00:00.000Z",
+    "completedAt": "2026-02-19T12:00:00.000Z",
+    "status": "complete"
+    // ...各機能ごとの追加フィールド
+  }
+}
+```
+
+### 完了イベント — 共通フィールド
+
+| フィールド | 型 | 説明 |
+|------|------|------|
+| `orderId` | string | 注文ID |
+| `orderName` | string | 注文名 |
+| `createdAt` | string | 注文作成日時（ISO 8601） |
+| `updatedAt` | string | 注文の最終更新日時（ISO 8601） |
+| `completedAt` | string | 処理完了日時（ISO 8601） |
+| `status` | string | 常に `complete` |
+
+### 失敗イベント — 共通フィールド
+
+| フィールド | 型 | 説明 |
+|------|------|------|
+| `orderId` | string | 注文ID |
+| `orderName` | string | 注文名 |
+| `createdAt` | string | 注文作成日時（ISO 8601） |
+| `updatedAt` | string | 注文の最終更新日時（ISO 8601） |
+| `failedAt` | string | 処理失敗日時（ISO 8601） |
+| `status` | string | 常に `failed` |
+| `errorCode` | string | エラーコード |
+| `errorMessage` | string | エラーメッセージ |
+
+### Anti-AI / watermark 埋め込み — 追加フィールド（完了）
+
+| フィールド | 型 | 説明 |
+|------|------|------|
+| `fileCount` | integer | 処理されたファイル数 |
+| `downloadUrl` | string | 結果ファイルのダウンロードURL（7日間有効） |
+
+### watermark 抽出 — 追加フィールド（完了）
+
+`status` フィールドは常に `complete` です。watermark が検出されたかどうかは `statusCode` で確認してください。
+
+| フィールド | 型 | 説明 |
+|------|------|------|
+| `statusCode` | string | `detected` または `undetected` |
+| `watermarkFound` | boolean | watermark が検出されたかどうか |
+| `watermarkInfo.text` | string | 検出された watermark のテキスト（`watermarkFound` が `true` の場合のみ） |
+
+### AI Detection — 追加フィールド（完了）
+
+| フィールド | 型 | 説明 |
+|------|------|------|
+| `probability` | number | AI生成確率（0.0～1.0） |
+| `heatmapUrl` | string \| null | AI判定ヒートマップ画像のダウンロードURL（`generateHeatmap` オプション使用時のみ返却） |
+| `overlayUrl` | string \| null | 元画像上にヒートマップを重ねたオーバーレイ画像のダウンロードURL（`generateOverlay` オプション使用時のみ返却） |
+
+## 署名検証
+
+`X-MoriBiz-Signature` ヘッダーを確認してWebhookの真正性を検証します。イベントを処理する**前に**必ず検証してください。
+
+<CodeGroup>
+```javascript Node.js
+const crypto = require('crypto');
+
+function verifyWebhookSignature(rawBody, signature, secret) {
+  const expected = crypto
+    .createHmac('sha256', secret)
+    .update(rawBody) // 生のリクエストボディ文字列を使用
+    .digest('hex');
+
+  return crypto.timingSafeEqual(
+    Buffer.from(signature),
+    Buffer.from(expected)
+  );
+}
+
+// Express ハンドラー
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const signature = req.headers['x-moribiz-signature'];
+
+  if (!verifyWebhookSignature(req.body.toString(), signature, process.env.WEBHOOK_SECRET)) {
+    return res.status(401).send('Invalid signature');
+  }
+
+  const { eventType, data } = JSON.parse(req.body);
+  console.log(`注文 ${data.orderId} の ${eventType} イベントを受信`);
+  res.sendStatus(200);
+});
+```
+
+```python Python
+import hmac
+import hashlib
+
+def verify_webhook_signature(raw_body: str, signature: str, secret: str) -> bool:
+    expected = hmac.new(
+        secret.encode(),
+        raw_body.encode(),
+        hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(signature, expected)
+
+# Flask ハンドラー
+from flask import Flask, request, abort
+import json, os
+
+app = Flask(__name__)
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    signature = request.headers.get('X-MoriBiz-Signature')
+    raw_body = request.get_data(as_text=True)
+
+    if not verify_webhook_signature(raw_body, signature, os.environ['WEBHOOK_SECRET']):
+        abort(401)
+
+    event = json.loads(raw_body)
+    return '', 200
+```
+
+```php PHP
+<?php
+function verifyWebhookSignature(string $rawBody, string $signature, string $secret): bool {
+    $expected = hash_hmac('sha256', $rawBody, $secret);
+    return hash_equals($expected, $signature);
+}
+
+$signature = $_SERVER['HTTP_X_MORIBIZ_SIGNATURE'] ?? '';
+$rawBody = file_get_contents('php://input');
+
+if (!verifyWebhookSignature($rawBody, $signature, getenv('WEBHOOK_SECRET'))) {
+    http_response_code(401);
+    exit('Unauthorized');
+}
+
+$event = json_decode($rawBody, true);
+http_response_code(200);
+```
+
+```ruby Ruby
+require 'openssl'
+require 'json'
+
+def verify_webhook_signature(raw_body, signature, secret)
+  expected = OpenSSL::HMAC.hexdigest('SHA256', secret, raw_body)
+  Rack::Utils.secure_compare(expected, signature)
+end
+
+# Sinatra / Rails
+post '/webhook' do
+  raw_body = request.body.read
+  signature = request.env['HTTP_X_MORIBIZ_SIGNATURE']
+
+  halt 401, 'Unauthorized' unless
+    verify_webhook_signature(raw_body, signature, ENV['WEBHOOK_SECRET'])
+
+  event = JSON.parse(raw_body)
+  status 200
+end
+```
+
+```go Go
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"io"
+	"net/http"
+	"os"
+)
+
+func verifySignature(rawBody []byte, signature, secret string) bool {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(rawBody)
+	expected := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(expected), []byte(signature))
+}
+
+func webhookHandler(w http.ResponseWriter, r *http.Request) {
+	body, _ := io.ReadAll(r.Body)
+	signature := r.Header.Get("X-MoriBiz-Signature")
+
+	if !verifySignature(body, signature, os.Getenv("WEBHOOK_SECRET")) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+```
+
+```java Java
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.MessageDigest;
+import java.util.HexFormat;
+
+public static boolean verifySignature(String rawBody, String signature, String secret)
+        throws Exception {
+    Mac mac = Mac.getInstance("HmacSHA256");
+    mac.init(new SecretKeySpec(secret.getBytes(), "HmacSHA256"));
+    String expected = HexFormat.of().formatHex(mac.doFinal(rawBody.getBytes()));
+    return MessageDigest.isEqual(expected.getBytes(), signature.getBytes());
+}
+
+// Spring Boot ハンドラー
+@PostMapping("/webhook")
+public ResponseEntity<Void> handleWebhook(
+        @RequestBody String rawBody,
+        @RequestHeader("X-MoriBiz-Signature") String signature) throws Exception {
+
+    if (!verifySignature(rawBody, signature, webhookSecret)) {
+        return ResponseEntity.status(401).build();
+    }
+    return ResponseEntity.ok().build();
+}
+```
+</CodeGroup>
+
+## 再送ポリシー
+
+BIZ MORIは、信頼性の高いWebhook配信を保証するために多段階の再送システムを使用しています。
+
+### 初期再送
+
+エンドポイントが `2xx` ステータスコードを返さない場合、BIZ MORIは直ちに再送を試みます:
+
+| 試行 | 遅延 |
+|------|------|
+| 1回目の再送 | 1秒 |
+| 2回目の再送 | 2秒 |
+| 3回目の再送 | 4秒 |
+
+### スケジューラーベースの再送
+
+初期再送がすべて失敗すると、イベントは間隔が徐々に広がるスケジューラーベースの再送キューに登録されます:
+
+| 試行 | 遅延 |
+|------|------|
+| 4回目の再送 | 30分 |
+| 5回目の再送 | 2時間 |
+| 6回目の再送 | 4時間 |
+
+スケジューラーベースの再送がすべて尽きると、イベントは `FAILED` としてマークされます。[Webhookイベント一覧](/ja/api-reference/webhooks/list-events) エンドポイントを使用して、失敗したイベントを確認できます。
+
+### 手動再送API
+
+自動再送プロセスとは関係なく、再送APIを使用していつでも手動でWebhookを再送できます:
+
+- **単一イベントの再送**: [Webhookイベントの再送](/ja/api-reference/webhooks/retry-event) エンドポイントを使用して、特定の失敗したイベントを再試行します。
+- **一括再送**: [失敗したWebhookイベントの一括再送](/ja/api-reference/webhooks/retry-failed-events) エンドポイントを使用して、特定の期間（最大7日間）内に失敗したすべてのイベントを再試行します。
+
+```bash
+# 単一イベントの再送
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+
+# 特定期間内に失敗したイベントの一括再送
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/{webhookId}/events/retry-failed \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fromDate": "2026-01-01",
+    "toDate": "2026-01-07"
+  }'
+```
+
+### 失敗通知メール
+
+初回のWebhook配信に失敗すると、アカウント所有者にWebhook配信失敗の通知メールが送信されます。過剰な通知を防ぐため、このメールは**1日最大1回**のみ送信されます。
+
+## Webhookの管理
+
+| 操作 | エンドポイント |
+|------|----------|
+| Webhook一覧の取得 | [GET /webhooks](/ja/api-reference/webhooks/list-webhooks) |
+| Webhookの作成 | [POST /webhooks](/ja/api-reference/webhooks/create-webhook) |
+| Webhook詳細の取得 | [GET /webhooks/{id}](/ja/api-reference/webhooks/get-webhook) |
+| Webhookの更新 | [PUT /webhooks/{id}](/ja/api-reference/webhooks/update-webhook) |
+| Webhookの削除 | [DELETE /webhooks/{id}](/ja/api-reference/webhooks/delete-webhook) |
+| 配信イベントの確認 | [GET /webhooks/{id}/events](/ja/api-reference/webhooks/list-events) |
+| 単一イベントの再送 | [POST /webhooks/{id}/events/{eventId}/retry](/ja/api-reference/webhooks/retry-event) |
+| 失敗イベントの一括再送 | [POST /webhooks/{id}/events/retry-failed](/ja/api-reference/webhooks/retry-failed-events) |

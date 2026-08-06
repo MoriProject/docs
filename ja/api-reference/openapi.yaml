@@ -1,0 +1,2652 @@
+openapi: 3.0.0
+info:
+  title: BIZ MORI API
+  version: 2.0.0
+  description: 'BIZ MORI API は、デジタルコンテンツ保護のための4つのコアサービスを提供します:
+
+    - **Anti-AI**: 画像をAI学習から保護
+
+    - **Watermark Embed**: 画像に不可視のデジタル watermark を埋め込み
+
+    - **Watermark Extract**: 画像から watermark を抽出・検証
+
+    - **AI Detection**: 画像がAI生成かどうかを検知
+
+    - **テストAPIキー**: `sk_test_` プレフィックスのキーは同じBearer認証を使用しますが、実際の処理サービスの実行やクレジットの消費なしに、統合テスト用のモックレスポンスを返します'
+  contact:
+    name: BIZ MORI サポート
+    email: support@bizmori.com
+servers:
+- url: https://api.bizmori.com
+  description: 本番環境
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: 外部クライアントアクセス用のBearer APIキー。本番キーは `sk_` プレフィックスを使用し、テストキーは `sk_test_` プレフィックスを使用して、処理やクレジット消費なしにモックレスポンスを返します。
+  schemas:
+    BaseResponse:
+      type: object
+      properties:
+        data:
+          nullable: true
+          description: レスポンスデータ（データがない場合はnull）
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: エラーコード
+    PageInfo:
+      type: object
+      properties:
+        totalItems:
+          type: integer
+          description: 総項目数
+        totalPages:
+          type: integer
+          description: 総ページ数
+        currentPage:
+          type: integer
+          description: 現在のページ番号
+        itemsPerPage:
+          type: integer
+          description: ページあたりの項目数
+    OrderOptions:
+      type: object
+      properties:
+        strength:
+          type: string
+          enum:
+          - low
+          - standard
+          - high
+          default: high
+          description: '保護強度レベル
+
+            * low - 低い保護強度
+
+            * standard - 標準の保護強度
+
+            * high - 高い保護強度'
+    OrderFile:
+      type: object
+      properties:
+        fileId:
+          type: string
+          description: ファイルID
+        fileName:
+          type: string
+          description: ファイル名
+        uploadUrl:
+          type: string
+          format: uri
+          description: アップロードURL（プリサインドURL）
+        fileKey:
+          type: string
+          description: S3ファイルキー
+    AntiAiOrderFile:
+      type: object
+      description: 'Anti-AI 注文ファイル情報（ファイルモードによってフィールドが異なります）
+
+        - アップロードモード: fileId, fileName, uploadUrl, fileKey
+
+        - URLモード: fileId, fileName, originalFileUrl'
+      properties:
+        fileId:
+          type: string
+          description: ファイルID
+        fileName:
+          type: string
+          description: ファイル名
+        uploadUrl:
+          type: string
+          format: uri
+          description: アップロードURL（プリサインドURL）— アップロードモードのファイルのみ
+        fileKey:
+          type: string
+          description: S3ファイルキー — アップロードモードのファイルのみ
+        originalFileUrl:
+          type: string
+          format: uri
+          description: 元画像URL — URLモードのファイルのみ
+    WtrExtractOrderFile:
+      type: object
+      description: watermark 抽出注文ファイル情報
+      properties:
+        fileId:
+          type: integer
+          description: ファイルID
+        fileName:
+          type: string
+          description: ファイル名
+        uploadUrl:
+          type: string
+          format: uri
+          description: アップロードURL（プリサインドURL）
+        fileKey:
+          type: string
+          description: S3ファイルキー
+        fileFormat:
+          type: string
+          description: ファイル形式
+          example: JPG
+        fileType:
+          type: string
+          enum:
+          - IMG
+          - DOCUMENT
+          description: ファイルタイプ（画像またはPDF）
+        role:
+          type: string
+          enum:
+          - watermarked
+          description: ファイルの役割（メインファイルは常に"watermarked"）
+        sequence:
+          type: integer
+          description: ファイル順序番号（常に1）
+          example: 1
+        originalFile:
+          type: object
+          nullable: true
+          description: 元ファイル情報（includeOriginalがtrueの場合のみ含まれます）
+          properties:
+            fileId:
+              type: integer
+              description: ファイルID
+            fileName:
+              type: string
+              description: ファイル名
+            uploadUrl:
+              type: string
+              format: uri
+              description: アップロードURL（プリサインドURL）
+            fileKey:
+              type: string
+              description: S3ファイルキー
+            fileFormat:
+              type: string
+              description: ファイル形式
+            fileType:
+              type: string
+              enum:
+              - IMG
+              description: ファイルタイプ（画像のみ）
+            role:
+              type: string
+              enum:
+              - original
+              description: ファイルの役割（常に"original"）
+            sequence:
+              type: integer
+              description: ファイル順序番号（常に1）
+              example: 1
+    Order:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: 注文ID
+        orderName:
+          type: string
+          description: 注文名
+        type:
+          type: string
+          enum:
+          - antiAi
+          - watermarkEmbed
+          - watermarkExtract
+          - aiDetection
+          description: 注文タイプ
+        channel:
+          type: string
+          enum:
+          - api
+          - web
+          description: 注文チャネル
+        status:
+          type: string
+          enum:
+          - pending
+          - inProgress
+          - complete
+          - failed
+          - expired
+          description: '注文ステータス
+
+            * pending - 待機中
+
+            * inProgress - 処理中
+
+            * complete - 完了
+
+            * failed - 失敗
+
+            * expired - 期限切れ（注文作成から7日経過するとファイルはダウンロードできません）'
+        fileCount:
+          type: integer
+          description: ファイル数
+        thumbnailImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: サムネイル画像URL（プリサインドURL）
+        createdAt:
+          type: string
+          format: date-time
+          description: 作成日時
+        updatedAt:
+          type: string
+          format: date-time
+          description: 最終更新日時
+        probability:
+          type: number
+          nullable: true
+          description: AI検知確率（aiDetection注文専用）
+        statusCode:
+          type: string
+          nullable: true
+          enum:
+          - likely_real
+          - uncertain_real
+          - uncertain_ai
+          - likely_ai
+          description: 'AI検知結果コード（aiDetection注文専用）
+
+            * likely_real - 実在コンテンツである可能性が高い
+
+            * uncertain_real - 不確実、実在寄り
+
+            * uncertain_ai - 不確実、AI生成寄り
+
+            * likely_ai - AI生成コンテンツである可能性が高い'
+    OrderDetail:
+      type: object
+      description: 注文詳細情報
+      properties:
+        orderId:
+          type: string
+          description: 注文ID
+        orderName:
+          type: string
+          description: 注文名
+        type:
+          type: string
+          enum:
+          - antiAi
+          - watermarkEmbed
+          - watermarkExtract
+          - aiDetection
+          description: 注文タイプ
+        channel:
+          type: string
+          enum:
+          - api
+          - web
+          description: 注文チャネル
+        status:
+          type: string
+          enum:
+          - pending
+          - inProgress
+          - complete
+          - failed
+          - expired
+          description: 注文ステータス
+        fileCount:
+          type: integer
+          description: ファイル数
+        thumbnailImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: サムネイル画像URL（プリサインドURL、有効期限1時間）。aiDetection注文では、generateThumbnailオプション使用時のみ返却されます。期限切れの場合はnull。
+        originalImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 元の入力画像のダウンロードURL（プリサインドURL、有効期限1時間）。aiDetection注文専用。期限切れの場合はnull。
+        createdAt:
+          type: string
+          format: date-time
+          description: 作成日時
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新日時
+        errors:
+          type: string
+          nullable: true
+          description: エラーメッセージ（失敗時）
+        watermarks:
+          type: array
+          items:
+            type: string
+          description: watermark テキスト一覧（watermarkEmbed注文専用）
+        watermarkText:
+          type: string
+          nullable: true
+          description: 抽出された watermark テキスト（watermarkExtract注文専用）
+        probability:
+          type: number
+          nullable: true
+          description: AI検知確率（aiDetection注文専用）
+        statusCode:
+          type: string
+          nullable: true
+          description: '注文タイプ別のステータスコード。
+
+            **watermarkExtract 注文:**
+
+            * detected - watermark を検出
+
+            * undetected - watermark 未検出
+
+            **aiDetection 注文**（probabilityから自動計算）:
+
+            * likely_real - probability < 0.25
+
+            * uncertain_real - 0.25 <= probability < 0.5
+
+            * uncertain_ai - 0.5 <= probability < 0.75
+
+            * likely_ai - probability >= 0.75
+
+            他の注文タイプでは返却されません。'
+        options:
+          type: object
+          nullable: true
+          description: 注文作成時に設定したオプション（aiDetection注文専用）
+          properties:
+            generateHeatmap:
+              type: boolean
+              description: ヒートマップ画像をリクエストしたかどうか
+              example: true
+            generateOverlay:
+              type: boolean
+              description: オーバーレイ画像をリクエストしたかどうか
+              example: true
+            generateThumbnail:
+              type: boolean
+              description: サムネイル画像をリクエストしたかどうか
+              example: true
+        heatmapUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: AI検知ヒートマップ画像のダウンロードURL（aiDetection注文専用、generateHeatmapオプション使用時に返却）
+        overlayUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 元画像にヒートマップを重ねたオーバーレイ画像のダウンロードURL（aiDetection注文専用、generateOverlayオプション使用時に返却）
+    UsageStats:
+      type: object
+      properties:
+        dailyStats:
+          type: array
+          items:
+            type: object
+            properties:
+              usageDate:
+                type: string
+                description: 使用日（MM.DD）
+              usageCount:
+                type: integer
+                description: 使用回数
+        domain:
+          type: array
+          items:
+            type: integer
+          description: チャートY軸の範囲 [最小値, 最大値]
+        ticks:
+          type: array
+          items:
+            type: integer
+          description: チャートY軸の目盛り値
+    WebhookRegisterRequest:
+      type: object
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Webhookエンドポイント URL
+          example: https://example.com/webhook
+    WebhookInfo:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          nullable: true
+          description: 登録されたWebhook URL
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 作成日時
+    WebhookCreateRequest:
+      type: object
+      required:
+      - url
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Webhook名（識別用）
+        url:
+          type: string
+          format: uri
+          description: Webhookエンドポイント URL
+          example: https://example.com/webhook
+    WebhookUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: Webhook名
+        url:
+          type: string
+          format: uri
+          description: Webhook URL
+          example: https://example.com/webhook
+    WebhookListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Webhook ID
+        name:
+          type: string
+          description: Webhook名
+        url:
+          type: string
+          format: uri
+          description: Webhook URL
+        isActive:
+          type: boolean
+          description: 有効状態
+        lastSentAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 最終送信日時
+        createdAt:
+          type: string
+          format: date-time
+          description: 作成日時
+    WebhookDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Webhook ID
+        name:
+          type: string
+          description: Webhook名
+        url:
+          type: string
+          format: uri
+          description: Webhook URL
+        secret:
+          type: string
+          description: Webhook署名シークレット
+        isActive:
+          type: boolean
+          description: 有効状態
+        createdAt:
+          type: string
+          format: date-time
+          description: 作成日時
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新日時
+    WebhookEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: イベントDB ID
+        eventId:
+          type: string
+          format: uuid
+          description: イベントUUID
+        eventType:
+          type: string
+          description: イベントタイプ
+          example: order.antiAi.completed
+        status:
+          type: string
+          enum:
+          - PENDING
+          - SENT
+          - RETRYING
+          - FAILED
+          description: 配信ステータス
+        retries:
+          type: integer
+          description: リトライ回数
+        lastSentAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 最終送信日時
+        createdAt:
+          type: string
+          format: date-time
+          description: 作成日時
+    WebhookPagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          description: 現在のページ
+        limit:
+          type: integer
+          description: ページあたりの項目数
+        total:
+          type: integer
+          description: 総項目数
+        totalPages:
+          type: integer
+          description: 総ページ数
+  responses:
+    BadRequest:
+      description: 不正なリクエスト
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: VALIDATION_FAILED
+    Unauthorized:
+      description: 認証失敗
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: AUTH_NOT_AUTHENTICATED
+    NotFound:
+      description: リソースが見つかりません
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: RESOURCE_NOT_FOUND
+    UsageLimitExceeded:
+      description: 使用量上限を超過
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: USAGE_LIMIT_EXCEEDED
+    InternalError:
+      description: 内部サーバーエラー
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: SERVER_INTERNAL_ERROR
+tags:
+- name: Anti-AI
+  description: Anti-AI画像保護の注文
+- name: Watermark Embed
+  description: watermark 埋め込みの注文
+- name: Watermark Extract
+  description: watermark 抽出の注文
+- name: AI Detection
+  description: AI生成画像検知の注文
+- name: Orders
+  description: 注文の照会と管理
+- name: Webhooks
+  description: Webhookの設定とイベント
+paths:
+  /api/v2/orders/anti-ai:
+    post:
+      summary: Anti-AI注文を作成
+      description: 'AI検知防止処理のための注文を作成します。
+
+
+        ## 入力モード（アップロード / URL / 混合）
+
+        入力モードは、各ファイルオブジェクトに `originalFileUrl` が含まれるかどうかで決定されます:
+
+        - **アップロードモード**（`originalFileUrl` なし）: プリサインドURLを発行 → クライアントがS3にアップロード → `/confirm` を呼び出し
+
+        - **URLモード**（`originalFileUrl` を指定）: URLから画像をダウンロードして即座に処理
+
+        - **混合モード**: 一部のファイルはアップロードモード、残りはURLモードで同時に処理
+
+
+        ### 動作
+
+        | 条件 | 注文ステータス | Confirmの必要性 |
+
+        |-----------|-------------|-----------------|
+
+        | すべてのファイルに `originalFileUrl` がある | `inProgress` | 不要（即座に処理） |
+
+        | `originalFileUrl` がないファイルが含まれる | `pending` | 必要（アップロード後にconfirm） |
+
+
+        ## Zero Copy モード
+
+        `mode.zeroCopy: true` の場合、処理結果は顧客が提供したプリサインドURLへ直接アップロードされます。
+
+        この場合、`outputTargets` 配列が必須であり、`files` 配列と同じ長さである必要があります。'
+      tags:
+      - Anti-AI
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 重複リクエストを防ぐための冪等性キー
+                orderName:
+                  type: string
+                  maxLength: 64
+                  description: 注文名（任意、未指定の場合は自動生成）
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required:
+                    - fileName
+                    properties:
+                      fileName:
+                        type: string
+                        description: ファイル名（拡張子を含む）
+                        example: image.jpg
+                      originalFileUrl:
+                        type: string
+                        format: uri
+                        description: '元画像URL（任意）
+
+                          - 指定した場合: URLモード（プリサインドURLは発行されず、即座に処理）
+
+                          - 指定しない場合: アップロードモード（プリサインドURLを発行、confirmが必要）'
+                        example: https://example.com/image.jpg
+                mode:
+                  type: object
+                  description: 処理モード設定
+                  properties:
+                    zeroCopy:
+                      type: boolean
+                      default: false
+                      description: Zero Copyモードを有効化
+                outputTargets:
+                  type: array
+                  description: Zero Copyモードの出力アップロード先（mode.zeroCopyがtrueの場合必須）
+                  items:
+                    type: object
+                    required:
+                    - fileKey
+                    - url
+                    - presignedUrlExpiresAt
+                    properties:
+                      fileKey:
+                        type: string
+                        description: ファイルキー（識別子）
+                      url:
+                        type: string
+                        format: uri
+                        description: 結果アップロード用のプリサインドURL
+                      presignedUrlExpiresAt:
+                        type: string
+                        format: date-time
+                        description: プリサインドURLの有効期限（ISO 8601）
+                options:
+                  $ref: '#/components/schemas/OrderOptions'
+            examples:
+              uploadMode:
+                summary: アップロードモード（従来型）
+                value:
+                  idempotencyKey: key-upload-001
+                  files:
+                  - fileName: image1.jpg
+                  - fileName: image2.png
+                  options:
+                    strength: high
+              urlMode:
+                summary: URLモード（即座に処理）
+                value:
+                  idempotencyKey: key-url-001
+                  files:
+                  - fileName: image1.jpg
+                    originalFileUrl: https://example.com/image1.jpg
+                  - fileName: image2.png
+                    originalFileUrl: https://example.com/image2.png
+                  options:
+                    strength: high
+              mixedMode:
+                summary: 混合モード
+                value:
+                  idempotencyKey: key-mixed-001
+                  files:
+                  - fileName: upload-file.jpg
+                  - fileName: url-file.png
+                    originalFileUrl: https://example.com/image.png
+                  options:
+                    strength: standard
+      responses:
+        '200':
+          description: 注文が正常に作成されました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                      orderId:
+                        type: string
+                      status:
+                        type: string
+                        enum:
+                        - pending
+                        - inProgress
+                        description: '注文ステータス
+
+                          - `pending`: アップロードファイルを含む（confirmが必要）
+
+                          - `inProgress`: すべてのファイルがURLモード（即座に処理）'
+                      files:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AntiAiOrderFile'
+              examples:
+                uploadModeResponse:
+                  summary: アップロードモードのレスポンス
+                  value:
+                    data:
+                      orderName: anti_ai_2026-02-09
+                      orderId: '123456789'
+                      status: pending
+                      files:
+                      - fileId: 1
+                        fileName: image1.jpg
+                        uploadUrl: https://s3.amazonaws.com/...
+                        fileKey: temp/123456789/0/image1.jpg
+                urlModeResponse:
+                  summary: URLモードのレスポンス
+                  value:
+                    data:
+                      orderName: anti_ai_2026-02-09
+                      orderId: '123456789'
+                      status: inProgress
+                      files:
+                      - fileId: 1
+                        fileName: image1.jpg
+                        originalFileUrl: https://example.com/image1.jpg
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalError'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-001\",\n    \"files\": [\n      {\"fileName\": \"image1.jpg\"},\n      {\"fileName\"\
+          : \"image2.png\"}\n    ],\n    \"options\": {\"strength\": \"high\"}\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai', {\n  method:\
+          \ 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-001',\n    files:\
+          \ [\n      { fileName: 'image1.jpg' },\n      { fileName: 'image2.png' }\n    ],\n    options:\
+          \ { strength: 'high' }\n  })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/anti-ai',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
+          \ 'key-001',\n        'files': [\n            {'fileName': 'image1.jpg'},\n            {'fileName':\
+          \ 'image2.png'}\n        ],\n        'options': {'strength': 'high'}\n    }\n)\ndata = response.json()"
+  /api/v2/orders/anti-ai/confirm:
+    post:
+      summary: Anti-AI注文を確認
+      description: 'ファイルアップロード完了後、処理を開始するために呼び出します。
+
+        - すべてのアップロードファイルがS3にアップロードされた後に呼び出してください
+
+        - 処理が開始されるとステータスが `inProgress` に変わります
+
+        - 混合モードでは、アップロードファイルのみS3への存在が確認され、URLファイルはすでに準備完了しています
+
+        - すべてのファイルがURLモードの注文はすでに `inProgress` のため、confirmは不要です'
+      tags:
+      - Anti-AI
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - orderId
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 冪等性キー
+                orderId:
+                  type: string
+                  description: 注文ID
+      responses:
+        '200':
+          description: 注文の確認に成功しました
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/confirm \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-confirm-001\",\n    \"orderId\": \"ORDER_ID\"\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm',\
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-confirm-001',\n\
+          \    orderId: 'ORDER_ID'\n  })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/anti-ai/confirm',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
+          \ 'key-confirm-001',\n        'orderId': 'ORDER_ID'\n    }\n)\ndata = response.json()"
+  /api/v2/orders/anti-ai/with-urls:
+    post:
+      summary: URLでAnti-AI注文を作成
+      deprecated: true
+      description: '**非推奨**: 代わりに `originalFileUrl` フィールドを使用した `/anti-ai` エンドポイントを使用してください。
+
+
+        画像URLを直接指定して処理します。
+
+        - プリサインドURLの発行なしに即座に処理を開始
+
+        - 指定されたURLから画像をダウンロードして処理
+
+
+        ## Zero Copy モード
+
+        `mode.zeroCopy: true` の場合、処理結果は顧客が提供したプリサインドURLへ直接アップロードされます。'
+      tags:
+      - Anti-AI
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 冪等性キー
+                orderName:
+                  type: string
+                  maxLength: 64
+                  description: 注文名（任意）
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required:
+                    - fileName
+                    - imageUrl
+                    properties:
+                      fileName:
+                        type: string
+                        description: ファイル名（拡張子を含む）
+                        example: image.jpg
+                      imageUrl:
+                        type: string
+                        format: uri
+                        description: 画像URL
+                mode:
+                  type: object
+                  properties:
+                    zeroCopy:
+                      type: boolean
+                      default: false
+                outputTargets:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                    - fileKey
+                    - url
+                    - presignedUrlExpiresAt
+                    properties:
+                      fileKey:
+                        type: string
+                      url:
+                        type: string
+                        format: uri
+                      presignedUrlExpiresAt:
+                        type: string
+                        format: date-time
+                options:
+                  $ref: '#/components/schemas/OrderOptions'
+      responses:
+        '200':
+          description: 注文が正常に作成されました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                      orderId:
+                        type: string
+                      status:
+                        type: string
+                        example: inProgress
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/with-urls \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-url-001\",\n    \"files\": [\n      {\n        \"fileName\": \"image1.jpg\",\n     \
+          \   \"imageUrl\": \"https://example.com/image1.jpg\"\n      }\n    ],\n    \"options\": {\"\
+          strength\": \"high\"}\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/with-urls',\
+          \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-url-001',\n \
+          \   files: [\n      {\n        fileName: 'image1.jpg',\n        imageUrl: 'https://example.com/image1.jpg'\n\
+          \      }\n    ],\n    options: { strength: 'high' }\n  })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/anti-ai/with-urls',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
+          \ 'key-url-001',\n        'files': [\n            {\n                'fileName': 'image1.jpg',\n\
+          \                'imageUrl': 'https://example.com/image1.jpg'\n            }\n        ],\n \
+          \       'options': {'strength': 'high'}\n    }\n)\ndata = response.json()"
+  /api/v2/orders/wtr-embed:
+    post:
+      summary: watermark 埋め込み注文を作成
+      description: 'watermark 埋め込み注文を作成します。
+
+        - 画像1枚あたり最大10個の watermark テキスト
+
+        - 注文あたり最大100ファイル
+
+        - 対応画像形式（IMG）: jpg, jpeg, png, webp, bmp, tiff
+
+        - 対応文書形式（DOCUMENT）: pdf
+
+
+        ## 入力モード（アップロード / URL / 混合）
+
+        入力モードは、各ファイルオブジェクトに `originalFileUrl` が含まれるかどうかで決定されます:
+
+        - **アップロードモード**（`originalFileUrl` なし）: プリサインドURLを発行 → クライアントがS3にアップロード → 処理が自動的に開始
+
+        - **URLモード**（`originalFileUrl` を指定）: URLから画像をダウンロードして即座に処理
+
+        - **混合モード**: 一部のファイルはアップロードモード、残りはURLモードで同時に処理
+
+
+        ### 動作
+
+        | 条件 | 注文ステータス | Confirmの必要性 |
+
+        |-----------|-------------|-----------------|
+
+        | すべてのファイルに `originalFileUrl` がある | `pending` | 不要（サーバーのダウンロード完了後に自動開始） |
+
+        | `originalFileUrl` がないファイルが含まれる | `pending` | 不要（アップロード完了後に自動開始） |
+
+
+        <Note>Anti-AIやAI Detectionと異なり、Watermark Embedでは別途confirmステップは不要です。ファイルアップロードが完了すると処理が自動的に開始されます。</Note>'
+      tags:
+      - Watermark Embed
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 冪等性キー
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required:
+                    - fileName
+                    - watermarks
+                    properties:
+                      fileName:
+                        type: string
+                        description: ファイル名
+                        example: image.jpg
+                      originalFileUrl:
+                        type: string
+                        format: uri
+                        description: '元画像URL（任意）
+
+                          - 指定した場合: URLモード（プリサインドURLは発行されず、即座に処理）
+
+                          - 指定しない場合: アップロードモード（プリサインドURLを発行）'
+                        example: https://example.com/image.jpg
+                      watermarks:
+                        type: array
+                        minItems: 1
+                        maxItems: 10
+                        items:
+                          type: object
+                          required:
+                          - text
+                          properties:
+                            text:
+                              type: string
+                              maxLength: 1000
+                              description: watermark テキスト
+            examples:
+              uploadMode:
+                summary: アップロードモード（従来型）
+                value:
+                  idempotencyKey: key-embed-001
+                  files:
+                  - fileName: image1.jpg
+                    watermarks:
+                    - text: MORI_WATERMARK
+                  - fileName: image2.png
+                    watermarks:
+                    - text: MORI_WATERMARK
+              urlMode:
+                summary: URLモード（即座に処理）
+                value:
+                  idempotencyKey: key-embed-url-001
+                  files:
+                  - fileName: image1.jpg
+                    originalFileUrl: https://example.com/image1.jpg
+                    watermarks:
+                    - text: MORI_WATERMARK
+                  - fileName: image2.png
+                    originalFileUrl: https://example.com/image2.png
+                    watermarks:
+                    - text: MORI_WATERMARK
+              mixedMode:
+                summary: 混合モード
+                value:
+                  idempotencyKey: key-embed-mixed-001
+                  files:
+                  - fileName: upload-file.jpg
+                    watermarks:
+                    - text: MORI_WATERMARK
+                  - fileName: url-file.png
+                    originalFileUrl: https://example.com/image.png
+                    watermarks:
+                    - text: MORI_WATERMARK
+      responses:
+        '200':
+          description: 注文が正常に作成されました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                      orderId:
+                        type: string
+                      status:
+                        type: string
+                        enum:
+                        - pending
+                        description: '注文ステータス
+
+                          - `pending`: 入力モードに関わらず常に返却'
+                      files:
+                        type: array
+                        items:
+                          type: object
+                          description: 'ファイル情報（モードによってフィールドが異なります）
+
+                            - アップロードモード: fileId, fileName, uploadUrl, fileKey, fileFormat, fileType
+
+                            - URLモード: fileId, fileName, originalFileUrl, fileKey, fileFormat, fileType'
+                          properties:
+                            fileId:
+                              type: integer
+                            fileName:
+                              type: string
+                            uploadUrl:
+                              type: string
+                              format: uri
+                              description: プリサインドアップロードURL。アップロードモードでのみ返却されます。
+                            originalFileUrl:
+                              type: string
+                              format: uri
+                              description: リクエストで指定された公開画像URL。URLモードでのみ返却されます。
+                            fileKey:
+                              type: string
+                              description: ファイルのS3オブジェクトキー。
+                            fileFormat:
+                              type: string
+                              description: ファイル形式。
+                              enum:
+                              - JPG
+                              - PNG
+                              - WEBP
+                              - BMP
+                              - TIFF
+                              - PDF
+                            fileType:
+                              type: string
+                              description: ファイルタイプの分類。
+                              enum:
+                              - IMG
+                              - DOCUMENT
+              examples:
+                uploadModeResponse:
+                  summary: アップロードモードのレスポンス
+                  value:
+                    data:
+                      orderName: wtr_embed_20260318120000.000
+                      orderId: '424706541233094656'
+                      status: pending
+                      files:
+                      - fileId: 2469
+                        fileName: image.jpg
+                        uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...?X-Amz-Algorithm=AWS4-HMAC-SHA256&...
+                        fileKey: wtr-embed/424706541233094656/images/1/image.jpg
+                        fileFormat: JPG
+                        fileType: IMG
+                      - fileId: 2470
+                        fileName: document.pdf
+                        uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...?X-Amz-Algorithm=AWS4-HMAC-SHA256&...
+                        fileKey: wtr-embed/424706541233094656/documents/2/document.pdf
+                        fileFormat: PDF
+                        fileType: DOCUMENT
+                urlModeResponse:
+                  summary: URLモードのレスポンス
+                  value:
+                    data:
+                      orderName: wtr_embed_20260318120000.000
+                      orderId: '424707536709206016'
+                      status: pending
+                      files:
+                      - fileId: 2490
+                        fileName: image.png
+                        originalFileUrl: https://example.com/image.jpg
+                        fileKey: wtr-embed/424707536709206016/images/1/image.png
+                        fileFormat: PNG
+                        fileType: IMG
+                mixedModeResponse:
+                  summary: 混合モードのレスポンス
+                  value:
+                    data:
+                      orderName: wtr_embed_20260318120000.000
+                      orderId: '424707536709206016'
+                      status: pending
+                      files:
+                      - fileId: 2490
+                        fileName: image.png
+                        originalFileUrl: https://example.com/image.jpg
+                        fileKey: wtr-embed/424707536709206016/images/1/image.png
+                        fileFormat: PNG
+                        fileType: IMG
+                      - fileId: 2491
+                        fileName: photo.jpeg
+                        uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...?X-Amz-Algorithm=AWS4-HMAC-SHA256&...
+                        fileKey: wtr-embed/424707536709206016/images/2/photo.jpeg
+                        fileFormat: JPG
+                        fileType: IMG
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-embed-001\",\n    \"files\": [\n      {\n        \"fileName\": \"image.jpg\",\n    \
+          \    \"watermarks\": [{\"text\": \"MORI_WATERMARK\"}]\n      }\n    ]\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-embed', {\n \
+          \ method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-embed-001',\n\
+          \    files: [\n      {\n        fileName: 'image.jpg',\n        watermarks: [{ text: 'MORI_WATERMARK'\
+          \ }]\n      }\n    ]\n  })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/wtr-embed',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
+          \ 'key-embed-001',\n        'files': [\n            {\n                'fileName': 'image.jpg',\n\
+          \                'watermarks': [{'text': 'MORI_WATERMARK'}]\n            }\n        ]\n    }\n\
+          )\ndata = response.json()"
+  /api/v2/orders/wtr-extract:
+    post:
+      summary: watermark 抽出注文を作成
+      description: 'watermark 抽出注文を作成します。
+
+        - 注文あたりファイル1つのみ
+
+        - 画像（jpg, jpeg, png, webp, bmp, tiff）またはPDFファイルに対応
+
+        - 画像の場合、`includeOriginal: true` で元ファイルも一緒にアップロード可能
+
+        - PDFは `includeOriginal` に非対応'
+      tags:
+      - Watermark Extract
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - file
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 冪等性キー
+                file:
+                  type: object
+                  required:
+                  - fileName
+                  properties:
+                    fileName:
+                      type: string
+                      description: watermark 付きファイル名（拡張子を含む）
+                      example: watermarked.jpg
+                    includeOriginal:
+                      type: boolean
+                      default: false
+                      description: '元ファイルを含める（画像のみ）
+
+                        - true: 元ファイルのアップロードURLも発行されます
+
+                        - PDFファイルでは使用できません'
+                    originalFile:
+                      type: object
+                      description: 元ファイル情報（includeOriginalがtrueの場合必須）
+                      required:
+                      - fileName
+                      properties:
+                        fileName:
+                          type: string
+                          description: 元ファイル名
+                          example: original.jpg
+            examples:
+              imageOnly:
+                summary: 単一画像（watermark のみ）
+                value:
+                  idempotencyKey: key-001
+                  file:
+                    fileName: watermarked.jpg
+              imageWithOriginal:
+                summary: 画像 + 元ファイルを含む
+                value:
+                  idempotencyKey: key-002
+                  file:
+                    fileName: watermarked.jpg
+                    includeOriginal: true
+                    originalFile:
+                      fileName: original.jpg
+              pdfOnly:
+                summary: PDFファイル
+                value:
+                  idempotencyKey: key-003
+                  file:
+                    fileName: document.pdf
+      responses:
+        '200':
+          description: 注文が正常に作成されました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderName:
+                        type: string
+                        description: 注文名（自動生成）
+                      orderId:
+                        type: string
+                        description: 注文ID
+                      file:
+                        $ref: '#/components/schemas/WtrExtractOrderFile'
+              examples:
+                imageOnlyResponse:
+                  summary: 単一画像のレスポンス
+                  value:
+                    data:
+                      orderName: wtr_extract_2026-02-13
+                      orderId: '123456789'
+                      file:
+                        fileId: 1
+                        fileName: watermarked.jpg
+                        uploadUrl: https://s3.amazonaws.com/...
+                        fileKey: 123/456/watermarked.jpg
+                        fileFormat: JPG
+                        fileType: IMG
+                        role: watermarked
+                        sequence: 1
+                imageWithOriginalResponse:
+                  summary: 画像 + 元ファイルのレスポンス
+                  value:
+                    data:
+                      orderName: wtr_extract_2026-02-13
+                      orderId: '123456789'
+                      file:
+                        fileId: 1
+                        fileName: watermarked.jpg
+                        uploadUrl: https://s3.amazonaws.com/...
+                        fileKey: 123/456/watermarked.jpg
+                        fileFormat: JPG
+                        fileType: IMG
+                        role: watermarked
+                        sequence: 1
+                        originalFile:
+                          fileId: 2
+                          fileName: original.jpg
+                          uploadUrl: https://s3.amazonaws.com/...
+                          fileKey: 123/456/original.jpg
+                          fileFormat: JPG
+                          fileType: IMG
+                          role: original
+                          sequence: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/wtr-extract \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"idempotencyKey\"\
+          : \"key-extract-001\",\n    \"file\": {\n      \"fileName\": \"watermarked.jpg\"\n    }\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-extract', {\n\
+          \  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-extract-001',\n\
+          \    file: {\n      fileName: 'watermarked.jpg'\n    }\n  })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/wtr-extract',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
+          \ 'key-extract-001',\n        'file': {\n            'fileName': 'watermarked.jpg'\n       \
+          \ }\n    }\n)\ndata = response.json()"
+  /api/v2/orders/ai-detection:
+    post:
+      summary: AI Detection注文を作成
+      description: 'AI Detection注文を作成し、画像用のプリサインドS3アップロードURLを発行します。
+
+
+        ## フロー
+
+
+        1. このエンドポイントを呼び出し、プリサインドアップロードURLを受け取ります
+
+        2. プリサインドURLを使用して画像を直接S3にアップロードします
+
+        3. `POST /api/v2/orders/ai-detection/confirm` を呼び出して非同期の検知処理を開始します
+
+        4. Webhookまたは注文詳細エンドポイントのポーリングで結果を確認します
+
+
+        ## 注文ステータス
+
+
+        | ステータス | 説明 |
+
+        |--------|-------------|
+
+        | `pending` | ファイルアップロード待ち |
+
+        | `inProgress` | 検知処理中 |
+
+        | `complete` | 検知完了、結果を確認可能 |
+
+        | `failed` | 検知失敗 |
+
+
+        ## 対応形式
+
+
+        jpg, jpeg, png, webp, bmp, tiff'
+      tags:
+      - AI Detection
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - fileName
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 重複リクエストを防ぐための冪等性キー
+                  example: key-ai-detection-001
+                orderName:
+                  type: string
+                  maxLength: 64
+                  description: 注文名（任意、未指定の場合は自動生成）
+                  example: my-detection-order
+                fileName:
+                  type: string
+                  description: '拡張子を含む画像ファイル名。対応形式: jpg, jpeg, png, webp, bmp, tiff'
+                  example: photo.jpg
+                options:
+                  type: object
+                  description: 出力オプション（任意）。生成されたファイルは注文詳細レスポンスに含まれます。
+                  properties:
+                    generateHeatmap:
+                      type: boolean
+                      default: false
+                      description: AI検知ヒートマップ画像を生成
+                    generateOverlay:
+                      type: boolean
+                      default: false
+                      description: 元画像にヒートマップを重ねたオーバーレイ画像を生成
+                    generateThumbnail:
+                      type: boolean
+                      default: false
+                      description: サムネイル画像を生成
+      responses:
+        '200':
+          description: 注文が正常に作成されました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderId:
+                        type: string
+                        description: 注文ID
+                      orderName:
+                        type: string
+                        description: 注文名
+                      status:
+                        type: string
+                        enum:
+                        - pending
+                        description: 注文ステータス
+                      file:
+                        type: object
+                        properties:
+                          fileId:
+                            type: integer
+                            description: ファイルレコードID
+                          fileName:
+                            type: string
+                            description: ファイル名
+                          uploadUrl:
+                            type: string
+                            format: uri
+                            description: ファイル直接アップロード用のプリサインドS3 URL
+                          fileKey:
+                            type: string
+                            description: S3ファイルキー
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/UsageLimitExceeded'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"idempotencyKey\"\
+          : \"key-ai-001\", \"fileName\": \"photo.jpg\"}'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/ai-detection', {\n\
+          \  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    idempotencyKey: 'key-ai-001',\n  \
+          \  fileName: 'photo.jpg'\n  })\n});\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/ai-detection',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey': 'key-ai-001',\
+          \ 'fileName': 'photo.jpg'}\n)\ndata = response.json()"
+  /api/v2/orders/ai-detection/confirm:
+    post:
+      summary: AI Detection注文を確認
+      description: '画像がS3にアップロードされたことを確認し、非同期のAI検知処理を開始します。
+
+
+        注文作成エンドポイントから受け取ったプリサインドURLに画像をアップロードした後、このエンドポイントを呼び出してください。注文ステータスは `pending` から `inProgress`
+        に変わります。
+
+
+        検知結果はWebhook（`order.aiDetection.completed` または `order.aiDetection.failed`）で通知されるか、[注文取得](/ja/api-reference/orders/get-order)エンドポイントをポーリングして取得できます。'
+      tags:
+      - AI Detection
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - orderId
+              properties:
+                idempotencyKey:
+                  type: string
+                  description: 重複リクエストを防ぐための一意のキー。リトライ時に同じキーを使用した場合、再処理せずに現在の注文ステータスを返します。
+                  example: 01950c7e-f6b2-7000-8000-abcdef123456
+                orderId:
+                  type: string
+                  description: 注文ID
+      responses:
+        '200':
+          description: 処理を開始しました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orderId:
+                        type: string
+                        description: 注文ID
+                      status:
+                        type: string
+                        enum:
+                        - inProgress
+                        description: 注文ステータス
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST \"https://api.bizmori.com/api/v2/orders/ai-detection/confirm\" \\\n  -H\
+          \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n\
+          \  -d '{\"idempotencyKey\": \"YOUR_IDEMPOTENCY_KEY\", \"orderId\": \"ORDER_ID\"}'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
+          \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
+          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({ idempotencyKey:\
+          \ 'YOUR_IDEMPOTENCY_KEY', orderId: 'ORDER_ID' })\n  }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey': 'YOUR_IDEMPOTENCY_KEY',\
+          \ 'orderId': 'ORDER_ID'}\n)\ndata = response.json()"
+  /api/v2/orders:
+    get:
+      summary: 注文一覧を取得
+      description: 'ページネーション付きで注文を取得します。
+
+        - ステータス、タイプ、チャネルでフィルタリング
+
+        - キーワード検索に対応
+
+        - 最新順にソート'
+      tags:
+      - Orders
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+          default: 1
+          minimum: 1
+        description: ページ番号
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          default: 10
+          minimum: 1
+          maximum: 100
+        description: ページあたりの項目数（-1ですべて取得）
+      - in: query
+        name: keyword
+        schema:
+          type: string
+        description: 検索キーワード
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - pending
+          - inProgress
+          - complete
+          - failed
+          - expired
+          - all
+          default: all
+        description: ステータスフィルター
+      - in: query
+        name: type
+        schema:
+          type: string
+          enum:
+          - antiAi
+          - watermarkEmbed
+          - watermarkExtract
+          - aiDetection
+          - all
+        description: 注文タイプフィルター
+      - in: query
+        name: channel
+        schema:
+          type: string
+          enum:
+          - api
+          - web
+          - all
+          default: all
+        description: チャネルフィルター
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      orders:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Order'
+                      pageInfo:
+                        $ref: '#/components/schemas/PageInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET \"https://api.bizmori.com/api/v2/orders?page=1&limit=10&status=all\" \\\n\
+          \  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const params = new URLSearchParams({ page: 1, limit: 10, status: 'all' });\nconst response\
+          \ = await fetch(\n  `https://api.bizmori.com/api/v2/orders?${params}`,\n  { headers: { 'Authorization':\
+          \ 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.get(\n    'https://api.bizmori.com/api/v2/orders',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit': 10,\
+          \ 'status': 'all'}\n)\ndata = response.json()"
+  /api/v2/orders/stats/recent:
+    get:
+      summary: 直近の使用統計
+      description: 過去7日間の使用統計
+      tags:
+      - Orders
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: query
+        name: date
+        schema:
+          type: string
+          format: date
+        description: 基準日（ISO文字列）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/UsageStats'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/stats/recent \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/stats/recent',\n\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.get(\n    'https://api.bizmori.com/api/v2/orders/stats/recent',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+  /api/v2/orders/{orderId}:
+    get:
+      summary: 注文詳細を取得
+      tags:
+      - Orders
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+        description: 注文ID
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/OrderDetail'
+              examples:
+                antiAi:
+                  summary: Anti-AI注文
+                  value:
+                    data:
+                      type: antiAi
+                      orderId: '1234567890123456789'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: anti_ai_2026-03-12
+                      fileCount: 3
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:05:00.000Z'
+                      errors: null
+                watermarkEmbed:
+                  summary: Watermark Embed注文
+                  value:
+                    data:
+                      type: watermarkEmbed
+                      orderId: '1234567890123456790'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: wtr_embed_2026-03-12
+                      fileCount: 2
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:03:00.000Z'
+                      errors: null
+                      watermarks:
+                      - MORI-WTR-001
+                      - MORI-WTR-002
+                watermarkExtract:
+                  summary: Watermark Extract注文
+                  value:
+                    data:
+                      type: watermarkExtract
+                      orderId: '1234567890123456791'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: wtr_extract_2026-03-12
+                      fileCount: 1
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:02:00.000Z'
+                      errors: null
+                      statusCode: detected
+                      watermarkText: MORI-WTR-001
+                aiDetection:
+                  summary: AI Detection注文
+                  value:
+                    data:
+                      type: aiDetection
+                      orderId: '1234567890123456792'
+                      channel: api
+                      thumbnailImageUrl: https://s3.amazonaws.com/...
+                      originalImageUrl: https://s3.amazonaws.com/...
+                      status: complete
+                      orderName: ai_detection_2026-03-12
+                      fileCount: 1
+                      createdAt: '2026-03-12T10:00:00.000Z'
+                      updatedAt: '2026-03-12T10:01:00.000Z'
+                      errors: null
+                      probability: 0.92
+                      statusCode: likely_ai
+                      heatmapUrl: https://s3.amazonaws.com/...
+                      overlayUrl: https://s3.amazonaws.com/...
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/ORDER_ID \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/${orderId}`,\n\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+  /api/v2/orders/{orderId}/download:
+    get:
+      summary: ダウンロードURLを取得
+      description: '完了した注文ファイルのダウンロードURLを発行します。
+
+        - `complete` ステータスの注文でのみ利用可能
+
+        - URLの有効期限は1時間
+
+        - 注文ファイルは注文作成から最大7日間ダウンロード可能
+
+        - 7日経過後、注文は `expired` ステータスに移行し、ファイルはダウンロードできなくなります'
+      tags:
+      - Orders
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+        description: 注文ID
+      responses:
+        '200':
+          description: URLの発行に成功しました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      url:
+                        type: string
+                        format: uri
+                        description: ダウンロードURL（プリサインド）
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/ORDER_ID/download \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/${orderId}/download`,\n\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();\n\
+          // data.data.url contains the presigned download URL"
+      - lang: python
+        label: Python
+        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}/download',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['url']\
+          \ contains the presigned download URL"
+  /api/v2/orders/{orderId}/refresh-urls:
+    post:
+      summary: プリサインドURLを再発行
+      description: '期限切れのアップロードURLを再発行します。
+
+        - `pending` ステータスの注文でのみ利用可能
+
+        - 注意: `watermarkExtract` タイプの注文では、実際のレスポンスは本スキーマの `data.files[]` 形式とは異なり、`{ orderId, orderName,
+        orderType, originalFiles, watermarkedFile }` の形式で返却されます。'
+      tags:
+      - Orders
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+        description: 注文ID
+      responses:
+        '200':
+          description: URLの再発行に成功しました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      files:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/OrderFile'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/ORDER_ID/refresh-urls \\\n  -H \"\
+          Authorization: Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/${orderId}/refresh-urls`,\n\
+          \  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n  }\n\
+          );\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}/refresh-urls',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+  /api/v2/orders/webhook:
+    post:
+      summary: Webhookを登録（レガシー）
+      deprecated: true
+      description: '**非推奨**: このAPIは `/webhooks` に置き換えられました。
+
+
+        注文処理が完了または失敗した際に通知を受け取るためのWebhook URLを登録します。'
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookRegisterRequest'
+      responses:
+        '200':
+          description: Webhookの登録に成功しました
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhook \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\"url\": \"\
+          https://example.com/webhook\"}'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/webhook', {\n  method:\
+          \ 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({ url: 'https://example.com/webhook' })\n\
+          });\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/webhook',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'url': 'https://example.com/webhook'}\n\
+          )\ndata = response.json()"
+    get:
+      summary: Webhookを取得（レガシー）
+      deprecated: true
+      description: '**非推奨**: このAPIは `/webhooks` に置き換えられました。'
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/WebhookInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/webhook \\\n  -H \"Authorization: Bearer\
+          \ YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/webhook',\n \
+          \ { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.get(\n    'https://api.bizmori.com/api/v2/orders/webhook',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+    delete:
+      summary: Webhookを削除（レガシー）
+      deprecated: true
+      description: '**非推奨**: このAPIは `/webhooks/{webhookId}` に置き換えられました。'
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      responses:
+        '200':
+          description: Webhookの削除に成功しました
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X DELETE https://api.bizmori.com/api/v2/orders/webhook \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/webhook', {\n  method:\
+          \ 'DELETE',\n  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n});\nconst data = await\
+          \ response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.delete(\n    'https://api.bizmori.com/api/v2/orders/webhook',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+  /api/v2/orders/webhooks:
+    get:
+      summary: Webhook一覧を取得
+      description: 'ページネーション付きで登録済みのWebhookを取得します。
+
+        - 名前、URL、有効状態、最終送信日時を含みます'
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: ページ番号
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+        description: ページあたりの項目数
+      - in: query
+        name: keyword
+        schema:
+          type: string
+        description: 検索キーワード（Webhook名またはURLを検索）
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      webhooks:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WebhookListItem'
+                      pagination:
+                        $ref: '#/components/schemas/WebhookPagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET \"https://api.bizmori.com/api/v2/orders/webhooks?page=1&limit=10\" \\\n \
+          \ -H \"Authorization: Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const params = new URLSearchParams({ page: 1, limit: 10 });\nconst response = await fetch(\n\
+          \  `https://api.bizmori.com/api/v2/orders/webhooks?${params}`,\n  { headers: { 'Authorization':\
+          \ 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.get(\n    'https://api.bizmori.com/api/v2/orders/webhooks',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit': 10}\n\
+          )\ndata = response.json()"
+    post:
+      summary: Webhookを作成
+      description: "新しいWebhookを登録します。\n- 複数のWebhookを登録可能\n- 登録時に署名シークレットが返却されます\n\n**重要**: シークレットはこのレスポンスでのみ表示されます。安全に保管してください。\n\
+        \n## Webhookイベントタイプ\n\n| イベントタイプ | 説明 |\n|-----------|-------------|\n| `order.antiAi.completed`\
+        \ | Anti-AI処理が完了 |\n| `order.antiAi.failed` | Anti-AI処理が失敗 |\n| `order.watermarkEmbed.completed`\
+        \ | watermark 埋め込みが完了 |\n| `order.watermarkEmbed.failed` | watermark 埋め込みが失敗 |\n| `order.watermarkExtract.completed`\
+        \ | watermark 抽出が完了 |\n| `order.watermarkExtract.failed` | watermark 抽出が失敗 |\n\n## 署名検証\n\nWebhookリクエストには\
+        \ `X-MoriBiz-Signature` ヘッダーが含まれます。\n署名は、登録時に発行されたシークレットを使用してHMAC-SHA256で生成されます。\n\n```javascript\n\
+        const crypto = require('crypto');\nconst signature = crypto.createHmac('sha256', secret)\n  .update(JSON.stringify(payload))\n\
+        \  .digest('hex');\n```\n\n## リトライポリシー\n\n- 最大3回リトライ\n- 指数バックオフ（1秒、2秒、4秒）\n- 成功レスポンス: 2xxステータスコード"
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookCreateRequest'
+      responses:
+        '200':
+          description: Webhookの作成に成功しました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: Webhook ID
+                      name:
+                        type: string
+                        description: Webhook名
+                      secret:
+                        type: string
+                        description: 'Webhook署名シークレット。
+
+                          **警告**: この値は再取得できません。安全に保管してください。'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"name\"\
+          : \"My Webhook\",\n    \"url\": \"https://example.com/webhook\"\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/webhooks', {\n  method:\
+          \ 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n    'Content-Type':\
+          \ 'application/json'\n  },\n  body: JSON.stringify({\n    name: 'My Webhook',\n    url: 'https://example.com/webhook'\n\
+          \  })\n});\nconst data = await response.json();\n// Save data.data.secret securely — it won't\
+          \ be shown again"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/webhooks',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'name': 'My Webhook',\n\
+          \        'url': 'https://example.com/webhook'\n    }\n)\ndata = response.json()\n# Save data['data']['secret']\
+          \ securely — it won't be shown again"
+  /api/v2/orders/webhooks/{webhookId}:
+    get:
+      summary: Webhook詳細を取得
+      description: 特定のWebhookの詳細情報を取得します。
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/WebhookDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}`,\n\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+    put:
+      summary: Webhookを更新
+      description: Webhook情報を更新します。
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookUpdateRequest'
+      responses:
+        '200':
+          description: 更新に成功しました
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                      name:
+                        type: string
+                      url:
+                        type: string
+                        format: uri
+                      isActive:
+                        type: boolean
+                      updatedAt:
+                        type: string
+                        format: date-time
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X PUT https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID \\\n  -H \"Authorization:\
+          \ Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"name\"\
+          : \"Updated Webhook\",\n    \"url\": \"https://example.com/webhook-v2\"\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}`,\n\
+          \  {\n    method: 'PUT',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
+          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      name: 'Updated\
+          \ Webhook',\n      url: 'https://example.com/webhook-v2'\n    })\n  }\n);\nconst data = await\
+          \ response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.put(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'},\n    json={\n        'name': 'Updated Webhook',\n\
+          \        'url': 'https://example.com/webhook-v2'\n    }\n)\ndata = response.json()"
+    delete:
+      summary: Webhookを削除
+      description: Webhookを削除します。
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
+      responses:
+        '200':
+          description: 削除に成功しました
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X DELETE https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID \\\n  -H \"\
+          Authorization: Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const webhookId = 'WEBHOOK_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}`,\n\
+          \  {\n    method: 'DELETE',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n  }\n\
+          );\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.delete(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
+          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+  /api/v2/orders/webhooks/{webhookId}/events:
+    get:
+      summary: Webhookイベント一覧を取得
+      description: 'ページネーション付きで特定のWebhookの配信イベントを取得します。
+
+        - ステータス、イベントタイプ、配信日時を含みます'
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
+      - in: query
+        name: page
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+        description: ページ番号
+      - in: query
+        name: limit
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: ページあたりの項目数
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/WebhookEvent'
+                      pagination:
+                        $ref: '#/components/schemas/WebhookPagination'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X GET \"https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID/events?page=1&limit=20\"\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const webhookId = 'WEBHOOK_ID';\nconst params = new URLSearchParams({ page: 1, limit:\
+          \ 20 });\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events?${params}`,\n\
+          \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    params={'page': 1, 'limit': 20}\n\
+          )\ndata = response.json()"
+  /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry:
+    post:
+      summary: Webhookイベントを再送
+      description: '失敗した単一のWebhookイベントを手動で再送します。
+
+        - `FAILED` ステータスのイベントのみ再送可能
+
+        - 成功すると、イベントステータスは `SENT` に変わります
+
+        - 再送が失敗した場合、イベントは `FAILED` のままとなり、30分後にスケジューラーによる再送がキューに登録されます'
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
+      - in: path
+        name: eventId
+        required: true
+        schema:
+          type: integer
+        description: WebhookイベントID
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      event_id:
+                        type: string
+                        description: 元イベントのUUID
+                      success:
+                        type: boolean
+                        description: 再送が成功したかどうか
+                      status_code:
+                        type: integer
+                        description: Webhookエンドポイントからの HTTPレスポンスコード（successがtrueの場合）
+                      status:
+                        type: string
+                        description: イベントステータス（再送失敗時）
+                        example: FAILED
+                      error:
+                        type: string
+                        description: エラーメッセージ（再送失敗時）
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: イベントは再送不可
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID/events/EVENT_ID/retry\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\""
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events/${eventId}/retry`,\n\
+          \  {\n    method: 'POST',\n    headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' }\n  }\n\
+          );\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events/{event_id}/retry',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
+  /api/v2/orders/webhooks/{webhookId}/events/retry-failed:
+    post:
+      summary: 失敗したWebhookイベントを一括再送
+      description: '指定した期間内のすべての失敗したWebhookイベントを再送します。
+
+        - 1リクエストあたり最大50件の失敗イベントを再送
+
+        - 期間は7日を超えることはできません
+
+        - 各イベントは個別に再送されます'
+      tags:
+      - Webhooks
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: webhookId
+        required: true
+        schema:
+          type: integer
+        description: Webhook ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - fromDate
+              - toDate
+              properties:
+                fromDate:
+                  type: string
+                  format: date
+                  description: '開始日（ISO 8601形式、例: 2026-01-01）'
+                  example: '2026-01-01'
+                toDate:
+                  type: string
+                  format: date
+                  description: '終了日（ISO 8601形式、例: 2026-01-07）。fromDateから7日以内である必要があります。'
+                  example: '2026-01-07'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: 期間内に見つかった失敗イベントの総数
+                      succeeded:
+                        type: integer
+                        description: 再送に成功したイベント数
+                      failed:
+                        type: integer
+                        description: 再送に失敗したイベント数
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 無効な期間
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: "curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/WEBHOOK_ID/events/retry-failed\
+          \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
+          \ \\\n  -d '{\n    \"fromDate\": \"2026-01-01\",\n    \"toDate\": \"2026-01-07\"\n  }'"
+      - lang: javascript
+        label: JavaScript
+        source: "const response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/webhooks/${webhookId}/events/retry-failed`,\n\
+          \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer YOUR_API_TOKEN',\n\
+          \      'Content-Type': 'application/json'\n    },\n    body: JSON.stringify({\n      fromDate:\
+          \ '2026-01-01',\n      toDate: '2026-01-07'\n    })\n  }\n);\nconst data = await response.json();"
+      - lang: python
+        label: Python
+        source: "import requests\n\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events/retry-failed',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'fromDate': '2026-01-01',\n\
+          \        'toDate': '2026-01-07'\n    }\n)\ndata = response.json()"
