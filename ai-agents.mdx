@@ -115,7 +115,7 @@ The prompt above works because these docs are published in a machine-readable fo
     The HMAC must be computed over the raw request bytes. If a JSON body-parser runs first and the code re-serializes the object, the signature will not match and the agent may be tempted to "fix" it by skipping verification. It must compare in constant time.
   </Accordion>
   <Accordion title="Presigned URL expiry is handled" icon="clock">
-    Upload and download URLs are valid for 1 hour. A long-running batch job must call [Refresh URLs](/api-reference/orders/refresh-urls) rather than reusing a stale URL.
+    Upload URLs are valid for 1 hour; download URLs for 7 days. A long-running batch job must call [Refresh URLs](/api-reference/orders/refresh-urls) rather than reusing a stale URL.
   </Accordion>
 </AccordionGroup>
 

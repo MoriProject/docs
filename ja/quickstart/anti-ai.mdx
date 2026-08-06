@@ -293,13 +293,13 @@ const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789/downloa
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.downloadUrl — 1時間有効
+// data.url — 7日間有効
 ```
 
 ```jsx React
-const { downloadUrl } = await api(`/orders/${order.orderId}/download`);
-// <a href={downloadUrl} download> 要素に渡してください — この URL は1時間有効です。
-setDownloadUrl(downloadUrl);
+const { url } = await api(`/orders/${order.orderId}/download`);
+// <a href={url} download> 要素に渡してください — この URL は7日間有効です。
+setDownloadUrl(url);
 ```
 
 ```python Python
@@ -307,7 +307,7 @@ res = requests.get(
     'https://api.bizmori.com/api/v2/orders/123456789/download',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
-download_url = res.json()['data']['downloadUrl']
+download_url = res.json()['data']['url']
 ```
 </CodeGroup>
 
@@ -315,13 +315,12 @@ download_url = res.json()['data']['downloadUrl']
 ```json
 {
   "data": {
-    "downloadUrl": "https://s3.amazonaws.com/...",
-    "expiresIn": 3600
+    "url": "https://s3.amazonaws.com/..."
   }
 }
 ```
 
-`downloadUrl` は **1時間** 有効なプリサインド S3 URL です。この URL から保護されたファイルを直接ダウンロードしてください。
+`url` は **7日間** 有効なプリサインド S3 URL です。この URL から保護されたファイルを直接ダウンロードしてください。
 
 Anti-AI API でサポートされているオプションの詳細については、[API リファレンス](/ja/api-reference/anti-ai/create-order)を参照してください。
 
@@ -335,7 +334,7 @@ import { useRef, useState } from 'react';
 const API_BASE = 'https://api.bizmori.com/api/v2';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
-const ACCEPT_FORMATS = 'image/jpeg, image/png, image/webp, image/tiff, image/bmp';
+const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp';
 const MAX_FILES = 100;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -354,12 +353,14 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
       body: body && JSON.stringify({ idempotencyKey, ...body }),
     });
 
-    if (res.status === 429 && attempt < 3) {
-      await sleep((Number(res.headers.get('Retry-After')) || 2 ** attempt) * 1000);
-      continue;
-    }
     if (!res.ok) {
       const { code } = await res.json().catch(() => ({}));
+      // 429 は 2 つの意味を持ちます: 一時的なレート制限と、再試行しても
+      // 解消しないプラン使用量の超過（PLAN_LIMIT_EXCEEDED）です。
+      if (res.status === 429 && code !== 'PLAN_LIMIT_EXCEEDED' && attempt < 3) {
+        await sleep(2 ** attempt * 1000);
+        continue;
+      }
       throw new Error(code ?? `HTTP_${res.status}`);
     }
     return (await res.json()).data;
@@ -405,6 +406,7 @@ export default function AntiAiUploader() {
   const [status, setStatus] = useState('idle');
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [error, setError] = useState(null);
+  const [orderId, setOrderId] = useState(null);
   const inFlight = useRef(false);
 
   const busy = status !== 'idle' && status !== 'complete';
@@ -418,6 +420,7 @@ export default function AntiAiUploader() {
     // 変更する可能性があるため、selected[i] は uploadUrls[i] と常にペアになっている必要があります。
     const selected = files;
     setError(null);
+    setOrderId(null);
     setDownloadUrl(null);
     setProgress({});
 
@@ -432,6 +435,7 @@ export default function AntiAiUploader() {
         },
       });
 
+      setOrderId(order.orderId);
       setStatus('uploading');
       await Promise.all(
         selected.map((file, index) =>
@@ -451,9 +455,9 @@ export default function AntiAiUploader() {
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
       if (finished.status === 'failed') throw new Error('ORDER_FAILED');
 
-      setStatus('ダウンロード URL 発行中');
-      const download = await api(`/orders/${order.orderId}/download`);
-      setDownloadUrl(download.downloadUrl);
+      setStatus('fetching download URL');
+      const { url } = await api(`/orders/${order.orderId}/download`);
+      setDownloadUrl(url);
       setStatus('complete');
     } catch (caught) {
       setError(caught.message);
@@ -470,7 +474,12 @@ export default function AntiAiUploader() {
         multiple
         accept={ACCEPT_FORMATS}
         disabled={busy}
-        onChange={(event) => setFiles([...event.target.files].slice(0, MAX_FILES))}
+        onChange={(event) => {
+          setFiles([...event.target.files].slice(0, MAX_FILES));
+          setDownloadUrl(null);
+          setError(null);
+          setProgress({});
+        }}
       />
       <button type="submit" disabled={busy || files.length === 0}>
         画像を{files.length}件保護する
@@ -491,7 +500,7 @@ export default function AntiAiUploader() {
           保護された画像をダウンロード
         </a>
       )}
-      {error && <p role="alert">失敗: {error}</p>}
+      {error && <p role="alert">失敗: {error}{orderId && ` (orderId: ${orderId})`}</p>}
     </form>
   );
 }
@@ -507,7 +516,7 @@ export default function AntiAiUploader() {
 |----------------|------|------|
 | `400` | 不正なリクエスト | パラメータとファイル形式を確認 |
 | `401` | 認証失敗 | API キーを確認 |
-| `429` | 使用量超過 | リクエスト頻度を減らすか、プランをアップグレード |
+| `429` | レート制限、またはプラン使用量の超過時は `PLAN_LIMIT_EXCEEDED` | `code` を確認してください。レート制限は再試行で解消しますが、`PLAN_LIMIT_EXCEEDED` は解消しないためプランのアップグレードが必要です |
 
 エラーコードの一覧は、[エラーコード](/ja/errors) ページを参照してください。
 

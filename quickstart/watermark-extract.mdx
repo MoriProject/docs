@@ -227,8 +227,7 @@ data = res.json()['data']
     "type": "watermarkExtract",
     "orderId": "123456789",
     "status": "complete",
-    "statusCode": "undetected",
-    "watermarkText": null
+    "statusCode": "undetected"
   }
 }
 ```
@@ -257,7 +256,7 @@ import { useRef, useState } from 'react';
 const API_BASE = 'https://api.bizmori.com/api/v2';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
-const ACCEPT_FORMATS = 'image/jpeg, image/png, image/webp, image/tiff, image/bmp, application/pdf';
+const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp,.pdf';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -275,12 +274,14 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
       body: body && JSON.stringify({ idempotencyKey, ...body }),
     });
 
-    if (res.status === 429 && attempt < 3) {
-      await sleep((Number(res.headers.get('Retry-After')) || 2 ** attempt) * 1000);
-      continue;
-    }
     if (!res.ok) {
       const { code } = await res.json().catch(() => ({}));
+      // 429 covers two cases: a transient rate limit, and PLAN_LIMIT_EXCEEDED,
+      // which means the plan quota is spent and will never clear on retry.
+      if (res.status === 429 && code !== 'PLAN_LIMIT_EXCEEDED' && attempt < 3) {
+        await sleep(2 ** attempt * 1000);
+        continue;
+      }
       throw new Error(code ?? `HTTP_${res.status}`);
     }
     return (await res.json()).data;
@@ -326,6 +327,7 @@ export default function WatermarkExtractChecker() {
   const [status, setStatus] = useState('idle');
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [orderId, setOrderId] = useState(null);
   const inFlight = useRef(false);
 
   const busy = status !== 'idle' && status !== 'complete' && status !== 'failed';
@@ -339,6 +341,7 @@ export default function WatermarkExtractChecker() {
     // flight, and `selected` has to stay paired with the order's upload URL.
     const selected = file;
     setError(null);
+    setOrderId(null);
     setResult(null);
     setProgress(0);
 
@@ -350,6 +353,7 @@ export default function WatermarkExtractChecker() {
         body: { file: { fileName: selected.name } },
       });
 
+      setOrderId(order.orderId);
       setStatus('uploading');
       await putFile(selected, order.file.uploadUrl, setProgress);
 
@@ -370,7 +374,12 @@ export default function WatermarkExtractChecker() {
         type="file"
         accept={ACCEPT_FORMATS}
         disabled={busy}
-        onChange={(event) => setFile(event.target.files[0] ?? null)}
+        onChange={(event) => {
+          setFile(event.target.files[0] ?? null);
+          setError(null);
+          setProgress(0);
+          setResult(null);
+        }}
       />
       <button type="submit" disabled={busy || !file}>
         Check for watermark
@@ -387,7 +396,7 @@ export default function WatermarkExtractChecker() {
       )}
       {result?.statusCode === 'undetected' && <p>No watermark was found in this image.</p>}
       {result?.status === 'failed' && <p role="alert">Extraction failed.</p>}
-      {error && <p role="alert">Failed: {error}</p>}
+      {error && <p role="alert">Failed: {error}{orderId && ` (orderId: ${orderId})`}</p>}
     </form>
   );
 }
@@ -403,7 +412,7 @@ export default function WatermarkExtractChecker() {
 |-------------|---------|--------|
 | `400` | Invalid request | Check parameters and file format |
 | `401` | Authentication failed | Verify your API key |
-| `429` | Rate limit exceeded | Reduce request frequency or upgrade plan |
+| `429` | Rate limit, or `PLAN_LIMIT_EXCEEDED` when the plan quota is spent | Check the `code` field. A rate limit clears on retry; `PLAN_LIMIT_EXCEEDED` does not — upgrade the plan |
 
 For the complete error code reference, see [Error Codes](/errors).
 

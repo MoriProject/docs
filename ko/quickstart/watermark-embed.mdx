@@ -261,13 +261,13 @@ const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789/downloa
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.downloadUrl — 1시간 유효
+// data.url — 7일 유효
 ```
 
 ```jsx React
-const { downloadUrl } = await api(`/orders/${order.orderId}/download`);
-// <a href={downloadUrl} download>에 전달하세요 — 이 URL은 1시간 동안 유효합니다
-setDownloadUrl(downloadUrl);
+const { url } = await api(`/orders/${order.orderId}/download`);
+// <a href={url} download>에 전달하세요 — 이 URL은 7일 동안 유효합니다
+setDownloadUrl(url);
 ```
 
 ```python Python
@@ -275,7 +275,7 @@ res = requests.get(
     'https://api.bizmori.com/api/v2/orders/123456789/download',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
-download_url = res.json()['data']['downloadUrl']
+download_url = res.json()['data']['url']
 ```
 </CodeGroup>
 
@@ -283,13 +283,12 @@ download_url = res.json()['data']['downloadUrl']
 ```json
 {
   "data": {
-    "downloadUrl": "https://s3.amazonaws.com/...",
-    "expiresIn": 3600
+    "url": "https://s3.amazonaws.com/..."
   }
 }
 ```
 
-`downloadUrl`은 **1시간** 유효한 Presigned S3 URL입니다.
+`url`은 **7일** 유효한 Presigned S3 URL입니다.
 
 비가시성 워터마크 삽입 API에서 지원하는 옵션과 상세한 설명은 [API 레퍼런스](/ko/api-reference/watermark-embed/create-order)를 참고하세요.
 
@@ -303,7 +302,7 @@ import { useRef, useState } from 'react';
 const API_BASE = 'https://api.bizmori.com/api/v2';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
-const ACCEPT_FORMATS = 'image/jpeg, image/png, image/webp, image/tiff, image/bmp, application/pdf';
+const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp,.pdf';
 const MAX_WATERMARKS = 10;
 const MAX_TEXT_LENGTH = 1000;
 
@@ -323,12 +322,14 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
       body: body && JSON.stringify({ idempotencyKey, ...body }),
     });
 
-    if (res.status === 429 && attempt < 3) {
-      await sleep((Number(res.headers.get('Retry-After')) || 2 ** attempt) * 1000);
-      continue;
-    }
     if (!res.ok) {
       const { code } = await res.json().catch(() => ({}));
+      // 429는 두 가지를 뜻합니다: 일시적인 레이트 리밋, 그리고 재시도해도
+      // 절대 풀리지 않는 요금제 사용량 소진(PLAN_LIMIT_EXCEEDED).
+      if (res.status === 429 && code !== 'PLAN_LIMIT_EXCEEDED' && attempt < 3) {
+        await sleep(2 ** attempt * 1000);
+        continue;
+      }
       throw new Error(code ?? `HTTP_${res.status}`);
     }
     return (await res.json()).data;
@@ -376,6 +377,7 @@ export default function WatermarkEmbedUploader() {
   const [status, setStatus] = useState('idle');
   const [downloadUrl, setDownloadUrl] = useState(null);
   const [error, setError] = useState(null);
+  const [orderId, setOrderId] = useState(null);
   const inFlight = useRef(false);
 
   const busy = status !== 'idle' && status !== 'complete';
@@ -424,6 +426,7 @@ export default function WatermarkEmbedUploader() {
     const selectedFile = file;
     const selectedWatermarks = watermarks;
     setError(null);
+    setOrderId(null);
     setDownloadUrl(null);
     setProgress(0);
 
@@ -442,6 +445,7 @@ export default function WatermarkEmbedUploader() {
         },
       });
 
+      setOrderId(order.orderId);
       setStatus('uploading');
       await putFile(selectedFile, order.files[0].uploadUrl, setProgress);
 
@@ -449,9 +453,9 @@ export default function WatermarkEmbedUploader() {
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
       if (finished.status === 'failed') throw new Error('ORDER_FAILED');
 
-      setStatus('다운로드 URL 발급 중');
-      const download = await api(`/orders/${order.orderId}/download`);
-      setDownloadUrl(download.downloadUrl);
+      setStatus('fetching download URL');
+      const { url } = await api(`/orders/${order.orderId}/download`);
+      setDownloadUrl(url);
       setStatus('complete');
     } catch (caught) {
       setError(caught.message);
@@ -467,7 +471,12 @@ export default function WatermarkEmbedUploader() {
         type="file"
         accept={ACCEPT_FORMATS}
         disabled={busy}
-        onChange={(event) => setFile(event.target.files[0] ?? null)}
+        onChange={(event) => {
+          setFile(event.target.files[0] ?? null);
+          setError(null);
+          setProgress(0);
+          setDownloadUrl(null);
+        }}
       />
 
       <ul>
@@ -504,7 +513,7 @@ export default function WatermarkEmbedUploader() {
           워터마크 삽입 이미지 다운로드
         </a>
       )}
-      {error && <p role="alert">실패: {error}</p>}
+      {error && <p role="alert">실패: {error}{orderId && ` (orderId: ${orderId})`}</p>}
     </form>
   );
 }
@@ -520,7 +529,7 @@ export default function WatermarkEmbedUploader() {
 |----------------|------|------|
 | `400` | 잘못된 요청 | 파라미터 및 파일 형식 확인 |
 | `401` | 인증 실패 | API 키 확인 |
-| `429` | 사용량 초과 | 요청 빈도를 줄이거나 플랜 업그레이드 |
+| `429` | 레이트 리밋, 또는 요금제 사용량 소진 시 `PLAN_LIMIT_EXCEEDED` | `code` 값을 확인하세요. 레이트 리밋은 재시도로 풀리지만 `PLAN_LIMIT_EXCEEDED`는 풀리지 않으므로 요금제를 업그레이드해야 합니다 |
 
 전체 에러 코드는 [에러 코드](/ko/errors) 페이지를 참고하세요.
 

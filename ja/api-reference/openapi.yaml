@@ -1952,14 +1952,10 @@ paths:
                   data:
                     type: object
                     properties:
-                      downloadUrl:
+                      url:
                         type: string
                         format: uri
                         description: ダウンロードURL（プリサインド）
-                      expiresIn:
-                        type: integer
-                        description: URLの有効期限（秒）
-                        example: 3600
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -1973,11 +1969,11 @@ paths:
         label: JavaScript
         source: "const orderId = 'ORDER_ID';\nconst response = await fetch(\n  `https://api.bizmori.com/api/v2/orders/${orderId}/download`,\n\
           \  { headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' } }\n);\nconst data = await response.json();\n\
-          // data.data.downloadUrl contains the presigned download URL"
+          // data.data.url contains the presigned download URL"
       - lang: python
         label: Python
         source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}/download',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['downloadUrl']\
+          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['url']\
           \ contains the presigned download URL"
   /api/v2/orders/{orderId}/refresh-urls:
     post:

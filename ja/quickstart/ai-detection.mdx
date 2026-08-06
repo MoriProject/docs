@@ -293,7 +293,7 @@ import { useRef, useState } from 'react';
 const API_BASE = 'https://api.bizmori.com/api/v2';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
-const ACCEPT_FORMATS = 'image/jpeg, image/png, image/webp, image/tiff, image/bmp';
+const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp';
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -311,12 +311,14 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
       body: body && JSON.stringify({ idempotencyKey, ...body }),
     });
 
-    if (res.status === 429 && attempt < 3) {
-      await sleep((Number(res.headers.get('Retry-After')) || 2 ** attempt) * 1000);
-      continue;
-    }
     if (!res.ok) {
       const { code } = await res.json().catch(() => ({}));
+      // 429 は 2 つの意味を持ちます: 一時的なレート制限と、再試行しても
+      // 解消しないプラン使用量の超過（PLAN_LIMIT_EXCEEDED）です。
+      if (res.status === 429 && code !== 'PLAN_LIMIT_EXCEEDED' && attempt < 3) {
+        await sleep(2 ** attempt * 1000);
+        continue;
+      }
       throw new Error(code ?? `HTTP_${res.status}`);
     }
     return (await res.json()).data;
@@ -362,6 +364,7 @@ export default function AiDetectionChecker() {
   const [status, setStatus] = useState('idle');
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [orderId, setOrderId] = useState(null);
   const inFlight = useRef(false);
 
   const busy = status !== 'idle' && status !== 'complete';
@@ -375,6 +378,7 @@ export default function AiDetectionChecker() {
     // 変更する可能性があるため、`selected` は自身が作成した注文と常にペアになっている必要があります。
     const selected = file;
     setError(null);
+    setOrderId(null);
     setResult(null);
     setProgress(0);
 
@@ -389,6 +393,7 @@ export default function AiDetectionChecker() {
         },
       });
 
+      setOrderId(order.orderId);
       setStatus('uploading');
       await putFile(selected, order.file.uploadUrl, setProgress);
 
@@ -418,7 +423,12 @@ export default function AiDetectionChecker() {
         type="file"
         accept={ACCEPT_FORMATS}
         disabled={busy}
-        onChange={(event) => setFile(event.target.files[0] ?? null)}
+        onChange={(event) => {
+          setFile(event.target.files[0] ?? null);
+          setError(null);
+          setProgress(0);
+          setResult(null);
+        }}
       />
       <button type="submit" disabled={busy || !file}>
         画像を検出
@@ -436,7 +446,7 @@ export default function AiDetectionChecker() {
           {result.overlayUrl && <img src={result.overlayUrl} alt="AI 検出オーバーレイ" />}
         </div>
       )}
-      {error && <p role="alert">失敗: {error}</p>}
+      {error && <p role="alert">失敗: {error}{orderId && ` (orderId: ${orderId})`}</p>}
     </form>
   );
 }
@@ -452,7 +462,7 @@ export default function AiDetectionChecker() {
 |----------------|------|------|
 | `400` | 不正なリクエスト | パラメータとファイル形式を確認 |
 | `401` | 認証失敗 | API キーを確認 |
-| `429` | 使用量超過 | リクエスト頻度を減らすか、プランをアップグレード |
+| `429` | レート制限、またはプラン使用量の超過時は `PLAN_LIMIT_EXCEEDED` | `code` を確認してください。レート制限は再試行で解消しますが、`PLAN_LIMIT_EXCEEDED` は解消しないためプランのアップグレードが必要です |
 
 エラーコードの一覧は、[エラーコード](/ja/errors) ページを参照してください。
 
