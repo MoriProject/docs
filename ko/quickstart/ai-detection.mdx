@@ -276,12 +276,12 @@ status_code = data['statusCode']
 
 `probability` 필드(0–1)는 이미지가 AI로 생성되었을 확률을 나타냅니다. `statusCode`는 이를 사람이 읽기 쉽게 해석한 값입니다:
 
-| `statusCode` | 의미 |
-|---|---|
-| `likely_real` | 사람 창작 가능성 매우 높음 |
-| `uncertain_real` | 사람 창작 가능성 높음 |
-| `uncertain_ai` | AI 생성 가능성 높음 |
-| `likely_ai` | AI 생성 가능성 매우 높음 |
+| `statusCode` | 확률 구간 | 의미 |
+|---|---|---|
+| `likely_real` | < 0.25 | 사람 창작 가능성 매우 높음 |
+| `uncertain_real` | 0.25 – 0.5 | 사람 창작 가능성 높음 |
+| `uncertain_ai` | 0.5 – 0.75 | AI 생성 가능성 높음 |
+| `likely_ai` | ≥ 0.75 | AI 생성 가능성 매우 높음 |
 
 ## 전체 React 예제
 
