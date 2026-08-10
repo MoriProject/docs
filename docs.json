@@ -267,6 +267,7 @@
                 "pages": [
                   "ja/index",
                   "ja/authentication",
+                  "ja/test-api-keys",
                   "ja/quickstart",
                   "ja/quickstart/anti-ai",
                   "ja/quickstart/watermark-embed",
