@@ -1,0 +1,126 @@
+---
+title: "テスト API キー"
+description: "ファイルを処理したりクレジットを消費したりせずに BIZ MORI の注文ライフサイクルを検証します。"
+---
+
+`sk_test_` プレフィックスの自動発行テスト API キーを使用すると、本番 API キーを使う前に連携を検証できます。
+
+テスト API キーは本番 API キーと同じ Bearer 認証を使用しますが、Anti-AI、watermark、AI Detection の処理は実行しません。結果ファイルも作成されず、顧客のクレジットも消費されません。
+
+<Info>
+  永続テスト注文とテスト Webhook は環境ごとに有効化されます。保存されない仮の注文だけが返される場合、その環境では従来のモック動作が使用されています。処理品質の確認や結果ファイルのダウンロードが必要な場合は、本番 API キーを使用してください。
+</Info>
+
+## テスト注文のライフサイクル
+
+<Steps>
+  <Step title="注文を作成する">
+    本番連携で使用するものと同じ注文作成エンドポイントを呼び出します。`Authorization` ヘッダーにテストキーを渡し、`idempotencyKey` を指定してください。
+
+    ~~~bash
+    curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
+      -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "idempotencyKey": "test-order-001",
+        "files": [{"fileName": "sample.png"}]
+      }'
+    ~~~
+  </Step>
+  <Step title="テストファイルをアップロードする">
+    アップロード方式のテスト注文では、注文レスポンスの `uploadUrl` にファイルを送信します。テスト用のアップロード URL は `PUT /api/v2/test-uploads/{token}` ルートを使用します。
+
+    アップロード URL には独自の認証情報が含まれています。API キーヘッダーを追加しないでください。BIZ MORI はリクエストストリームを受け取り、アップロード完了を記録した後、ファイル内容を破棄します。
+
+    ~~~bash
+    curl -X PUT "TEST_UPLOAD_URL" \
+      --data-binary @sample.png
+    ~~~
+
+    テストアップロードのデフォルト上限は 50 MiB です。アップロード URL の有効期限が切れても注文がアップロード待ちの場合は、[アップロード URL の再発行](/ja/api-reference/orders/refresh-urls) を使用してください。
+  </Step>
+  <Step title="必要な場合に確認する">
+    Anti-AI のアップロード方式と AI Detection では、アップロード後に確認エンドポイントを呼び出します。Watermark Embed と Watermark Extract は、必要なアップロードが完了すると開始されます。Anti-AI の URL 方式は注文作成時に開始されます。
+  </Step>
+  <Step title="状態の遷移を確認する">
+    テスト注文も本番注文と同じ状態の形式に従います。
+
+    `pending → inProgress → complete` または `failed`
+
+    シミュレーション処理の遅延は約 5 秒です。[注文詳細の取得](/ja/api-reference/orders/get-order) をポーリングするか、環境で Webhook が有効になっている場合はテスト Webhook を使用してください。
+  </Step>
+  <Step title="テスト注文を確認する">
+    同じテストキーで [注文一覧](/ja/api-reference/orders/list-orders)、[最近の利用統計](/ja/api-reference/orders/recent-stats)、[注文詳細の取得](/ja/api-reference/orders/get-order) を呼び出します。そのキーに関連付けられたアカウントが所有するテスト注文だけが返されます。
+  </Step>
+</Steps>
+
+## サービスごとのフロー
+
+| サービス | 作成 | アップロード | 確認 |
+| --- | --- | --- | --- |
+| Anti-AI アップロード方式 | `POST /api/v2/orders/anti-ai` | テストアップロード URL | 必要 |
+| Anti-AI URL 方式 | `POST /api/v2/orders/anti-ai` | 不要 | 不要 |
+| Watermark Embed | `POST /api/v2/orders/wtr-embed` | テストアップロード URL | 不要 |
+| Watermark Extract | `POST /api/v2/orders/wtr-extract` | テストアップロード URL | 不要 |
+| AI Detection | `POST /api/v2/orders/ai-detection` | テストアップロード URL | 必要 |
+
+Watermark Embed または Watermark Extract では確認エンドポイントを呼び出さないでください。アップロード完了後に処理が開始されるため、確認リクエストは失敗します。
+
+## 決定的な結果を選択する
+
+入力ファイル名を使うと、外部処理サービスに依存せずに成功・失敗状態を検証できます。
+
+| ファイル名のサフィックス | 結果 |
+| --- | --- |
+| `*_fail.<ext>` | 注文が失敗します |
+| `*_detected.<ext>` | Watermark Extract が watermark を検出します |
+| `*_undetected.<ext>` | Watermark Extract が watermark を検出しません |
+| `*_ai.<ext>` | AI Detection が確率 `0.98` を返します |
+| `*_human.<ext>` | AI Detection が確率 `0.02` を返します |
+
+サフィックスがない場合、Anti-AI と Watermark Embed は成功し、Watermark Extract は watermark を検出せず、AI Detection は確率 `0.02` を返します。複数ファイルの注文で 1 つでも `_fail` を使用すると、注文は失敗します。
+
+## テスト Webhook
+
+Dashboard または本番 API キーを使ってテスト Webhook エンドポイントを作成し、`isTest` を `true` に設定します。
+
+~~~bash
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
+  -H "Authorization: Bearer $BIZMORI_LIVE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Integration test webhook",
+    "url": "https://example.com/test-webhook",
+    "isTest": true
+  }'
+~~~
+
+- テスト API キーでは Webhook エンドポイントの作成、更新、削除、一覧取得、再送を実行できません。
+- `isTest: true` のエンドポイントはテスト注文イベントだけを受信します。
+- `isTest: false` のエンドポイントは本番注文イベントだけを受信します。
+- テスト Webhook のイベント名、HMAC-SHA256 署名、再試行動作は本番 Webhook と同じです。
+- 結果ファイルを作成しないため、Anti-AI と Watermark Embed のテストイベントでは `downloadUrl: null` になります。
+
+署名の検証方法とイベントペイロードについては [Webhook](/ja/webhooks) を参照してください。テスト Webhook の配信は、対象環境で機能が有効になった後に利用できます。
+
+## API の動作と制限
+
+| 操作 | テスト API キーの動作 |
+| --- | --- |
+| `GET /api/v2/orders` | アカウントの永続テスト注文を返します |
+| `GET /api/v2/orders/stats/recent` | アカウントのテスト注文の統計を返します |
+| `GET /api/v2/orders/{orderId}` | キーのアカウントが所有するテスト注文を返します |
+| `POST /api/v2/orders/{orderId}/refresh-urls` | まだ使用されていないアップロード URL を再発行します |
+| `GET /api/v2/orders/{orderId}/download` | `404 PROCESSED_FILE_NOT_FOUND` を返します |
+| Webhook 管理の変更リクエスト | `403 AUTH_FORBIDDEN` を返します |
+
+テスト注文と本番注文は分離されています。テストキーでは本番注文を読み取ったり変更したりできず、本番キーでもテスト注文を読み取ったり変更したりできません。
+
+テスト API キーは次の処理を実行しません。
+
+- 画像またはドキュメントの実処理
+- クレジットの予約または消費
+- ダウンロード可能な結果ファイルの作成
+- 本番 Webhook エンドポイントへのイベント送信
+
+認証の詳細は [認証](/ja/authentication)、エラー処理は [エラーコード](/ja/errors) を参照してください。

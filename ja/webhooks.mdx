@@ -35,6 +35,8 @@ Webhookは、注文処理が完了または失敗した際にサーバーへ HTT
     <Warning>
       `secret` はすぐに保存してください — **一度だけ表示され**、再度取得することはできません。受信するすべてのWebhook署名の検証に必要です。
     </Warning>
+
+    テスト注文のイベントを受信するには、`isTest: true` を指定したテスト Webhook エンドポイントを作成します。テスト API キーでは Webhook エンドポイントを管理できません。詳しくは [テスト API キー](/ja/test-api-keys) を参照してください。
   </Step>
   <Step title="エンドポイントの実装">
     Webhookハンドラーは次を実行する必要があります:
@@ -110,7 +112,7 @@ Webhookは、注文処理が完了または失敗した際にサーバーへ HTT
 | フィールド | 型 | 説明 |
 |------|------|------|
 | `fileCount` | integer | 処理されたファイル数 |
-| `downloadUrl` | string | 結果ファイルのダウンロードURL（7日間有効） |
+| `downloadUrl` | string \| null | 本番注文では 7 日間有効な結果ファイルのダウンロードURL。テスト注文では `null` |
 
 ### watermark 抽出 — 追加フィールド（完了）
 

@@ -12,7 +12,7 @@ info:
 
     - **AI Detection**: 画像がAI生成かどうかを検知
 
-    - **テストAPIキー**: `sk_test_` プレフィックスのキーは同じBearer認証を使用しますが、実際の処理サービスの実行やクレジットの消費なしに、統合テスト用のモックレスポンスを返します'
+    - **テストAPIキー**: `sk_test_` プレフィックスのキーは同じBearer認証を使用し、実際の処理サービスの実行やクレジットの消費なしに注文ライフサイクルを検証できます。テストアップロードの内容は破棄され、結果ファイルは作成されません'
   contact:
     name: BIZ MORI サポート
     email: support@bizmori.com
@@ -24,7 +24,7 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-      description: 外部クライアントアクセス用のBearer APIキー。本番キーは `sk_` プレフィックスを使用し、テストキーは `sk_test_` プレフィックスを使用して、処理やクレジット消費なしにモックレスポンスを返します。
+      description: 外部クライアントアクセス用のBearer APIキー。本番キーは `sk_` プレフィックスを使用し、テストキーは `sk_test_` プレフィックスを使用して、処理やクレジット消費なしに注文ライフサイクルを検証します。
   schemas:
     BaseResponse:
       type: object
