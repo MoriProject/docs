@@ -8,7 +8,6 @@
     "dark": "#4F46E5"
   },
   "favicon": "/favicon.svg",
-  "openapi": ["/api-reference/openapi.yaml", "/ko/api-reference/openapi.yaml"],
   "languages": [
     {
       "language": "en",
@@ -32,6 +31,7 @@
                 "pages": [
                   "index",
                   "authentication",
+                  "test-api-keys",
                   "quickstart",
                   "quickstart/anti-ai",
                   "quickstart/watermark-embed",
@@ -130,6 +130,7 @@
                 "pages": [
                   "ko/index",
                   "ko/authentication",
+                  "ko/test-api-keys",
                   "ko/quickstart",
                   "ko/quickstart/anti-ai",
                   "ko/quickstart/watermark-embed",
@@ -336,6 +337,7 @@
     ]
   },
   "api": {
+    "openapi": ["api-reference/openapi.yaml", "ko/api-reference/openapi.yaml"],
     "baseUrl": "https://api.bizmori.com",
     "auth": {
       "method": "bearer"

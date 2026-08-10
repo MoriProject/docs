@@ -3,6 +3,10 @@ title: "Create watermark embed order"
 openapi: "/api-reference/openapi.yaml POST /api/v2/orders/wtr-embed"
 ---
 
+<Note>
+  With an `sk_test_` key, upload to the returned BIZ MORI test upload URL. The order moves to processing after its uploads finish, without a confirm call. Test processing does not create a downloadable result file.
+</Note>
+
 ## Download order results
 
 Once your order reaches `complete` status, use the [Get download URL](/api-reference/orders/download-order) endpoint to retrieve a presigned download URL:
@@ -13,5 +17,5 @@ curl -X GET https://api.bizmori.com/api/v2/orders/{orderId}/download \
 ```
 
 <Warning>
-  Order files are available for download for **up to 7 days** after order creation. After 7 days, the order transitions to `expired` status and files can no longer be downloaded.
+  Live order files are available for download for **up to 7 days** after order creation. An `sk_test_` order does not create a result file; its download request returns `404 PROCESSED_FILE_NOT_FOUND`.
 </Warning>

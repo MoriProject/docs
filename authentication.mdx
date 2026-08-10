@@ -20,16 +20,20 @@ The dashboard automatically issues one test API key for each account and organiz
 
 ## Test API keys
 
-Use the automatically issued test API key with the `sk_test_` prefix when you need to verify an integration without running the underlying processing services.
+Use the automatically issued test API key with the `sk_test_` prefix when you need to verify an integration without running the underlying processing services. BIZ MORI issues one test key per account and organization, and you can retrieve it from the Dashboard API Keys page.
 
 Test API keys:
 
 - use the same `Authorization: Bearer` authentication as live keys;
-- return mock responses for order and order-history endpoints;
+- use the same order creation, upload, confirm, and query endpoints as live keys;
 - do not run Anti-AI, watermark, or AI Detection processing;
-- do not call external processing services or consume credits.
+- do not call external processing services or consume credits;
+- keep test orders separate from live orders; and
+- do not create downloadable result files.
 
-Test order IDs and file URLs are synthetic. Order history, recent stats, and webhook-list requests return empty mock data. Order detail, download, URL-refresh, webhook-detail, and webhook-event reads return not-found responses. Webhook mutation requests are rejected with a test key.
+For persistent test orders, the returned upload URL points to a BIZ MORI test upload route. The server consumes the request stream, records upload completion, and discards the file contents. Anti-AI upload mode and AI Detection still require a confirm call; Watermark Embed and Watermark Extract start after their uploads finish.
+
+Test orders move through `pending`, `inProgress`, and `complete` or `failed` states. You can list, inspect, and aggregate your test orders with the normal order endpoints. A test download returns `404 PROCESSED_FILE_NOT_FOUND` because no result file is created. Test webhook endpoint management remains unavailable to test keys; see [Test API keys](/test-api-keys) for the complete behavior and examples.
 
 ## Using your API key
 

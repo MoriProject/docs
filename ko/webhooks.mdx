@@ -47,6 +47,29 @@ description: "주문 완료 또는 실패 시 실시간 푸시 알림 받기"
   </Step>
 </Steps>
 
+## 테스트 웹훅
+
+테스트 주문 이벤트를 받으려면 Dashboard 또는 일반 API 키로 별도의 테스트 endpoint를 등록하세요. 요청에 `isTest: true`를 지정합니다.
+
+```bash
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
+  -H "Authorization: Bearer $BIZMORI_LIVE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Integration test webhook",
+    "url": "https://example.com/test-webhook",
+    "isTest": true
+  }'
+```
+
+- 테스트 API 키는 웹훅 endpoint를 생성·수정·삭제·조회하거나 이벤트를 재전송할 수 없습니다.
+- `isTest: true` endpoint는 테스트 주문 이벤트만 받습니다.
+- `isTest: false` endpoint는 운영 주문 이벤트만 받습니다.
+- 테스트 웹훅도 일반 웹훅과 동일한 이벤트명, HMAC-SHA256 서명, timeout, 재시도 정책을 사용합니다.
+- 테스트 처리는 결과 파일을 만들지 않으므로 Anti-AI와 워터마크 삽입 이벤트의 `downloadUrl`은 `null`입니다.
+
+테스트 웹훅 전송은 대상 환경의 rollout에 따라 활성화됩니다. 영속 테스트 주문과 테스트 웹훅이 활성화되지 않은 환경에서는 기존 모의 응답만 반환되고 이벤트는 전송되지 않을 수 있습니다.
+
 ## 이벤트 유형
 
 | 이벤트 유형 | 설명 |
@@ -110,7 +133,7 @@ description: "주문 완료 또는 실패 시 실시간 푸시 알림 받기"
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `fileCount` | integer | 처리된 파일 수 |
-| `downloadUrl` | string | 결과 파일 다운로드 URL (1시간 유효) |
+| `downloadUrl` | string | null | 결과 파일 다운로드 URL (운영 주문은 1시간 유효, 테스트 주문은 `null`) |
 
 ### 워터마크 추출 — 추가 필드 (완료)
 

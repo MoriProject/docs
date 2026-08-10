@@ -46,7 +46,14 @@ The HTTP status code conveys the error category. Use the `code` field for progra
 | `ORDER_ALREADY_FAILED` | 400 | Order has already failed |
 | `ORDER_TYPE_NOT_MATCH` | 400 | Order type does not match |
 | `ORDER_TYPE_CANT_DOWNLOAD` | 400 | This order type cannot be downloaded |
+| `PROCESSED_FILE_NOT_FOUND` | 404 | No processed result file exists for this order |
 | `ORDER_TIMEOUT` | 408 | Order processing timed out |
+
+## Test upload errors
+
+| Error Code | HTTP Status | Description |
+|-----------|-------------|-------------|
+| `TEST_UPLOAD_TOO_LARGE` | 413 | The test upload exceeds the 50 MiB default limit |
 
 ## Usage & plan errors
 
