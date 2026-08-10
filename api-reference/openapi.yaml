@@ -1,4 +1,4 @@
-openapi: 3.0.0
+openapi: "3.0.0"
 info:
   title: BIZ MORI API
   version: 2.0.0
@@ -12,8 +12,7 @@ info:
 
     - **AI Detection**: Detect whether an image is AI-generated
 
-    - **Test API keys**: Keys with the `sk_test_` prefix use the same Bearer authentication but return
-    mock responses for integration testing without running processing services or consuming credits
+    - **Test API keys**: Keys with the `sk_test_` prefix use the same Bearer authentication and support order-lifecycle testing with mock responses without running processing services or consuming credits; test uploads discard file contents and do not create result files
 
     '
   contact:
@@ -27,8 +26,7 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
-      description: Bearer API key for external client access. Live keys use the `sk_` prefix; test keys
-        use the `sk_test_` prefix and return mock responses without processing or credit usage.
+      description: 'Bearer API key for external client access. Live keys use the `sk_` prefix; test keys use the `sk_test_` prefix and support order-lifecycle testing with mock responses without processing or credit usage.'
   schemas:
     BaseResponse:
       type: object
@@ -88,10 +86,10 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: Upload URL (presigned URL)
+          description: Upload URL (a storage presigned URL for live orders or a BIZ MORI test upload URL for test orders)
         fileKey:
           type: string
-          description: S3 file key
+          description: Storage file key for live orders; test orders may not have a stored object
     AntiAiOrderFile:
       type: object
       description: 'Anti-AI order file info (fields vary by file mode)
@@ -111,10 +109,10 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: Upload URL (presigned URL) — Upload mode files only
+          description: Upload URL (a storage presigned URL for live orders or a BIZ MORI test upload URL for test orders) — Upload mode files only
         fileKey:
           type: string
-          description: S3 file key — Upload mode files only
+          description: Storage file key for live orders; test orders may not have a stored object — Upload mode files only
         originalFileUrl:
           type: string
           format: uri
@@ -132,10 +130,10 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: Upload URL (presigned URL)
+          description: Upload URL (a storage presigned URL for live orders or a BIZ MORI test upload URL for test orders)
         fileKey:
           type: string
-          description: S3 file key
+          description: Storage file key for live orders; test orders may not have a stored object
         fileFormat:
           type: string
           description: File format
@@ -169,10 +167,10 @@ components:
             uploadUrl:
               type: string
               format: uri
-              description: Upload URL (presigned URL)
+              description: Upload URL (a storage presigned URL for live orders or a BIZ MORI test upload URL for test orders)
             fileKey:
               type: string
-              description: S3 file key
+              description: Storage file key for live orders; test orders may not have a stored object
             fileFormat:
               type: string
               description: File format
@@ -460,6 +458,10 @@ components:
           format: uri
           description: Webhook endpoint URL
           example: https://example.com/webhook
+        isTest:
+          type: boolean
+          default: false
+          description: Receive test order events when true. Test API keys cannot manage webhook endpoints.
     WebhookUpdateRequest:
       type: object
       properties:
@@ -472,6 +474,10 @@ components:
           format: uri
           description: Webhook URL
           example: https://example.com/webhook
+        isTest:
+          type: boolean
+          default: false
+          description: Receive test order events when true. Test API keys cannot manage webhook endpoints.
     WebhookListItem:
       type: object
       properties:
@@ -488,6 +494,9 @@ components:
         isActive:
           type: boolean
           description: Active status
+        isTest:
+          type: boolean
+          description: Whether the endpoint receives test order events
         lastSentAt:
           type: string
           format: date-time
@@ -516,6 +525,9 @@ components:
         isActive:
           type: boolean
           description: Active status
+        isTest:
+          type: boolean
+          description: Whether the endpoint receives test order events
         createdAt:
           type: string
           format: date-time
@@ -590,6 +602,14 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: AUTH_NOT_AUTHENTICATED
+    Forbidden:
+      description: Operation not allowed
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: AUTH_FORBIDDEN
     NotFound:
       description: Resource not found
       content:
@@ -1985,6 +2005,9 @@ paths:
 
         - After 7 days, the order transitions to `expired` status and files can no longer be downloaded
 
+        - Test orders do not create result files; this endpoint returns `404` with
+        `PROCESSED_FILE_NOT_FOUND` for a test order
+
         '
       tags:
       - Orders
@@ -2037,6 +2060,9 @@ paths:
       description: 'Reissue expired upload URLs.
 
         - Only available for orders with `pending` status
+
+        - For test orders, the response contains a BIZ MORI test upload URL instead of
+        a storage presigned URL
 
         '
       tags:
@@ -2206,6 +2232,9 @@ paths:
 
         - Includes name, URL, active status, and last sent time
 
+        - `isTest: true` endpoints receive test order events; test API keys cannot
+        manage webhook endpoints
+
         '
       tags:
       - Webhooks
@@ -2251,6 +2280,8 @@ paths:
                         $ref: '#/components/schemas/WebhookPagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2268,18 +2299,21 @@ paths:
           )\ndata = response.json()"
     post:
       summary: Create webhook
-      description: "Register a new webhook.\n- Multiple webhooks can be registered\n- A signing secret\
-        \ is returned upon registration\n\n**Important**: The secret is only shown in this response. Store\
-        \ it securely.\n\n## Webhook Event Types\n\n| Event Type | Description |\n|-----------|-------------|\n\
-        | `order.antiAi.completed` | Anti-AI processing completed |\n| `order.antiAi.failed` | Anti-AI\
-        \ processing failed |\n| `order.watermarkEmbed.completed` | Watermark embedding completed |\n\
-        | `order.watermarkEmbed.failed` | Watermark embedding failed |\n| `order.watermarkExtract.completed`\
-        \ | Watermark extraction completed |\n| `order.watermarkExtract.failed` | Watermark extraction\
-        \ failed |\n\n## Signature Verification\n\nWebhook requests include an `X-MoriBiz-Signature` header.\n\
-        The signature is generated using HMAC-SHA256 with the secret issued at registration.\n\n```javascript\n\
-        const crypto = require('crypto');\nconst signature = crypto.createHmac('sha256', secret)\n  .update(JSON.stringify(payload))\n\
-        \  .digest('hex');\n```\n\n## Retry Policy\n\n- Max 3 retries\n- Exponential backoff (1s, 2s,\
-        \ 4s)\n- Success response: 2xx status code\n"
+      description: "Register a new webhook.\n- Multiple webhooks can be registered\n\
+        - A signing secret is returned upon registration\n\n**Important**: The secret\
+        \ is only shown in this response. Store it securely.\n\n## Webhook Event Types\n\
+        \n| Event Type | Description |\n|-----------|-------------|\n| `order.antiAi.completed`\
+        \ | Anti-AI processing completed |\n| `order.antiAi.failed` | Anti-AI processing\
+        \ failed |\n| `order.watermarkEmbed.completed` | Watermark embedding completed\
+        \ |\n| `order.watermarkEmbed.failed` | Watermark embedding failed |\n| `order.watermarkExtract.completed`\
+        \ | Watermark extraction completed |\n| `order.watermarkExtract.failed` |\
+        \ Watermark extraction failed |\n\n## Signature Verification\n\nWebhook requests\
+        \ include an `X-MoriBiz-Signature` header.\nThe signature is generated using\
+        \ HMAC-SHA256 with the secret issued at registration.\n\n```javascript\nconst\
+        \ crypto = require('crypto');\nconst signature = crypto.createHmac('sha256',\
+        \ secret)\n  .update(JSON.stringify(payload))\n  .digest('hex');\n```\n\n\
+        ## Retry Policy\n\n- Max 3 retries\n- Exponential backoff (1s, 2s, 4s)\n-\
+        \ Success response: 2xx status code\n\nSet `isTest` to `true` for a test webhook endpoint. Test API keys cannot manage webhook endpoints.\n"
       tags:
       - Webhooks
       security:
@@ -2314,10 +2348,15 @@ paths:
                           **Warning**: This value cannot be retrieved again. Store it securely.
 
                           '
+                      isTest:
+                        type: boolean
+                        description: Whether the endpoint receives test order events
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2340,7 +2379,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}:
     get:
       summary: Get webhook details
-      description: Retrieve detailed information for a specific webhook.
+      description: Retrieve detailed information for a specific webhook. Test API keys cannot manage webhook endpoints.
       tags:
       - Webhooks
       security:
@@ -2364,6 +2403,8 @@ paths:
                     $ref: '#/components/schemas/WebhookDetail'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
       x-codeSamples:
@@ -2381,7 +2422,7 @@ paths:
           \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
     put:
       summary: Update webhook
-      description: Update webhook information.
+      description: Update webhook information. Set `isTest` to `true` to route test order events to the endpoint. Test API keys cannot manage webhook endpoints.
       tags:
       - Webhooks
       security:
@@ -2419,6 +2460,8 @@ paths:
                         format: uri
                       isActive:
                         type: boolean
+                      isTest:
+                        type: boolean
                       updatedAt:
                         type: string
                         format: date-time
@@ -2426,6 +2469,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
       x-codeSamples:
@@ -2448,7 +2493,7 @@ paths:
           \        'url': 'https://example.com/webhook-v2'\n    }\n)\ndata = response.json()"
     delete:
       summary: Delete webhook
-      description: Delete a webhook.
+      description: Delete a webhook. Test API keys cannot manage webhook endpoints.
       tags:
       - Webhooks
       security:
@@ -2469,6 +2514,8 @@ paths:
                 $ref: '#/components/schemas/BaseResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
       x-codeSamples:
@@ -2491,6 +2538,8 @@ paths:
       description: 'Retrieve delivery events for a specific webhook with pagination.
 
         - Includes status, event type, and delivery time
+
+        - Test API keys cannot manage webhook endpoints
 
         '
       tags:
@@ -2538,6 +2587,8 @@ paths:
                         $ref: '#/components/schemas/WebhookPagination'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
       x-codeSamples:
@@ -2566,6 +2617,8 @@ paths:
 
         - If the retry fails, the event remains `FAILED` and a scheduler-based retry is queued for 30
         minutes later
+
+        - Test API keys cannot manage webhook endpoints
 
         '
       tags:
@@ -2614,6 +2667,8 @@ paths:
                         description: Error message (when retry fails)
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -2646,6 +2701,8 @@ paths:
         - Date range must not exceed 7 days
 
         - Each event is retried individually
+
+        - Test API keys cannot manage webhook endpoints
 
         '
       tags:
@@ -2701,6 +2758,8 @@ paths:
                         description: Number of events that failed to resend
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':

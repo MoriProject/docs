@@ -13,7 +13,7 @@ Every endpoint here is plain HTTPS and JSON, so the same calls work from a serve
 - An image file to analyze (`jpeg`, `jpg`, `png`, `webp`, `bmp`, or `tiff`)
 
 <Info>
-  Use the automatically issued `sk_test_` key to validate the create-order request and response only. Its file URLs are synthetic; use a live API key for the actual upload, AI Detection, and detection result.
+  Use the automatically issued [`sk_test_` key](/test-api-keys) to exercise the order lifecycle without running AI Detection or consuming credits. Test uploads discard file contents and return deterministic probability values. Use a live API key when you need an actual detection result.
 </Info>
 
 ## Step 1: Create an order

@@ -1,0 +1,126 @@
+---
+title: "테스트 API 키"
+description: "파일을 실제로 처리하거나 크레딧을 사용하지 않고 BIZ MORI 주문 흐름을 검증합니다."
+---
+
+`sk_test_` 접두사의 테스트 API 키를 사용하면 일반 API 키 없이도 BIZ MORI 연동을 검증할 수 있습니다.
+
+테스트 API 키는 일반 키와 동일한 Bearer 인증을 사용하지만 Anti-AI, 워터마크, AI Detection 처리를 실행하지 않습니다. 결과 파일도 만들지 않으며 고객 크레딧을 사용하지 않습니다.
+
+<Info>
+  영속 테스트 주문과 테스트 웹훅은 환경별로 활성화됩니다. 주문이 가상 값으로만 반환되고 저장되지 않는다면 해당 환경은 기존 모의 응답 방식을 사용 중입니다. 실제 처리 품질이나 결과 파일 다운로드가 필요할 때는 일반 API 키를 사용하세요.
+</Info>
+
+## 테스트 주문 흐름
+
+<Steps>
+  <Step title="주문 생성">
+    일반 연동과 동일한 주문 생성 엔드포인트를 호출합니다. `Authorization` 헤더에 테스트 키를 전달하고 `idempotencyKey`를 지정하세요.
+
+    ```bash
+    curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
+      -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "idempotencyKey": "test-order-001",
+        "files": [{"fileName": "sample.png"}]
+      }'
+    ```
+  </Step>
+  <Step title="테스트 파일 업로드">
+    업로드 방식의 테스트 주문은 응답의 `uploadUrl`로 파일을 전송합니다. 테스트 업로드 URL은 `PUT /api/v2/test-uploads/{token}` 경로를 사용합니다.
+
+    업로드 URL 자체가 인증 정보를 포함하므로 API 키 헤더를 추가하지 마세요. BIZ MORI는 요청 스트림을 소비해 업로드 완료만 기록하고 파일 내용은 폐기합니다.
+
+    ```bash
+    curl -X PUT "TEST_UPLOAD_URL" \
+      --data-binary @sample.png
+    ```
+
+    테스트 업로드 기본 제한은 50 MiB입니다. 주문이 아직 업로드를 기다리는 상태라면 [업로드 URL 재발급](/ko/api-reference/orders/refresh-urls)을 사용하세요.
+  </Step>
+  <Step title="필요한 서비스만 confirm 호출">
+    Anti-AI 업로드 모드와 AI Detection은 업로드 후 confirm 엔드포인트를 호출합니다. 워터마크 삽입·검출은 업로드가 끝나면 자동으로 시작합니다. Anti-AI URL 모드는 주문 생성 직후 시작합니다.
+  </Step>
+  <Step title="상태 전이 확인">
+    테스트 주문도 일반 주문과 같은 상태 구조를 사용합니다.
+
+    `pending → inProgress → complete` 또는 `failed`
+
+    모의 처리 지연은 약 5초입니다. [주문 상세 조회](/ko/api-reference/orders/get-order)를 폴링하거나 환경에서 웹훅이 활성화된 경우 테스트 웹훅을 사용하세요.
+  </Step>
+  <Step title="테스트 주문 조회">
+    같은 테스트 키로 [주문 목록](/ko/api-reference/orders/list-orders), [최근 통계](/ko/api-reference/orders/recent-stats), [주문 상세](/ko/api-reference/orders/get-order)를 호출합니다. 해당 키의 계정이 소유한 테스트 주문만 반환됩니다.
+  </Step>
+</Steps>
+
+## 서비스별 흐름
+
+| 서비스 | 생성 | 업로드 | Confirm |
+| --- | --- | --- | --- |
+| Anti-AI 업로드 모드 | `POST /api/v2/orders/anti-ai` | 테스트 업로드 URL | 필요 |
+| Anti-AI URL 모드 | `POST /api/v2/orders/anti-ai` | 필요 없음 | 필요 없음 |
+| 워터마크 삽입 | `POST /api/v2/orders/wtr-embed` | 테스트 업로드 URL | 필요 없음 |
+| 워터마크 검출 | `POST /api/v2/orders/wtr-extract` | 테스트 업로드 URL | 필요 없음 |
+| AI Detection | `POST /api/v2/orders/ai-detection` | 테스트 업로드 URL | 필요 |
+
+워터마크 삽입·검출에는 confirm 엔드포인트를 호출하지 마세요. 업로드가 끝나면 자동으로 처리됩니다.
+
+## 결과를 고정하는 파일명 규칙
+
+파일명으로 외부 처리 서비스 없이 성공·실패 상태를 반복 검증할 수 있습니다.
+
+| 파일명 접미사 | 결과 |
+| --- | --- |
+| `*_fail.<ext>` | 주문 실패 |
+| `*_detected.<ext>` | 워터마크 검출 |
+| `*_undetected.<ext>` | 워터마크 미검출 |
+| `*_ai.<ext>` | AI Detection 확률 `0.98` |
+| `*_human.<ext>` | AI Detection 확률 `0.02` |
+
+접미사가 없으면 Anti-AI와 워터마크 삽입은 성공하고, 워터마크 검출은 미검출, AI Detection은 확률 `0.02`로 완료됩니다. 여러 파일 중 하나라도 `_fail`이면 주문은 실패합니다.
+
+## 테스트 웹훅
+
+Dashboard 또는 일반 API 키로 테스트 웹훅 endpoint를 등록합니다. 요청에 `isTest: true`를 지정하세요.
+
+```bash
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
+  -H "Authorization: Bearer $BIZMORI_LIVE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Integration test webhook",
+    "url": "https://example.com/test-webhook",
+    "isTest": true
+  }'
+```
+
+- 테스트 API 키는 웹훅 endpoint를 생성·수정·삭제·조회하거나 이벤트를 재전송할 수 없습니다.
+- `isTest: true` endpoint는 테스트 주문 이벤트만 받습니다.
+- `isTest: false` endpoint는 운영 주문 이벤트만 받습니다.
+- 테스트 웹훅도 일반 웹훅과 동일한 이벤트명, HMAC-SHA256 서명, 재시도 정책을 사용합니다.
+- 결과 파일을 만들지 않으므로 Anti-AI와 워터마크 삽입 테스트 이벤트의 `downloadUrl`은 `null`입니다.
+
+서명 검증과 이벤트 형식은 [웹훅](/ko/webhooks)에서 확인하세요. 테스트 웹훅 전송은 대상 환경에서 기능이 활성화된 후 사용할 수 있습니다.
+
+## API 동작과 제한
+
+| 작업 | 테스트 API 키 동작 |
+| --- | --- |
+| `GET /api/v2/orders` | 계정의 영속 테스트 주문 반환 |
+| `GET /api/v2/orders/stats/recent` | 계정의 테스트 주문 통계 반환 |
+| `GET /api/v2/orders/{orderId}` | 키의 계정이 소유한 테스트 주문 반환 |
+| `POST /api/v2/orders/{orderId}/refresh-urls` | 아직 사용하지 않은 업로드 URL 재발급 |
+| `GET /api/v2/orders/{orderId}/download` | `404 PROCESSED_FILE_NOT_FOUND` 반환 |
+| 웹훅 관리 변경 요청 | `403 AUTH_FORBIDDEN` 반환 |
+
+테스트 주문과 운영 주문은 분리됩니다. 테스트 키는 운영 주문을 읽거나 변경할 수 없고, 일반 키도 테스트 주문을 읽거나 변경할 수 없습니다.
+
+테스트 API 키는 다음 작업을 수행하지 않습니다.
+
+- 이미지·문서 실제 처리
+- 크레딧 예약·차감
+- 다운로드 가능한 결과 파일 생성
+- 운영 웹훅 endpoint로 이벤트 전송
+
+인증은 [인증](/ko/authentication), 오류 처리는 [오류 코드](/ko/errors)를 참고하세요.

@@ -2,3 +2,5 @@
 title: "Refresh presigned URLs"
 openapi: "/api-reference/openapi.yaml POST /api/v2/orders/{orderId}/refresh-urls"
 ---
+
+For a test order, this endpoint reissues an upload URL for a file that has not been uploaded yet. The returned URL is a BIZ MORI test upload URL rather than a storage presigned URL.

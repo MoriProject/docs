@@ -5,7 +5,7 @@ openapi: "/api-reference/openapi.yaml POST /api/v2/orders/ai-detection"
 
 ## How to upload the image
 
-After receiving the `uploadUrl` from the response, upload your image directly to S3 using a `PUT` request:
+After receiving the `uploadUrl` from the response, upload your image using a `PUT` request. Live keys return a presigned storage URL. Test keys return a BIZ MORI test upload URL that consumes and discards the request body:
 
 ```bash
 curl -X PUT "UPLOAD_URL" \
@@ -14,7 +14,7 @@ curl -X PUT "UPLOAD_URL" \
 ```
 
 <Note>
-  The presigned upload URL expires after **10 minutes**. Upload your image before it expires, then call the [Confirm order](/api-reference/ai-detection/confirm-order) endpoint.
+  Live presigned upload URLs expire after **10 minutes**. Test upload URLs carry their own authorization and do not require a Bearer header. Upload the file before the URL expires, then call the [Confirm order](/api-reference/ai-detection/confirm-order) endpoint.
 </Note>
 
 ## Getting the detection result
@@ -38,6 +38,10 @@ The detection result is included in the order detail response under `aiDetection
   }
 }
 ```
+
+<Info>
+  Test orders return deterministic detection results from the input file name. Use `_ai` for probability `0.98` or `_human` for probability `0.02`. Test orders do not create downloadable heatmap or overlay files.
+</Info>
 
 ### Status Codes
 

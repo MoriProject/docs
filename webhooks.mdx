@@ -47,6 +47,29 @@ Webhooks deliver HTTP `POST` callbacks to your server when order processing comp
   </Step>
 </Steps>
 
+## Testing webhooks
+
+To receive events from test orders, register a separate test endpoint from the Dashboard or with a live API key. Set `isTest` to `true`:
+
+```bash
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
+  -H "Authorization: Bearer $BIZMORI_LIVE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Integration test webhook",
+    "url": "https://example.com/test-webhook",
+    "isTest": true
+  }'
+```
+
+- A test API key cannot create, update, delete, list, or retry webhook endpoints.
+- An `isTest: true` endpoint receives test order events only.
+- An `isTest: false` endpoint receives live order events only.
+- Test webhook payloads use the same event names, HMAC-SHA256 signature, timeout, and retry behavior as live webhooks.
+- Anti-AI and Watermark Embed test events use `downloadUrl: null` because test processing does not create a result file.
+
+Test webhook delivery depends on the target environment's rollout. If the environment has not enabled persistent test orders and test webhook delivery, the test order can still use the legacy mock behavior without sending an event.
+
 ## Event types
 
 | Event Type | Description |
@@ -110,7 +133,7 @@ All webhook payloads follow this structure:
 | Field | Type | Description |
 |-------|------|-------------|
 | `fileCount` | integer | Number of processed files |
-| `downloadUrl` | string | Result file download URL (valid for 7 days) |
+| `downloadUrl` | string \| null | Result file download URL (valid for 7 days for live orders; `null` for test orders) |
 
 ### Watermark Extract — additional fields (completed)
 
