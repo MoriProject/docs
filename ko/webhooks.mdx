@@ -133,7 +133,7 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 | 필드 | 타입 | 설명 |
 |------|------|------|
 | `fileCount` | integer | 처리된 파일 수 |
-| `downloadUrl` | string | null | 결과 파일 다운로드 URL (운영 주문은 1시간 유효, 테스트 주문은 `null`) |
+| `downloadUrl` | string \| null | 결과 파일 다운로드 URL (운영 주문은 7일 유효, 테스트 주문은 `null`) |
 
 ### 워터마크 추출 — 추가 필드 (완료)
 

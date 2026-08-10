@@ -1,8 +1,7 @@
 ---
 title: "AI Detection 주문 생성"
-openapi: "POST /api/v2/orders/ai-detection"
+openapi: "/ko/api-reference/openapi.yaml POST /api/v2/orders/ai-detection"
 ---
-
 ## 이미지 업로드 방법
 
 응답에서 받은 `uploadUrl`을 사용하여 `PUT` 요청으로 이미지를 업로드합니다. 일반 키는 프리사인드 저장소 URL을 반환하고, 테스트 키는 요청 본문을 소비한 뒤 폐기하는 BIZ MORI 테스트 업로드 URL을 반환합니다:

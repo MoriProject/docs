@@ -1,0 +1,44 @@
+---
+title: "API リファレンス"
+description: "BIZ MORI API エンドポイントの完全なリファレンス"
+---
+
+## ベースURL
+
+```
+https://api.bizmori.com
+```
+
+## 認証
+
+すべてのエンドポイントは、`Authorization` ヘッダーにBearer形式でAPIキー認証が必要です:
+
+```
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+詳細は[認証](/ja/authentication)ガイドを参照してください。
+
+## テストAPIキー
+
+`sk_test_` プレフィックスのテストAPIキーを使用すると、Anti-AI、watermark、AI Detectionの処理を実行せずに連携を検証できます。テストリクエストは模擬レスポンスを返し、クレジットを消費しません。
+
+## エンドポイントグループ
+
+<Columns cols={2}>
+  <Card title="Anti-AI" icon="shield" href="/ja/api-reference/anti-ai/create-order">
+    Anti-AI画像保護の注文を作成・管理します。
+  </Card>
+  <Card title="watermark 埋め込み" icon="stamp" href="/ja/api-reference/watermark-embed/create-order">
+    画像に不可視のデジタル watermark を埋め込みます。
+  </Card>
+  <Card title="watermark 抽出" icon="magnifying-glass" href="/ja/api-reference/watermark-extract/create-order">
+    画像から watermark を抽出・検証します。
+  </Card>
+  <Card title="注文" icon="list" href="/ja/api-reference/orders/list-orders">
+    注文を照会、ダウンロード、管理します。
+  </Card>
+  <Card title="Webhook" icon="bell" href="/ja/api-reference/webhooks/list-webhooks">
+    イベント通知用のWebhookエンドポイントを設定します。
+  </Card>
+</Columns>

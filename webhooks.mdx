@@ -133,7 +133,7 @@ All webhook payloads follow this structure:
 | Field | Type | Description |
 |-------|------|-------------|
 | `fileCount` | integer | Number of processed files |
-| `downloadUrl` | string | null | Result file download URL (valid for 1 hour for live orders; `null` for test orders) |
+| `downloadUrl` | string \| null | Result file download URL (valid for 7 days for live orders; `null` for test orders) |
 
 ### Watermark Extract — additional fields (completed)
 
