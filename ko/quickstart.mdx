@@ -28,7 +28,7 @@ description: "BIZ MORI API 시작하기 — 서비스를 선택하세요"
 - 이미지 파일 — `jpg`, `jpeg`, `png`, `webp`, `tiff`, `bmp`는 모든 서비스에서 지원됩니다. 비가시성 워터마크 삽입 또는 검출 서비스에서는 `pdf`도 추가로 지원됩니다.
 
 <Info>
-  live 키는 S3 presigned `uploadUrl`을 받고, 테스트 키는 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` 형식의 URL을 받습니다. 두 URL 모두 1시간 동안 유효합니다. `Content-Type`과 바이너리 본문을 사용해 Authorization 헤더 없이 PUT하고, 만료되면 [URL 갱신](/ko/api-reference/orders/refresh-urls)을 사용하세요. 테스트 업로드 본문은 스트림으로만 소비되며 저장·사용량 차감·S3/GPU 처리가 발생하지 않습니다. 새 논리 요청마다 UUIDv4 멱등성 키를 만들고, 그 요청의 네트워크 재시도에서만 재사용하세요.
+  live 키는 S3 presigned `uploadUrl`을 받고, 테스트 키는 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` 형식의 URL을 받습니다. 두 URL 모두 1시간 동안 유효합니다. `Content-Type`과 바이너리 본문을 사용해 Authorization 헤더 없이 PUT하고, 만료되면 `POST /api/v2/orders/{orderId}/refresh-urls`를 사용하세요. 테스트 업로드 본문은 스트림으로만 소비되며 저장·사용량 차감·S3/GPU 처리가 발생하지 않습니다. 새 논리 요청마다 UUIDv4 멱등성 키를 만들고, 그 요청의 네트워크 재시도에서만 재사용하세요.
 </Info>
 
 ## 개발자가 아니신가요?

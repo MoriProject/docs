@@ -93,7 +93,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 ```
 
 <Note>
-  live 키는 S3 presigned URL을 받고, 테스트 키는 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`을 받습니다. 두 URL 모두 **1시간** 후 만료되며 같은 방식으로 Authorization 헤더 없이 PUT합니다. 테스트 업로드는 스트림으로만 소비되고 저장·처리되지 않습니다. 만료되면 [URL 갱신](/ko/api-reference/orders/refresh-urls)을 사용하세요.
+  live 키는 S3 presigned URL을 받고, 테스트 키는 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`을 받습니다. 두 URL 모두 **1시간** 후 만료되며 같은 방식으로 Authorization 헤더 없이 PUT합니다. 테스트 업로드는 스트림으로만 소비되고 저장·처리되지 않습니다. 만료되면 `POST /api/v2/orders/{orderId}/refresh-urls`를 사용하세요.
 </Note>
 
 ## 3단계: 주문 확인

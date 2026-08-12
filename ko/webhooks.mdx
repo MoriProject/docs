@@ -324,8 +324,8 @@ BIZ MORI는 안정적인 웹훅 전송을 보장하기 위해 다단계 재시�
 
 자동 재시도 프로세스와 관계없이, 재전송 API를 통해 언제든지 수동으로 웹훅을 재전송할 수 있습니다:
 
-- **단일 이벤트 재전송**: [웹훅 이벤트 재전송](/ko/api-reference/webhooks/retry-event) 엔드포인트를 사용하여 특정 실패 이벤트를 재시도합니다.
-- **일괄 재전송**: [실패한 웹훅 이벤트 일괄 재전송](/ko/api-reference/webhooks/retry-failed-events) 엔드포인트를 사용하여 특정 기간(최대 7일) 내 실패한 모든 이벤트를 재시도합니다.
+- **단일 이벤트 재전송**: `POST /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry`를 사용하여 특정 실패 이벤트를 재시도합니다.
+- **일괄 재전송**: `POST /api/v2/orders/webhooks/{webhookId}/events/retry-failed`를 사용하여 특정 기간(최대 7일) 내 실패한 모든 이벤트를 재시도합니다.
 
 ```bash
 # 단일 이벤트 재전송
@@ -367,5 +367,5 @@ live API 키와 Dashboard는 기존처럼 `isTest`를 선택하고 owner의 live
 | 웹훅 수정 | [PUT /webhooks/{id}](/ko/api-reference/webhooks/update-webhook) |
 | 웹훅 삭제 | [DELETE /webhooks/{id}](/ko/api-reference/webhooks/delete-webhook) |
 | 전송 이벤트 조회 | [GET /webhooks/{id}/events](/ko/api-reference/webhooks/list-events) |
-| 단일 이벤트 재전송 | [POST /webhooks/{id}/events/{eventId}/retry](/ko/api-reference/webhooks/retry-event) |
-| 실패 이벤트 일괄 재전송 | [POST /webhooks/{id}/events/retry-failed](/ko/api-reference/webhooks/retry-failed-events) |
+| 단일 이벤트 재전송 | `POST /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry` |
+| 실패 이벤트 일괄 재전송 | `POST /api/v2/orders/webhooks/{webhookId}/events/retry-failed` |
