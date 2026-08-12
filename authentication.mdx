@@ -5,6 +5,13 @@ description: "How to authenticate your BIZ MORI API requests"
 
 All API endpoints require an **API key** in the `Authorization: Bearer` header. Create and store the key in the [BIZ MORI Dashboard](https://app.bizmori.com/keys); it is shown only once.
 
+## Getting your API key
+
+1. Sign in to the [BIZ MORI Dashboard](https://app.bizmori.com)
+2. Open [**API Keys**](https://app.bizmori.com/keys)
+3. Click **Issue New Key**
+4. Copy and securely store the key — it is shown only once
+
 <Warning>
   Your API key grants access to your account. Keep it out of browser code, repositories, and version control.
 </Warning>
@@ -50,28 +57,83 @@ data = response.json()
 ```php PHP
 <?php
 $orderIdempotencyKey = sprintf('%04x%04x-%04x-4%03x-%x%03x-%04x%04x%04x', random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0x0fff), random_int(8, 11), random_int(0, 0x0fff), random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0xffff));
+$ch = curl_init('https://api.bizmori.com/api/v2/orders/anti-ai');
+curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ['Authorization: Bearer YOUR_API_TOKEN', 'Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode(['idempotencyKey' => $orderIdempotencyKey, 'files' => [['fileName' => 'image.jpg']]])]);
+$data = json_decode(curl_exec($ch), true);
+curl_close($ch);
 ```
 
 ```ruby Ruby
 require 'securerandom'
+require 'net/http'
+require 'json'
 order_idempotency_key = SecureRandom.uuid
+uri = URI('https://api.bizmori.com/api/v2/orders/anti-ai')
+req = Net::HTTP::Post.new(uri, {'Authorization' => 'Bearer YOUR_API_TOKEN', 'Content-Type' => 'application/json'})
+req.body = JSON.generate(idempotencyKey: order_idempotency_key, files: [{fileName: 'image.jpg'}])
+data = JSON.parse(Net::HTTP.start(uri.host, uri.port, use_ssl: true) {|http| http.request(req) }.body)
 ```
 
 ```go Go
-import "github.com/google/uuid"
+package main
 
-orderIdempotencyKey := uuid.NewString()
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+
+	"github.com/google/uuid"
+)
+
+func main() {
+	orderIdempotencyKey := uuid.NewString()
+	body, _ := json.Marshal(map[string]any{"idempotencyKey": orderIdempotencyKey, "files": []map[string]string{{"fileName": "image.jpg"}}})
+	req, _ := http.NewRequest("POST", "https://api.bizmori.com/api/v2/orders/anti-ai", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer YOUR_API_TOKEN")
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+}
 ```
 
 ```java Java
+import java.net.URI;
+import java.net.http.*;
 import java.util.UUID;
-String orderIdempotencyKey = UUID.randomUUID().toString();
+
+public class Main {
+  public static void main(String[] args) throws Exception {
+    String orderIdempotencyKey = UUID.randomUUID().toString();
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create("https://api.bizmori.com/api/v2/orders/anti-ai"))
+        .header("Authorization", "Bearer YOUR_API_TOKEN")
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(
+            "{\"idempotencyKey\":\"" + orderIdempotencyKey + "\",\"files\":[{\"fileName\":\"image.jpg\"}]}"
+        ))
+        .build();
+    HttpResponse<String> response =
+        HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+  }
+}
 ```
 </CodeGroup>
 
 ## Idempotency
 
 Use a new UUIDv4 for every new logical order. Anti-AI and AI Detection confirms are separate logical requests, so generate a different UUIDv4 for each confirm. Reuse the previous value only when retrying the same logical request after a network failure. Sending the same key again returns the original order instead of creating a new one.
+
+## Rate limits
+
+API requests are rate-limited by subscription plan. Exceeding the limit returns `429 Too Many Requests` with `RATE_LIMIT_EXCEEDED`.
+
+| Plan | Requests per minute |
+| --- | --- |
+| Free | 10 |
+| Basic | 60 |
+| Pro | 300 |
+| Scale | 600 |
+| Enterprise | 1,000 |
 
 ## Live and test API keys
 

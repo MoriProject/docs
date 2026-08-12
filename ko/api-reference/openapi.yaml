@@ -433,6 +433,9 @@ components:
           format: uri
           description: 웹훅 엔드포인트 URL
           example: https://example.com/webhook
+        isTest:
+          type: boolean
+          description: '엔드포인트 모드. 테스트 API 키는 생략하거나 true를 사용하며 true로 강제됩니다. false는 AUTH_FORBIDDEN을 반환합니다. live API 키는 두 모드를 선택할 수 있습니다.'
     WebhookInfo:
       type: object
       properties:
@@ -2159,7 +2162,7 @@ paths:
       description: '**사용 중단**: 이 API는 `/webhooks`로 대체되었습니다.
 
 
-        주문 처리 완료 또는 실패 시 알림을 받을 웹훅 URL을 등록합니다.
+        주문 처리 완료 또는 실패 시 알림을 받을 웹훅 URL을 등록합니다. live API 키는 isTest를 선택할 수 있고 생략 시 false입니다. 테스트 API 키는 isTest를 생략하거나 true를 사용하며 true로 강제되고, false는 AUTH_FORBIDDEN을 반환합니다.
 
         '
       tags:
@@ -2183,6 +2186,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2383,6 +2388,9 @@ paths:
                           **주의**: 이 값은 다시 조회할 수 없습니다. 안전하게 보관하세요.
 
                           '
+                      isTest:
+                        type: boolean
+                        description: 테스트 엔드포인트 여부
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2495,6 +2503,9 @@ paths:
                         format: uri
                       isActive:
                         type: boolean
+                      isTest:
+                        type: boolean
+                        description: 테스트 엔드포인트 여부
                       updatedAt:
                         type: string
                         format: date-time

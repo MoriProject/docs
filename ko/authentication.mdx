@@ -5,6 +5,13 @@ description: "BIZ MORI API 요청을 인증하는 방법"
 
 모든 API 엔드포인트는 `Authorization: Bearer` 헤더의 **API 키**가 필요합니다. [BIZ MORI 대시보드](https://app.bizmori.com/keys)에서 키를 발급해 안전하게 보관하세요. 키는 한 번만 표시됩니다.
 
+## API 키 발급
+
+1. [BIZ MORI 대시보드](https://app.bizmori.com)에 로그인합니다.
+2. [**API Keys**](https://app.bizmori.com/keys)로 이동합니다.
+3. **Issue New Key**를 선택합니다.
+4. 키를 복사해 안전하게 보관합니다. 키는 한 번만 표시됩니다.
+
 <Warning>
   API 키는 계정 접근 권한을 부여합니다. 브라우저 코드, 저장소, 버전 관리에 노출하지 마세요.
 </Warning>
@@ -50,28 +57,83 @@ data = response.json()
 ```php PHP
 <?php
 $orderIdempotencyKey = sprintf('%04x%04x-%04x-4%03x-%x%03x-%04x%04x%04x', random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0x0fff), random_int(8, 11), random_int(0, 0x0fff), random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0xffff));
+$ch = curl_init('https://api.bizmori.com/api/v2/orders/anti-ai');
+curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ['Authorization: Bearer YOUR_API_TOKEN', 'Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode(['idempotencyKey' => $orderIdempotencyKey, 'files' => [['fileName' => 'image.jpg']]])]);
+$data = json_decode(curl_exec($ch), true);
+curl_close($ch);
 ```
 
 ```ruby Ruby
 require 'securerandom'
+require 'net/http'
+require 'json'
 order_idempotency_key = SecureRandom.uuid
+uri = URI('https://api.bizmori.com/api/v2/orders/anti-ai')
+req = Net::HTTP::Post.new(uri, {'Authorization' => 'Bearer YOUR_API_TOKEN', 'Content-Type' => 'application/json'})
+req.body = JSON.generate(idempotencyKey: order_idempotency_key, files: [{fileName: 'image.jpg'}])
+data = JSON.parse(Net::HTTP.start(uri.host, uri.port, use_ssl: true) {|http| http.request(req) }.body)
 ```
 
 ```go Go
-import "github.com/google/uuid"
+package main
 
-orderIdempotencyKey := uuid.NewString()
+import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+
+	"github.com/google/uuid"
+)
+
+func main() {
+	orderIdempotencyKey := uuid.NewString()
+	body, _ := json.Marshal(map[string]any{"idempotencyKey": orderIdempotencyKey, "files": []map[string]string{{"fileName": "image.jpg"}}})
+	req, _ := http.NewRequest("POST", "https://api.bizmori.com/api/v2/orders/anti-ai", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer YOUR_API_TOKEN")
+	req.Header.Set("Content-Type", "application/json")
+	resp, _ := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+}
 ```
 
 ```java Java
+import java.net.URI;
+import java.net.http.*;
 import java.util.UUID;
-String orderIdempotencyKey = UUID.randomUUID().toString();
+
+public class Main {
+  public static void main(String[] args) throws Exception {
+    String orderIdempotencyKey = UUID.randomUUID().toString();
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create("https://api.bizmori.com/api/v2/orders/anti-ai"))
+        .header("Authorization", "Bearer YOUR_API_TOKEN")
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(
+            "{\"idempotencyKey\":\"" + orderIdempotencyKey + "\",\"files\":[{\"fileName\":\"image.jpg\"}]}"
+        ))
+        .build();
+    HttpResponse<String> response =
+        HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+  }
+}
 ```
 </CodeGroup>
 
 ## 멱등성
 
 새 논리 주문마다 새 UUIDv4를 사용합니다. Anti-AI와 AI Detection의 confirm은 별도 논리 요청이므로 각각 다른 UUIDv4를 생성합니다. 네트워크 실패 후 같은 논리 요청을 재시도할 때만 이전 값을 재사용하세요. 같은 키를 다시 보내면 새 주문 대신 기존 주문이 반환됩니다.
+
+## Rate limit
+
+API 요청은 구독 플랜별로 제한됩니다. 한도를 넘으면 `429 Too Many Requests`와 `RATE_LIMIT_EXCEEDED`가 반환됩니다.
+
+| 플랜 | 분당 요청 수 |
+| --- | --- |
+| Free | 10 |
+| Basic | 60 |
+| Pro | 300 |
+| Scale | 600 |
+| Enterprise | 1,000 |
 
 ## Live 및 테스트 API 키
 

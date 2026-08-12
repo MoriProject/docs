@@ -433,6 +433,9 @@ components:
           format: uri
           description: Webhook endpoint URL
           example: https://example.com/webhook
+        isTest:
+          type: boolean
+          description: 'Endpoint mode. A test API key omits this field or uses true and is forced to true; false returns AUTH_FORBIDDEN. A live API key may choose either mode.'
     WebhookInfo:
       type: object
       properties:
@@ -2183,7 +2186,8 @@ paths:
 
 
         Register a webhook URL to receive notifications when order processing completes
-        or fails.
+        or fails. A live API key may choose isTest and defaults to false. A test API
+        key omits isTest or uses true and is forced to true; false returns AUTH_FORBIDDEN.
 
         '
       tags:
@@ -2207,6 +2211,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2413,6 +2419,9 @@ paths:
                           it securely.
 
                           '
+                      isTest:
+                        type: boolean
+                        description: Whether this is a test endpoint
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2525,6 +2534,9 @@ paths:
                         format: uri
                       isActive:
                         type: boolean
+                      isTest:
+                        type: boolean
+                        description: Whether this is a test endpoint
                       updatedAt:
                         type: string
                         format: date-time
