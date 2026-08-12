@@ -9,7 +9,7 @@ Webhooks deliver HTTP `POST` callbacks to your server when order processing comp
 
 <Steps>
   <Step title="Register a webhook endpoint">
-    You can create a webhook endpoint via the API or the [BIZ MORI Dashboard](https://app.bizmori.com/webhooks). To create one via the API, use the [Create Webhook](/api-reference/webhooks/create-webhook) endpoint:
+    You can create a webhook endpoint via the API or the [BIZ MORI Dashboard](https://app.bizmori.com/webhooks). The example uses a live API key and creates a live endpoint. To create one via the API, use the [Create Webhook](/api-reference/webhooks/create-webhook) endpoint:
 
     ```bash
     curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
@@ -121,6 +121,8 @@ The `status` field is always `complete`. Use `statusCode` to determine the detec
 | `statusCode` | string | `detected` or `undetected` |
 | `watermarkFound` | boolean | Whether a watermark was detected |
 | `watermarkInfo.text` | string | Detected watermark text (only when `watermarkFound` is `true`) |
+
+The payload exposes text only: it never includes MID, `midDecimal`, or `midHex`.
 
 ### AI Detection — additional fields (completed)
 
@@ -346,6 +348,17 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/{webhookId}/events/r
 When initial webhook delivery fails, BIZ MORI sends a failure notification email to the account owner. This email is sent at most **once per day** to avoid excessive notifications.
 
 ## Managing webhooks
+
+## Test API key scope
+
+A test API key can manage only test endpoints owned by the same owner. It can list, get, create, update, and delete those endpoints; list their events; retry one failed event; and retry failed events in a date range of at most seven days. Event responses do not add delivery-log response bodies.
+
+- On create, omitting `isTest` or setting it to `true` creates a test endpoint. Setting `isTest: false` returns `AUTH_FORBIDDEN`.
+- On update, omitting `isTest` keeps test mode and `true` is allowed. Setting `isTest: false` returns `AUTH_FORBIDDEN`.
+- A live endpoint ID or another owner's endpoint ID returns `WEBHOOK_NOT_FOUND`; this does not disclose whether that endpoint exists.
+- An event ID outside an accessible endpoint returns `WEBHOOK_EVENT_NOT_FOUND`.
+
+Live API keys and the Dashboard keep their existing ability to choose `isTest` and manage the owner's live and test endpoints. Secret one-time display, URL validation, HMAC signatures, and the retry policy are unchanged.
 
 | Action | Endpoint |
 |--------|----------|

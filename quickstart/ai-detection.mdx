@@ -16,16 +16,20 @@ Create an AI Detection order with your image file name.
 
 <CodeGroup>
 ```bash cURL
+ORDER_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
 curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "idempotencyKey": "my-detection-001",
+    "idempotencyKey": "'$ORDER_IDEMPOTENCY_KEY'",
     "fileName": "photo.jpg"
   }'
 ```
 
 ```javascript Node.js
+import { randomUUID } from 'node:crypto';
+
+const orderIdempotencyKey = randomUUID();
 const response = await fetch('https://api.bizmori.com/api/v2/orders/ai-detection', {
   method: 'POST',
   headers: {
@@ -33,7 +37,7 @@ const response = await fetch('https://api.bizmori.com/api/v2/orders/ai-detection
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    idempotencyKey: 'my-detection-001',
+    idempotencyKey: orderIdempotencyKey,
     fileName: 'photo.jpg',
   }),
 });
@@ -41,13 +45,15 @@ const { data } = await response.json();
 ```
 
 ```python Python
+import uuid
 import requests
 
+order_idempotency_key = str(uuid.uuid4())
 res = requests.post(
     'https://api.bizmori.com/api/v2/orders/ai-detection',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
     json={
-        'idempotencyKey': 'my-detection-001',
+        'idempotencyKey': order_idempotency_key,
         'fileName': 'photo.jpg',
     },
 )
@@ -87,7 +93,7 @@ curl -X PUT "https://s3.amazonaws.com/..." \
 ```
 
 <Note>
-  The presigned upload URL expires after **1 hour**. Upload your image before it expires.
+  Live keys receive S3 presigned URLs. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`; both expire after **1 hour** and accept the same unauthenticated PUT. Test uploads are streamed only, not stored or processed. Use [Refresh URLs](/api-reference/orders/refresh-urls) if a URL expires.
 </Note>
 
 ## Step 3: Confirm the order
@@ -96,13 +102,15 @@ After uploading, call confirm to start detection processing:
 
 <CodeGroup>
 ```bash cURL
+CONFIRM_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
 curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection/confirm \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"idempotencyKey": "YOUR_IDEMPOTENCY_KEY", "orderId": "123456789"}'
+  -d "{\"idempotencyKey\": \"$CONFIRM_IDEMPOTENCY_KEY\", \"orderId\": \"123456789\"}"
 ```
 
 ```javascript Node.js
+const confirmIdempotencyKey = randomUUID();
 await fetch('https://api.bizmori.com/api/v2/orders/ai-detection/confirm', {
   method: 'POST',
   headers: {
@@ -110,17 +118,18 @@ await fetch('https://api.bizmori.com/api/v2/orders/ai-detection/confirm', {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    idempotencyKey: 'YOUR_IDEMPOTENCY_KEY',
+    idempotencyKey: confirmIdempotencyKey,
     orderId: '123456789',
   }),
 });
 ```
 
 ```python Python
+confirm_idempotency_key = str(uuid.uuid4())
 requests.post(
     'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
-    json={'idempotencyKey': 'YOUR_IDEMPOTENCY_KEY', 'orderId': '123456789'},
+    json={'idempotencyKey': confirm_idempotency_key, 'orderId': '123456789'},
 )
 ```
 </CodeGroup>
