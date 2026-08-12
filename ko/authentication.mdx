@@ -125,15 +125,9 @@ public class Main {
 
 ## Rate limit
 
-API 요청은 구독 플랜별로 제한됩니다. 한도를 넘으면 `429 Too Many Requests`와 `RATE_LIMIT_EXCEEDED`가 반환됩니다.
+모든 요청에는 15분당 1,000회의 전역 제한이 적용되며 표준 `RateLimit` 헤더가 포함됩니다. 일부 엔드포인트에는 별도의 endpoint-specific 제한이 추가로 적용될 수 있습니다.
 
-| 플랜 | 분당 요청 수 |
-| --- | --- |
-| Free | 10 |
-| Basic | 60 |
-| Pro | 300 |
-| Scale | 600 |
-| Enterprise | 1,000 |
+live 주문 API 키의 플랜 사용량 quota는 전역 요청 제한과 별개입니다. 이 quota가 소진되고 활성 credit pack이 없으면 주문 API는 HTTP 429와 `{ "code": "PLAN_LIMIT_EXCEEDED" }`를 반환합니다. 테스트 API 키는 플랜 사용량 quota를 우회하지만 API 키 인증보다 먼저 실행되는 전역 요청 limiter는 우회하지 않습니다.
 
 ## Live 및 테스트 API 키
 

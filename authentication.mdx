@@ -125,15 +125,9 @@ Use a new UUIDv4 for every new logical order. Anti-AI and AI Detection confirms 
 
 ## Rate limits
 
-API requests are rate-limited by subscription plan. Exceeding the limit returns `429 Too Many Requests` with `RATE_LIMIT_EXCEEDED`.
+All requests are subject to a global limit of 1,000 requests per 15 minutes and include standard `RateLimit` headers. Some endpoints may apply additional endpoint-specific limits.
 
-| Plan | Requests per minute |
-| --- | --- |
-| Free | 10 |
-| Basic | 60 |
-| Pro | 300 |
-| Scale | 600 |
-| Enterprise | 1,000 |
+For live order API keys, plan usage quota is separate from the global request limit. When that quota is exhausted and no active credit pack is available, the order API returns HTTP 429 with `{ "code": "PLAN_LIMIT_EXCEEDED" }`. Test API keys bypass the plan usage quota, but not the global request limiter, which runs before API-key authentication.
 
 ## Live and test API keys
 
