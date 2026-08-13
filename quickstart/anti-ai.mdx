@@ -26,17 +26,21 @@ Create an order and receive presigned S3 URLs for uploading your files.
 
 <CodeGroup>
 ```bash cURL
+ORDER_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
 curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "idempotencyKey": "my-first-order-001",
+    "idempotencyKey": "'$ORDER_IDEMPOTENCY_KEY'",
     "files": [{ "fileName": "photo.jpg" }],
     "options": { "strength": "high" }
   }'
 ```
 
 ```javascript Node.js
+import { randomUUID } from 'node:crypto';
+
+const orderIdempotencyKey = randomUUID();
 const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai', {
   method: 'POST',
   headers: {
@@ -44,7 +48,7 @@ const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai', {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    idempotencyKey: 'my-first-order-001',
+    idempotencyKey: orderIdempotencyKey,
     files: [{ fileName: 'photo.jpg' }],
     options: { strength: 'high' },
   }),
@@ -87,13 +91,15 @@ const order = await api('/orders/anti-ai', {
 ```
 
 ```python Python
+import uuid
 import requests
 
+order_idempotency_key = str(uuid.uuid4())
 res = requests.post(
     'https://api.bizmori.com/api/v2/orders/anti-ai',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
     json={
-        'idempotencyKey': 'my-first-order-001',
+        'idempotencyKey': order_idempotency_key,
         'files': [{'fileName': 'photo.jpg'}],
         'options': {'strength': 'high'},
     },
@@ -164,7 +170,7 @@ await Promise.all(
 </CodeGroup>
 
 <Note>
-  Presigned URLs expire after **1 hour**. If yours has expired, use the [Refresh URLs](/api-reference/orders/refresh-urls) endpoint to generate new ones.
+  Live keys receive S3 presigned URLs. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`; both expire after **1 hour** and accept the same unauthenticated PUT. Test uploads are streamed only, not stored or processed. Use [Refresh URLs](/api-reference/orders/refresh-urls) if a URL expires.
 </Note>
 
 ## Step 3: Confirm the order
@@ -173,13 +179,15 @@ After uploading all files, call confirm to start processing:
 
 <CodeGroup>
 ```bash cURL
+CONFIRM_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
 curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/confirm \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"idempotencyKey": "my-confirm-001", "orderId": "123456789"}'
+  -d "{\"idempotencyKey\": \"$CONFIRM_IDEMPOTENCY_KEY\", \"orderId\": \"123456789\"}"
 ```
 
 ```javascript Node.js
+const confirmIdempotencyKey = randomUUID();
 await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm', {
   method: 'POST',
   headers: {
@@ -187,7 +195,7 @@ await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm', {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    idempotencyKey: 'my-confirm-001',
+    idempotencyKey: confirmIdempotencyKey,
     orderId: '123456789',
   }),
 });
@@ -202,10 +210,11 @@ await api('/orders/anti-ai/confirm', {
 ```
 
 ```python Python
+confirm_idempotency_key = str(uuid.uuid4())
 requests.post(
     'https://api.bizmori.com/api/v2/orders/anti-ai/confirm',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
-    json={'idempotencyKey': 'my-confirm-001', 'orderId': '123456789'},
+    json={'idempotencyKey': confirm_idempotency_key, 'orderId': '123456789'},
 )
 ```
 </CodeGroup>
@@ -496,6 +505,10 @@ export default function AntiAiUploader() {
 
 <Note>
   `import.meta.env.VITE_MORI_API_TOKEN` is Vite's syntax. Use `process.env.NEXT_PUBLIC_MORI_API_TOKEN` on Next.js, or whatever your bundler exposes to client code. `crypto.randomUUID()` needs a secure context: HTTPS and `localhost` are fine, a plain-HTTP LAN address is not.
+</Note>
+
+<Note>
+  Test orders do not produce a result file: their `downloadUrl` is `null`, and the download endpoint can return `PROCESSED_FILE_NOT_FOUND`.
 </Note>
 
 ## Error handling

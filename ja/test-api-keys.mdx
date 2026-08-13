@@ -82,11 +82,11 @@ Watermark Embed または Watermark Extract では確認エンドポイントを
 
 ## テスト Webhook
 
-Dashboard または本番 API キーを使ってテスト Webhook エンドポイントを作成し、`isTest` を `true` に設定します。
+Dashboard、本番 API キー、またはテスト API キーで、同じ所有者のテスト Webhook エンドポイントを作成できます。テストキーでは `isTest` を省略するか `true` に設定でき、`isTest: false` は `403 AUTH_FORBIDDEN` を返します。
 
 ~~~bash
 curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
-  -H "Authorization: Bearer $BIZMORI_LIVE_API_KEY" \
+  -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Integration test webhook",
@@ -95,13 +95,13 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
   }'
 ~~~
 
-- テスト API キーでは Webhook エンドポイントの作成、更新、削除、一覧取得、再送を実行できません。
+- テスト API キーでは、同じ所有者のテストエンドポイントの作成、一覧・詳細取得、更新、削除、イベント取得、失敗イベントの再送を実行できます。本番モードと別所有者のリソースは公開されません。
 - `isTest: true` のエンドポイントはテスト注文イベントだけを受信します。
 - `isTest: false` のエンドポイントは本番注文イベントだけを受信します。
 - テスト Webhook のイベント名、HMAC-SHA256 署名、再試行動作は本番 Webhook と同じです。
 - 結果ファイルを作成しないため、Anti-AI と Watermark Embed のテストイベントでは `downloadUrl: null` になります。
 
-署名の検証方法とイベントペイロードについては [Webhook](/ja/webhooks) を参照してください。テスト Webhook の配信は、対象環境で機能が有効になった後に利用できます。
+所有者とモードの分離、署名検証、イベントペイロード、再送ルールについては [Webhook](/ja/webhooks) を参照してください。
 
 ## API の動作と制限
 
@@ -112,7 +112,7 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 | `GET /api/v2/orders/{orderId}` | キーのアカウントが所有するテスト注文を返します |
 | `POST /api/v2/orders/{orderId}/refresh-urls` | まだ使用されていないアップロード URL を再発行します |
 | `GET /api/v2/orders/{orderId}/download` | `404 PROCESSED_FILE_NOT_FOUND` を返します |
-| Webhook 管理の変更リクエスト | `403 AUTH_FORBIDDEN` を返します |
+| Webhook の管理と再送 | 同じ所有者のテストエンドポイントだけを管理できます。本番モードと別所有者の ID は `404`、`isTest: false` は `403 AUTH_FORBIDDEN` を返します |
 
 テスト注文と本番注文は分離されています。テストキーでは本番注文を読み取ったり変更したりできず、本番キーでもテスト注文を読み取ったり変更したりできません。
 

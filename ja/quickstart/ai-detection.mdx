@@ -157,7 +157,7 @@ await putFile(file, order.file.uploadUrl, (ratio) => setProgress(ratio));
 curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection/confirm \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"idempotencyKey": "YOUR_IDEMPOTENCY_KEY", "orderId": "123456789"}'
+  -d '{"idempotencyKey": "c6d4e2f1-3a5b-4c78-9d0e-6f2a1b8c4d95", "orderId": "123456789"}'
 ```
 
 ```javascript Node.js
@@ -168,7 +168,7 @@ await fetch('https://api.bizmori.com/api/v2/orders/ai-detection/confirm', {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    idempotencyKey: 'YOUR_IDEMPOTENCY_KEY',
+    idempotencyKey: 'c6d4e2f1-3a5b-4c78-9d0e-6f2a1b8c4d95',
     orderId: '123456789',
   }),
 });
@@ -186,7 +186,7 @@ await api('/orders/ai-detection/confirm', {
 requests.post(
     'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
-    json={'idempotencyKey': 'YOUR_IDEMPOTENCY_KEY', 'orderId': '123456789'},
+    json={'idempotencyKey': 'c6d4e2f1-3a5b-4c78-9d0e-6f2a1b8c4d95', 'orderId': '123456789'},
 )
 ```
 </CodeGroup>

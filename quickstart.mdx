@@ -32,7 +32,7 @@ All quickstart guides share these requirements:
 - An image file in a supported format (varies by service)
 
 <Info>
-  Use the automatically issued [`sk_test_` key](/test-api-keys) to exercise the order lifecycle without running processing or consuming credits. Test uploads discard file contents and test orders do not produce downloadable results. Use a live API key when you need actual processing output.
+  Use the automatically issued [`sk_test_` key](/test-api-keys) to exercise the test lifecycle. A live key receives an S3 presigned `uploadUrl`; a test key receives `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`. Both are valid for one hour. PUT the binary body with `Content-Type` and no Authorization header, then use [Refresh URLs](/api-reference/orders/refresh-urls) if it expires. Test uploads are streamed only: BIZ MORI does not store them, consume usage, or run S3/GPU processing. Use a UUIDv4 idempotency key for every new logical request; reuse it only for that request's network retry.
 </Info>
 
 ## Not a developer?

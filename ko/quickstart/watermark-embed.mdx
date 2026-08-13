@@ -22,11 +22,12 @@ description: "이미지에 비가시성 워터마크 삽입하기"
 
 <CodeGroup>
 ```bash cURL
+ORDER_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
 curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "idempotencyKey": "01960d3e-a4f2-7b3c-8a1d-4c7e2f9b0a3d",
+    "idempotencyKey": "'$ORDER_IDEMPOTENCY_KEY'",
     "files": [
       {
         "fileName": "photo.jpg",
@@ -37,6 +38,9 @@ curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \
 ```
 
 ```javascript Node.js
+import { randomUUID } from 'node:crypto';
+
+const orderIdempotencyKey = randomUUID();
 const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-embed', {
   method: 'POST',
   headers: {
@@ -44,7 +48,7 @@ const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-embed', 
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    idempotencyKey: '01960d3e-a4f2-7b3c-8a1d-4c7e2f9b0a3d',
+    idempotencyKey: orderIdempotencyKey,
     files: [
       {
         fileName: 'photo.jpg',
@@ -95,13 +99,15 @@ const order = await api('/orders/wtr-embed', {
 ```
 
 ```python Python
+import uuid
 import requests
 
+order_idempotency_key = str(uuid.uuid4())
 res = requests.post(
     'https://api.bizmori.com/api/v2/orders/wtr-embed',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
     json={
-        'idempotencyKey': '01960d3e-a4f2-7b3c-8a1d-4c7e2f9b0a3d',
+        'idempotencyKey': order_idempotency_key,
         'files': [
             {
                 'fileName': 'photo.jpg',
@@ -175,7 +181,7 @@ await putFile(file, order.files[0].uploadUrl, (ratio) => setProgress(ratio));
 </Info>
 
 <Note>
-  Presigned URL은 **1시간** 후 만료됩니다. 만료된 경우 [URL 갱신](/ko/api-reference/orders/refresh-urls) 엔드포인트를 사용하여 새 URL을 받으세요.
+  live 키는 S3 presigned URL을 받고, 테스트 키는 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`을 받습니다. 두 URL 모두 **1시간** 후 만료되며 같은 방식으로 Authorization 헤더 없이 PUT합니다. 테스트 업로드는 스트림으로만 소비되고 저장·처리되지 않습니다. 만료되면 [URL 갱신](/ko/api-reference/orders/refresh-urls)을 사용하세요.
 </Note>
 
 ## 3단계: 주문 상태 확인 & 결과 다운로드
@@ -293,6 +299,10 @@ download_url = res.json()['data']['url']
 ```
 
 `url`은 **7일** 유효한 Presigned S3 URL입니다.
+
+<Note>
+  테스트 주문은 결과 파일을 만들지 않습니다. `downloadUrl`은 `null`이고 다운로드 엔드포인트는 `PROCESSED_FILE_NOT_FOUND`를 반환할 수 있습니다.
+</Note>
 
 비가시성 워터마크 삽입 API에서 지원하는 옵션과 상세한 설명은 [API 레퍼런스](/ko/api-reference/watermark-embed/create-order)를 참고하세요.
 
