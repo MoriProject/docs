@@ -84,10 +84,11 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: Upload URL (presigned URL)
+          description: 'Upload URL. Live keys receive an S3 presigned URL; test keys receive an absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL. Both expire one hour after issue and can be renewed with `POST /api/v2/orders/{orderId}/refresh-urls`. PUT needs no Authorization header because the signed token authorizes the test upload. Test request bodies are streamed, not stored; test orders move to simulated results without usage consumption or actual external processing.'
         fileKey:
           type: string
-          description: S3 file key
+          description: |
+            File identifier: an S3 object key for live keys or an isolated logical key for test keys.
     AntiAiOrderFile:
       type: object
       description: 'Anti-AI order file info (fields vary by file mode)
@@ -107,10 +108,11 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: Upload URL (presigned URL) — Upload mode files only
+          description: 'Upload URL — upload mode files only. Live keys receive an S3 presigned URL; test keys receive an absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL. Both expire after one hour and can be renewed with `POST /api/v2/orders/{orderId}/refresh-urls`. PUT needs no Authorization header because the signed token authorizes the test upload. Test request bodies are streamed, not stored; test orders move to simulated results without usage consumption or actual external processing.'
         fileKey:
           type: string
-          description: S3 file key — Upload mode files only
+          description: |
+            File identifier — upload mode files only: an S3 object key for live keys or an isolated logical key for test keys.
         originalFileUrl:
           type: string
           format: uri
@@ -128,10 +130,11 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: Upload URL (presigned URL)
+          description: 'Upload URL. Live keys receive an S3 presigned URL; test keys receive an absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL. Both expire after one hour and can be renewed with `POST /api/v2/orders/{orderId}/refresh-urls`. PUT needs no Authorization header because the signed token authorizes the test upload. Test request bodies are streamed, not stored; test orders move to simulated results without usage consumption or actual external processing.'
         fileKey:
           type: string
-          description: S3 file key
+          description: |
+            File identifier: an S3 object key for live keys or an isolated logical key for test keys.
         fileFormat:
           type: string
           description: File format
@@ -165,10 +168,11 @@ components:
             uploadUrl:
               type: string
               format: uri
-              description: Upload URL (presigned URL)
+              description: 'Upload URL. Live keys receive an S3 presigned URL; test keys receive an absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL. Both expire after one hour and can be renewed with `POST /api/v2/orders/{orderId}/refresh-urls`. PUT needs no Authorization header because the signed token authorizes the test upload. Test request bodies are streamed, not stored; test orders move to simulated results without usage consumption or actual external processing.'
             fileKey:
               type: string
-              description: S3 file key
+              description: |
+                File identifier: an S3 object key for live keys or an isolated logical key for test keys.
             fileFormat:
               type: string
               description: File format
@@ -429,6 +433,9 @@ components:
           format: uri
           description: Webhook endpoint URL
           example: https://example.com/webhook
+        isTest:
+          type: boolean
+          description: 'Endpoint mode. A test API key omits this field or uses true and is forced to true; false returns AUTH_FORBIDDEN. A live API key may choose either mode.'
     WebhookInfo:
       type: object
       properties:
@@ -456,8 +463,13 @@ components:
           format: uri
           description: Webhook endpoint URL
           example: https://example.com/webhook
+        isTest:
+          type: boolean
+          description: 'Endpoint mode. For a test API key, omit this field or use true; false returns AUTH_FORBIDDEN. Live API keys may choose either mode.'
     WebhookUpdateRequest:
       type: object
+      required:
+      - url
       properties:
         name:
           type: string
@@ -468,6 +480,9 @@ components:
           format: uri
           description: Webhook URL
           example: https://example.com/webhook
+        isTest:
+          type: boolean
+          description: 'Endpoint mode. For a test API key, omission preserves test mode and true is allowed; false returns AUTH_FORBIDDEN. Live API keys may choose either mode.'
     WebhookListItem:
       type: object
       properties:
@@ -484,6 +499,9 @@ components:
         isActive:
           type: boolean
           description: Active status
+        isTest:
+          type: boolean
+          description: Whether this is a test endpoint
         lastSentAt:
           type: string
           format: date-time
@@ -512,6 +530,9 @@ components:
         isActive:
           type: boolean
           description: Active status
+        isTest:
+          type: boolean
+          description: Whether this is a test endpoint
         createdAt:
           type: string
           format: date-time
@@ -610,6 +631,30 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: SERVER_INTERNAL_ERROR
+    Forbidden:
+      description: The API key is not allowed to use the requested mode
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: AUTH_FORBIDDEN
+    WebhookNotFound:
+      description: Webhook endpoint not found or not accessible to this API key
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: WEBHOOK_NOT_FOUND
+    WebhookEventNotFound:
+      description: Webhook event not found in the accessible endpoint
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: WEBHOOK_EVENT_NOT_FOUND
 tags:
 - name: Anti-AI
   description: Anti-AI image protection orders
@@ -749,7 +794,7 @@ paths:
               uploadMode:
                 summary: Upload mode (traditional)
                 value:
-                  idempotencyKey: key-upload-001
+                  idempotencyKey: 2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40
                   files:
                   - fileName: image1.jpg
                   - fileName: image2.png
@@ -758,7 +803,7 @@ paths:
               urlMode:
                 summary: URL mode (immediate processing)
                 value:
-                  idempotencyKey: key-url-001
+                  idempotencyKey: 3c7a5e19-9b2f-4d86-a1c4-6f8e0b3d5a71
                   files:
                   - fileName: image1.jpg
                     originalFileUrl: https://example.com/image1.jpg
@@ -769,7 +814,7 @@ paths:
               mixedMode:
                 summary: Mixed mode
                 value:
-                  idempotencyKey: key-mixed-001
+                  idempotencyKey: 4d8b6f2a-a3c1-4e97-b2d5-7a9f1c4e6b82
                   files:
                   - fileName: upload-file.jpg
                   - fileName: url-file.png
@@ -844,7 +889,7 @@ paths:
         label: cURL
         source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \\\n  -H\
           \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-001\",\n    \"files\": [\n\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40\",\n    \"files\": [\n\
           \      {\"fileName\": \"image1.jpg\"},\n      {\"fileName\": \"image2.png\"\
           }\n    ],\n    \"options\": {\"strength\": \"high\"}\n  }'"
       - lang: javascript
@@ -852,14 +897,14 @@ paths:
         source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai',\
           \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-001',\n    files: [\n      { fileName: 'image1.jpg'\
+          \    idempotencyKey: '2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40',\n    files: [\n      { fileName: 'image1.jpg'\
           \ },\n      { fileName: 'image2.png' }\n    ],\n    options: { strength:\
           \ 'high' }\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/anti-ai',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
-          \ 'key-001',\n        'files': [\n            {'fileName': 'image1.jpg'},\n\
+          \ '2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40',\n        'files': [\n            {'fileName': 'image1.jpg'},\n\
           \            {'fileName': 'image2.png'}\n        ],\n        'options':\
           \ {'strength': 'high'}\n    }\n)\ndata = response.json()"
   /api/v2/orders/anti-ai/confirm:
@@ -916,20 +961,20 @@ paths:
         label: cURL
         source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/confirm \\\
           \n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-confirm-001\",\n    \"orderId\"\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"1b7e3c90-6d2a-4f58-a9c1-8e4b7d0f2a63\",\n    \"orderId\"\
           : \"ORDER_ID\"\n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm',\
           \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-confirm-001',\n    orderId: 'ORDER_ID'\n  })\n\
+          \    idempotencyKey: '1b7e3c90-6d2a-4f58-a9c1-8e4b7d0f2a63',\n    orderId: 'ORDER_ID'\n  })\n\
           });\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/anti-ai/confirm',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
-          \ 'key-confirm-001',\n        'orderId': 'ORDER_ID'\n    }\n)\ndata = response.json()"
+          \ '1b7e3c90-6d2a-4f58-a9c1-8e4b7d0f2a63',\n        'orderId': 'ORDER_ID'\n    }\n)\ndata = response.json()"
   /api/v2/orders/anti-ai/with-urls:
     post:
       summary: Create Anti-AI order with URLs
@@ -1044,7 +1089,7 @@ paths:
         label: cURL
         source: "curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/with-urls\
           \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-url-001\",\n    \"files\":\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"3c7a5e19-9b2f-4d86-a1c4-6f8e0b3d5a71\",\n    \"files\":\
           \ [\n      {\n        \"fileName\": \"image1.jpg\",\n        \"imageUrl\"\
           : \"https://example.com/image1.jpg\"\n      }\n    ],\n    \"options\":\
           \ {\"strength\": \"high\"}\n  }'"
@@ -1053,7 +1098,7 @@ paths:
         source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/with-urls',\
           \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-url-001',\n    files: [\n      {\n        fileName:\
+          \    idempotencyKey: '3c7a5e19-9b2f-4d86-a1c4-6f8e0b3d5a71',\n    files: [\n      {\n        fileName:\
           \ 'image1.jpg',\n        imageUrl: 'https://example.com/image1.jpg'\n  \
           \    }\n    ],\n    options: { strength: 'high' }\n  })\n});\nconst data\
           \ = await response.json();"
@@ -1061,7 +1106,7 @@ paths:
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/anti-ai/with-urls',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
-          \ 'key-url-001',\n        'files': [\n            {\n                'fileName':\
+          \ '3c7a5e19-9b2f-4d86-a1c4-6f8e0b3d5a71',\n        'files': [\n            {\n                'fileName':\
           \ 'image1.jpg',\n                'imageUrl': 'https://example.com/image1.jpg'\n\
           \            }\n        ],\n        'options': {'strength': 'high'}\n  \
           \  }\n)\ndata = response.json()"
@@ -1171,7 +1216,7 @@ paths:
               uploadMode:
                 summary: Upload mode (traditional)
                 value:
-                  idempotencyKey: key-embed-001
+                  idempotencyKey: 5e9c7a3b-b4d2-4f18-83e6-8b1a2d5f7c93
                   files:
                   - fileName: image1.jpg
                     watermarks:
@@ -1182,7 +1227,7 @@ paths:
               urlMode:
                 summary: URL mode (immediate processing)
                 value:
-                  idempotencyKey: key-embed-url-001
+                  idempotencyKey: 6f1d8b4c-c5e3-4029-94f7-9c2b3e6a8d04
                   files:
                   - fileName: image1.jpg
                     originalFileUrl: https://example.com/image1.jpg
@@ -1195,7 +1240,7 @@ paths:
               mixedMode:
                 summary: Mixed mode
                 value:
-                  idempotencyKey: key-embed-mixed-001
+                  idempotencyKey: 7a2e9c5d-d6f4-413a-a5b8-0d3c4f7b9e15
                   files:
                   - fileName: upload-file.jpg
                     watermarks:
@@ -1244,8 +1289,7 @@ paths:
                             uploadUrl:
                               type: string
                               format: uri
-                              description: Presigned upload URL. Returned in upload mode
-                                only.
+                              description: 'Upload URL, returned in upload mode only. Live keys receive an S3 presigned URL; test keys receive an absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL. Both expire after one hour. PUT needs no Authorization header because the signed token authorizes the test upload. Test request bodies are streamed, not stored; test orders move to simulated results without usage consumption or actual external processing.'
                             originalFileUrl:
                               type: string
                               format: uri
@@ -1253,7 +1297,8 @@ paths:
                                 in URL mode only.
                             fileKey:
                               type: string
-                              description: S3 object key for the file.
+                              description: |
+                                File identifier: an S3 object key for live keys or an isolated logical key for test keys.
                             fileFormat:
                               type: string
                               description: File format.
@@ -1336,7 +1381,7 @@ paths:
         label: cURL
         source: "curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \\\n  -H\
           \ \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-embed-001\",\n    \"files\"\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"5e9c7a3b-b4d2-4f18-83e6-8b1a2d5f7c93\",\n    \"files\"\
           : [\n      {\n        \"fileName\": \"image.jpg\",\n        \"watermarks\"\
           : [{\"text\": \"MORI_WATERMARK\"}]\n      }\n    ]\n  }'"
       - lang: javascript
@@ -1344,14 +1389,14 @@ paths:
         source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-embed',\
           \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-embed-001',\n    files: [\n      {\n        fileName:\
+          \    idempotencyKey: '5e9c7a3b-b4d2-4f18-83e6-8b1a2d5f7c93',\n    files: [\n      {\n        fileName:\
           \ 'image.jpg',\n        watermarks: [{ text: 'MORI_WATERMARK' }]\n     \
           \ }\n    ]\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/wtr-embed',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
-          \ 'key-embed-001',\n        'files': [\n            {\n                'fileName':\
+          \ '5e9c7a3b-b4d2-4f18-83e6-8b1a2d5f7c93',\n        'files': [\n            {\n                'fileName':\
           \ 'image.jpg',\n                'watermarks': [{'text': 'MORI_WATERMARK'}]\n\
           \            }\n        ]\n    }\n)\ndata = response.json()"
   /api/v2/orders/wtr-extract:
@@ -1419,13 +1464,13 @@ paths:
               imageOnly:
                 summary: Single image (watermark only)
                 value:
-                  idempotencyKey: key-001
+                  idempotencyKey: 8b3f1d6e-e7a5-424b-b6c9-1e4d5a8c0f26
                   file:
                     fileName: watermarked.jpg
               imageWithOriginal:
                 summary: Image + original included
                 value:
-                  idempotencyKey: key-002
+                  idempotencyKey: 9c4a2e7f-f8b6-435c-87da-2f5e6b9d1a37
                   file:
                     fileName: watermarked.jpg
                     includeOriginal: true
@@ -1434,7 +1479,7 @@ paths:
               pdfOnly:
                 summary: PDF file
                 value:
-                  idempotencyKey: key-003
+                  idempotencyKey: ad5b3f8a-a9c7-446d-98eb-3a6f7c0e2b48
                   file:
                     fileName: document.pdf
       responses:
@@ -1507,34 +1552,33 @@ paths:
         label: cURL
         source: "curl -X POST https://api.bizmori.com/api/v2/orders/wtr-extract \\\n\
           \  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type: application/json\"\
-          \ \\\n  -d '{\n    \"idempotencyKey\": \"key-extract-001\",\n    \"file\"\
+          \ \\\n  -d '{\n    \"idempotencyKey\": \"8b3f1d6e-e7a5-424b-b6c9-1e4d5a8c0f26\",\n    \"file\"\
           : {\n      \"fileName\": \"watermarked.jpg\"\n    }\n  }'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-extract',\
           \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-extract-001',\n    file: {\n      fileName: 'watermarked.jpg'\n\
+          \    idempotencyKey: '8b3f1d6e-e7a5-424b-b6c9-1e4d5a8c0f26',\n    file: {\n      fileName: 'watermarked.jpg'\n\
           \    }\n  })\n});\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/wtr-extract',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'idempotencyKey':\
-          \ 'key-extract-001',\n        'file': {\n            'fileName': 'watermarked.jpg'\n\
+          \ '8b3f1d6e-e7a5-424b-b6c9-1e4d5a8c0f26',\n        'file': {\n            'fileName': 'watermarked.jpg'\n\
           \        }\n    }\n)\ndata = response.json()"
   /api/v2/orders/ai-detection:
     post:
       summary: Create AI Detection order
-      description: 'Creates an AI Detection order and issues a presigned S3 upload
-        URL for the image.
+      description: 'Creates an AI Detection order and issues an upload URL for the image. Live keys receive an S3 presigned URL; test keys receive an absolute BIZ MORI test-upload URL.
 
 
         ## Flow
 
 
-        1. Call this endpoint to receive a presigned upload URL
+        1. Call this endpoint to receive an upload URL
 
-        2. Upload the image directly to S3 using the presigned URL
+        2. Upload the image using the live S3 URL or test BIZ MORI URL
 
         3. Call `POST /api/v2/orders/ai-detection/confirm` to start async
         detection
@@ -1581,7 +1625,7 @@ paths:
                 idempotencyKey:
                   type: string
                   description: Idempotency key to prevent duplicate requests
-                  example: key-ai-detection-001
+                  example: 0e6c4a9b-b1d8-457e-a9fc-4b7d0e3a6c59
                 orderName:
                   type: string
                   maxLength: 64
@@ -1643,10 +1687,11 @@ paths:
                           uploadUrl:
                             type: string
                             format: uri
-                            description: Presigned S3 URL for direct file upload
+                            description: 'Upload URL. Live keys receive an S3 presigned URL; test keys receive an absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL. Both expire after one hour. PUT needs no Authorization header because the signed token authorizes the test upload. Test request bodies are streamed, not stored; test orders move to simulated results without usage consumption or actual external processing.'
                           fileKey:
                             type: string
-                            description: S3 file key
+                            description: |
+                              File identifier: an S3 object key for live keys or an isolated logical key for test keys.
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1658,28 +1703,27 @@ paths:
         label: cURL
         source: "curl -X POST https://api.bizmori.com/api/v2/orders/ai-detection\
           \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type:\
-          \ application/json\" \\\n  -d '{\"idempotencyKey\": \"key-ai-001\", \"fileName\"\
+          \ application/json\" \\\n  -d '{\"idempotencyKey\": \"0e6c4a9b-b1d8-457e-a9fc-4b7d0e3a6c59\", \"fileName\"\
           : \"photo.jpg\"}'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch('https://api.bizmori.com/api/v2/orders/ai-detection',\
           \ {\n  method: 'POST',\n  headers: {\n    'Authorization': 'Bearer YOUR_API_TOKEN',\n\
           \    'Content-Type': 'application/json'\n  },\n  body: JSON.stringify({\n\
-          \    idempotencyKey: 'key-ai-001',\n    fileName: 'photo.jpg'\n  })\n});\n\
+          \    idempotencyKey: '0e6c4a9b-b1d8-457e-a9fc-4b7d0e3a6c59',\n    fileName: 'photo.jpg'\n  })\n});\n\
           const data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/ai-detection',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey':\
-          \ 'key-ai-001', 'fileName': 'photo.jpg'}\n)\ndata = response.json()"
+          \ '0e6c4a9b-b1d8-457e-a9fc-4b7d0e3a6c59', 'fileName': 'photo.jpg'}\n)\ndata = response.json()"
   /api/v2/orders/ai-detection/confirm:
     post:
       summary: Confirm AI Detection order
-      description: 'Confirms that the image has been uploaded to S3 and starts async
-        AI detection processing.
+      description: 'Confirms that the image upload is complete and starts processing.
 
 
-        Call this endpoint after uploading the image to the presigned URL received
+        Call this endpoint after uploading the image to the upload URL received
         from the create order endpoint. The order status will change from `pending`
         to `inProgress`.
 
@@ -1708,7 +1752,7 @@ paths:
                   description: Unique key to prevent duplicate requests. If the same
                     key is used in a retry, the current order status is returned without
                     reprocessing.
-                  example: 01950c7e-f6b2-7000-8000-abcdef123456
+                  example: c6d4e2f1-3a5b-4c78-9d0e-6f2a1b8c4d95
                 orderId:
                   type: string
                   description: Order ID
@@ -1742,20 +1786,20 @@ paths:
         label: cURL
         source: "curl -X POST \"https://api.bizmori.com/api/v2/orders/ai-detection/confirm\"\
           \ \\\n  -H \"Authorization: Bearer YOUR_API_TOKEN\" \\\n  -H \"Content-Type:\
-          \ application/json\" \\\n  -d '{\"idempotencyKey\": \"YOUR_IDEMPOTENCY_KEY\"\
+          \ application/json\" \\\n  -d '{\"idempotencyKey\": \"c6d4e2f1-3a5b-4c78-9d0e-6f2a1b8c4d95\"\
           , \"orderId\": \"ORDER_ID\"}'"
       - lang: javascript
         label: JavaScript
         source: "const response = await fetch(\n  'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
           \  {\n    method: 'POST',\n    headers: {\n      'Authorization': 'Bearer\
           \ YOUR_API_TOKEN',\n      'Content-Type': 'application/json'\n    },\n \
-          \   body: JSON.stringify({ idempotencyKey: 'YOUR_IDEMPOTENCY_KEY', orderId:\
+          \   body: JSON.stringify({ idempotencyKey: 'c6d4e2f1-3a5b-4c78-9d0e-6f2a1b8c4d95', orderId:\
           \ 'ORDER_ID' })\n  }\n);\nconst data = await response.json();"
       - lang: python
         label: Python
         source: "import requests\n\nresponse = requests.post(\n    'https://api.bizmori.com/api/v2/orders/ai-detection/confirm',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={'idempotencyKey':\
-          \ 'YOUR_IDEMPOTENCY_KEY', 'orderId': 'ORDER_ID'}\n)\ndata = response.json()"
+          \ 'c6d4e2f1-3a5b-4c78-9d0e-6f2a1b8c4d95', 'orderId': 'ORDER_ID'}\n)\ndata = response.json()"
   /api/v2/orders:
     get:
       summary: List orders
@@ -1997,7 +2041,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/WebhookNotFound'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2060,8 +2104,10 @@ paths:
                         example: 3600
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/WebhookNotFound'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2082,7 +2128,7 @@ paths:
   /api/v2/orders/{orderId}/refresh-urls:
     post:
       summary: Refresh presigned URLs
-      description: 'Reissue expired upload URLs.
+      description: 'Reissue expired upload URLs. Live keys receive S3 presigned URLs; test keys receive absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URLs. Both are valid for one hour.
 
         - Only available for orders with `pending` status
 
@@ -2116,7 +2162,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/WebhookNotFound'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2140,7 +2186,8 @@ paths:
 
 
         Register a webhook URL to receive notifications when order processing completes
-        or fails.
+        or fails. A live API key may choose isTest and defaults to false. A test API
+        key omits isTest or uses true and is forced to true; false returns AUTH_FORBIDDEN.
 
         '
       tags:
@@ -2164,6 +2211,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2253,7 +2302,7 @@ paths:
   /api/v2/orders/webhooks:
     get:
       summary: List webhooks
-      description: 'Retrieve registered webhooks with pagination.
+      description: 'Retrieve registered webhooks with pagination. A test API key sees only endpoints owned by the same owner with `isTest=true`; live keys keep their existing mixed live/test list.
 
         - Includes name, URL, active status, and last sent time
 
@@ -2320,7 +2369,7 @@ paths:
           \ 10}\n)\ndata = response.json()"
     post:
       summary: Create webhook
-      description: "Register a new webhook.\n- Multiple webhooks can be registered\n\
+      description: "Register a new webhook. A test API key creates an owned test endpoint when `isTest` is omitted or true; `isTest: false` returns `AUTH_FORBIDDEN`.\n- Multiple webhooks can be registered\n\
         - A signing secret is returned upon registration\n\n**Important**: The secret\
         \ is only shown in this response. Store it securely.\n\n## Webhook Event Types\n\
         \n| Event Type | Description |\n|-----------|-------------|\n| `order.antiAi.completed`\
@@ -2370,10 +2419,15 @@ paths:
                           it securely.
 
                           '
+                      isTest:
+                        type: boolean
+                        description: Whether this is a test endpoint
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2399,7 +2453,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}:
     get:
       summary: Get webhook details
-      description: Retrieve detailed information for a specific webhook.
+      description: 'Retrieve detailed information for a specific webhook. A test API key can retrieve only its owner''s test endpoint; a live or other-owner ID returns `WEBHOOK_NOT_FOUND` without disclosing existence.'
       tags:
       - Webhooks
       security:
@@ -2424,7 +2478,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/WebhookNotFound'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2442,7 +2496,7 @@ paths:
           \ 'YOUR_API_KEY'}\n)\ndata = response.json()"
     put:
       summary: Update webhook
-      description: Update webhook information.
+      description: 'Update webhook information. A test API key can update only its owner''s test endpoint; omitting `isTest` keeps test mode, true is allowed, and false returns `AUTH_FORBIDDEN`. A live or other-owner ID returns `WEBHOOK_NOT_FOUND`.'
       tags:
       - Webhooks
       security:
@@ -2480,6 +2534,9 @@ paths:
                         format: uri
                       isActive:
                         type: boolean
+                      isTest:
+                        type: boolean
+                        description: Whether this is a test endpoint
                       updatedAt:
                         type: string
                         format: date-time
@@ -2487,8 +2544,10 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/WebhookNotFound'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2512,7 +2571,7 @@ paths:
           \     'url': 'https://example.com/webhook-v2'\n    }\n)\ndata = response.json()"
     delete:
       summary: Delete webhook
-      description: Delete a webhook.
+      description: 'Delete a webhook. A test API key can delete only its owner''s test endpoint; a live or other-owner ID returns `WEBHOOK_NOT_FOUND` without disclosing existence.'
       tags:
       - Webhooks
       security:
@@ -2534,7 +2593,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/WebhookNotFound'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2554,7 +2613,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}/events:
     get:
       summary: List webhook events
-      description: 'Retrieve delivery events for a specific webhook with pagination.
+      description: 'Retrieve delivery events for a specific webhook with pagination. A test API key sees events only for its owner''s test endpoint; a live or other-owner ID returns `WEBHOOK_NOT_FOUND`.
 
         - Includes status, event type, and delivery time
 
@@ -2605,7 +2664,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/WebhookNotFound'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2626,7 +2685,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry:
     post:
       summary: Retry webhook event
-      description: 'Manually retry sending a single failed webhook event.
+      description: 'Manually retry sending a single failed webhook event. A test API key can retry only an event in its owner''s test endpoint; an inaccessible endpoint returns `WEBHOOK_NOT_FOUND`, and an event outside an accessible endpoint returns `WEBHOOK_EVENT_NOT_FOUND`.
 
         - Only events with `FAILED` status can be retried
 
@@ -2683,7 +2742,20 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: Webhook endpoint or event not found or not accessible to this API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                webhookNotFound:
+                  summary: Webhook endpoint not found or not accessible
+                  value:
+                    code: WEBHOOK_NOT_FOUND
+                webhookEventNotFound:
+                  summary: Event not found in the accessible webhook endpoint
+                  value:
+                    code: WEBHOOK_EVENT_NOT_FOUND
         '422':
           description: Event is not retryable
           content:
@@ -2707,7 +2779,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}/events/retry-failed:
     post:
       summary: Retry failed webhook events
-      description: 'Retry all failed webhook events within a specified date range.
+      description: 'Retry all failed webhook events within a specified date range. A test API key can retry only its owner''s test endpoint; an inaccessible endpoint returns `WEBHOOK_NOT_FOUND`.
 
         - Retries up to 50 failed events per request
 
@@ -2772,7 +2844,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/WebhookNotFound'
         '422':
           description: Invalid date range
           content:

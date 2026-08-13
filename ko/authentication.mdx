@@ -3,99 +3,75 @@ title: "인증"
 description: "BIZ MORI API 요청을 인증하는 방법"
 ---
 
-모든 API 엔드포인트는 **API 키**를 Bearer 토큰 형식으로 전달하여 인증해야 합니다.
+모든 API 엔드포인트는 `Authorization: Bearer` 헤더의 **API 키**가 필요합니다. [BIZ MORI 대시보드](https://app.bizmori.com/keys)에서 키를 발급해 안전하게 보관하세요. 키는 한 번만 표시됩니다.
 
 ## API 키 발급
 
-1. [BIZ MORI 대시보드](https://app.bizmori.com)에 로그인합니다
-2. [**API 키**](https://app.bizmori.com/keys)로 이동합니다
-3. **신규 발급**을 클릭합니다
-4. 키를 복사하여 안전하게 보관합니다 — **한 번만 표시됩니다**
+1. [BIZ MORI 대시보드](https://app.bizmori.com)에 로그인합니다.
+2. [**API Keys**](https://app.bizmori.com/keys)로 이동합니다.
+3. **Issue New Key**를 선택합니다.
+4. 키를 복사해 안전하게 보관합니다. 키는 한 번만 표시됩니다.
 
 <Warning>
-  API 키는 계정의 API에 대한 전체 접근 권한을 부여합니다. 클라이언트 코드, 공개 저장소, 버전 관리 시스템에 절대 노출하지 마세요. 환경 변수로 저장하세요.
+  API 키는 계정 접근 권한을 부여합니다. 브라우저 코드, 저장소, 버전 관리에 노출하지 마세요.
 </Warning>
 
-## API 키 사용 방법
+## API 키 사용
 
-모든 요청에서 `Authorization: Bearer` 헤더로 API 키를 전달합니다:
+새 논리 주문마다 UUIDv4를 생성합니다. 아래 예제는 첫 Anti-AI 주문 전에 키를 생성합니다.
 
 <CodeGroup>
 ```bash cURL
+ORDER_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
 curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"idempotencyKey": "unique-key", "files": [{"fileName": "image.jpg"}]}'
+  -d "{\"idempotencyKey\": \"$ORDER_IDEMPOTENCY_KEY\", \"files\": [{\"fileName\": \"image.jpg\"}]}"
 ```
 
 ```javascript Node.js
+import { randomUUID } from 'node:crypto';
+
+const orderIdempotencyKey = randomUUID();
 const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai', {
   method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_TOKEN',
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify({
-    idempotencyKey: 'unique-key',
-    files: [{ fileName: 'image.jpg' }],
-  }),
+  headers: { Authorization: 'Bearer YOUR_API_TOKEN', 'Content-Type': 'application/json' },
+  body: JSON.stringify({ idempotencyKey: orderIdempotencyKey, files: [{ fileName: 'image.jpg' }] }),
 });
-
 const data = await response.json();
 ```
 
 ```python Python
+import uuid
 import requests
 
+order_idempotency_key = str(uuid.uuid4())
 response = requests.post(
     'https://api.bizmori.com/api/v2/orders/anti-ai',
-    headers={
-        'Authorization': 'Bearer YOUR_API_TOKEN',
-    },
-    json={
-        'idempotencyKey': 'unique-key',
-        'files': [{'fileName': 'image.jpg'}],
-    },
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    json={'idempotencyKey': order_idempotency_key, 'files': [{'fileName': 'image.jpg'}]},
 )
 data = response.json()
 ```
 
 ```php PHP
 <?php
+$orderIdempotencyKey = sprintf('%04x%04x-%04x-4%03x-%x%03x-%04x%04x%04x', random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0x0fff), random_int(8, 11), random_int(0, 0x0fff), random_int(0, 0xffff), random_int(0, 0xffff), random_int(0, 0xffff));
 $ch = curl_init('https://api.bizmori.com/api/v2/orders/anti-ai');
-curl_setopt_array($ch, [
-    CURLOPT_POST           => true,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER     => [
-        'Authorization: Bearer YOUR_API_TOKEN',
-        'Content-Type: application/json',
-    ],
-    CURLOPT_POSTFIELDS => json_encode([
-        'idempotencyKey' => 'unique-key',
-        'files'          => [['fileName' => 'image.jpg']],
-    ]),
-]);
+curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_RETURNTRANSFER => true, CURLOPT_HTTPHEADER => ['Authorization: Bearer YOUR_API_TOKEN', 'Content-Type: application/json'], CURLOPT_POSTFIELDS => json_encode(['idempotencyKey' => $orderIdempotencyKey, 'files' => [['fileName' => 'image.jpg']]])]);
 $data = json_decode(curl_exec($ch), true);
 curl_close($ch);
 ```
 
 ```ruby Ruby
+require 'securerandom'
 require 'net/http'
 require 'json'
-
-uri  = URI('https://api.bizmori.com/api/v2/orders/anti-ai')
-http = Net::HTTP.new(uri.host, uri.port)
-http.use_ssl = true
-
-req = Net::HTTP::Post.new(uri)
-req['Authorization'] = 'Bearer YOUR_API_TOKEN'
-req['Content-Type']  = 'application/json'
-req.body = JSON.generate(
-  idempotencyKey: 'unique-key',
-  files: [{ fileName: 'image.jpg' }]
-)
-
-data = JSON.parse(http.request(req).body)
+order_idempotency_key = SecureRandom.uuid
+uri = URI('https://api.bizmori.com/api/v2/orders/anti-ai')
+req = Net::HTTP::Post.new(uri, {'Authorization' => 'Bearer YOUR_API_TOKEN', 'Content-Type' => 'application/json'})
+req.body = JSON.generate(idempotencyKey: order_idempotency_key, files: [{fileName: 'image.jpg'}])
+data = JSON.parse(Net::HTTP.start(uri.host, uri.port, use_ssl: true) {|http| http.request(req) }.body)
 ```
 
 ```go Go
@@ -105,21 +81,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 func main() {
-	body, _ := json.Marshal(map[string]any{
-		"idempotencyKey": "unique-key",
-		"files":          []map[string]string{{"fileName": "image.jpg"}},
-	})
-
-	req, _ := http.NewRequest("POST",
-		"https://api.bizmori.com/api/v2/orders/anti-ai",
-		bytes.NewBuffer(body),
-	)
+	orderIdempotencyKey := uuid.NewString()
+	body, _ := json.Marshal(map[string]any{"idempotencyKey": orderIdempotencyKey, "files": []map[string]string{{"fileName": "image.jpg"}}})
+	req, _ := http.NewRequest("POST", "https://api.bizmori.com/api/v2/orders/anti-ai", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer YOUR_API_TOKEN")
 	req.Header.Set("Content-Type", "application/json")
-
 	resp, _ := http.DefaultClient.Do(req)
 	defer resp.Body.Close()
 }
@@ -128,31 +99,36 @@ func main() {
 ```java Java
 import java.net.URI;
 import java.net.http.*;
+import java.util.UUID;
 
-HttpClient client = HttpClient.newHttpClient();
-HttpRequest request = HttpRequest.newBuilder()
-    .uri(URI.create("https://api.bizmori.com/api/v2/orders/anti-ai"))
-    .header("Authorization", "Bearer YOUR_API_TOKEN")
-    .header("Content-Type", "application/json")
-    .POST(HttpRequest.BodyPublishers.ofString(
-        "{\"idempotencyKey\":\"unique-key\",\"files\":[{\"fileName\":\"image.jpg\"}]}"
-    ))
-    .build();
-
-HttpResponse<String> response =
-    client.send(request, HttpResponse.BodyHandlers.ofString());
+public class Main {
+  public static void main(String[] args) throws Exception {
+    String orderIdempotencyKey = UUID.randomUUID().toString();
+    HttpRequest request = HttpRequest.newBuilder()
+        .uri(URI.create("https://api.bizmori.com/api/v2/orders/anti-ai"))
+        .header("Authorization", "Bearer YOUR_API_TOKEN")
+        .header("Content-Type", "application/json")
+        .POST(HttpRequest.BodyPublishers.ofString(
+            "{\"idempotencyKey\":\"" + orderIdempotencyKey + "\",\"files\":[{\"fileName\":\"image.jpg\"}]}"
+        ))
+        .build();
+    HttpResponse<String> response =
+        HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+  }
+}
 ```
 </CodeGroup>
 
-## 멱등성 (Idempotency)
+## 멱등성
 
-모든 주문 생성 엔드포인트는 `idempotencyKey` 파라미터를 지원합니다. 동일한 키로 중복 요청을 보내면 새 주문을 생성하는 대신 **기존 주문을 반환**합니다. 네트워크 재시도 시 이중 처리를 방지할 수 있습니다.
+새 논리 주문마다 새 UUIDv4를 사용합니다. Anti-AI와 AI Detection의 confirm은 별도 논리 요청이므로 각각 다른 UUIDv4를 생성합니다. 네트워크 실패 후 같은 논리 요청을 재시도할 때만 이전 값을 재사용하세요. 같은 키를 다시 보내면 새 주문 대신 기존 주문이 반환됩니다.
 
-```json
-{
-  "idempotencyKey": "01960d3e-a4f2-7b3c-8a1d-4c7e2f9b0a3d",
-  "files": [...]
-}
-```
+## Rate limit
 
-**UUID v7**을 사용하는 것을 권장합니다. 비즈니스 로직에서 파생된 결정론적 키(예: `user-{id}-batch-{timestamp}`)도 사용할 수 있습니다.
+모든 요청에는 15분당 1,000회의 전역 제한이 적용되며 표준 `RateLimit` 헤더가 포함됩니다. 일부 엔드포인트에는 별도의 endpoint-specific 제한이 추가로 적용될 수 있습니다.
+
+live 주문 API 키의 플랜 사용량 quota는 전역 요청 제한과 별개입니다. 이 quota가 소진되고 활성 credit pack이 없으면 주문 API는 HTTP 429와 `{ "code": "PLAN_LIMIT_EXCEEDED" }`를 반환합니다. 테스트 API 키는 플랜 사용량 quota를 우회하지만 API 키 인증보다 먼저 실행되는 전역 요청 limiter는 우회하지 않습니다.
+
+## Live 및 테스트 API 키
+
+live 키의 `uploadUrl`은 S3 presigned URL입니다. 테스트 키의 URL은 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` 형식의 절대 BIZ MORI API URL입니다. 두 URL 모두 발급 후 1시간 동안 유효합니다. 업로드와 재발급은 [빠른 시작](/ko/quickstart), 테스트 키 웹훅 범위는 [웹훅](/ko/webhooks)에서 확인하세요.
