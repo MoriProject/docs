@@ -8,7 +8,6 @@
     "dark": "#4F46E5"
   },
   "favicon": "/favicon.svg",
-  "openapi": ["/api-reference/openapi.yaml", "/ko/api-reference/openapi.yaml"],
   "languages": [
     {
       "language": "en",
@@ -17,6 +16,10 @@
     {
       "language": "ko",
       "name": "한국어"
+    },
+    {
+      "language": "ja",
+      "name": "日本語"
     }
   ],
   "navigation": {
@@ -32,6 +35,7 @@
                 "pages": [
                   "index",
                   "authentication",
+                  "test-api-keys",
                   "quickstart",
                   "quickstart/anti-ai",
                   "quickstart/watermark-embed",
@@ -41,15 +45,22 @@
               },
               {
                 "group": "Use Without Code",
-                "pages": ["mcp-connector"]
+                "pages": [
+                  "mcp-connector"
+                ]
               },
               {
                 "group": "Build with AI Agents",
-                "pages": ["ai-agents"]
+                "pages": [
+                  "ai-agents"
+                ]
               },
               {
                 "group": "Guides",
-                "pages": ["errors", "webhooks"]
+                "pages": [
+                  "errors",
+                  "webhooks"
+                ]
               }
             ]
           },
@@ -58,7 +69,9 @@
             "groups": [
               {
                 "group": "Overview",
-                "pages": ["api-reference/introduction"]
+                "pages": [
+                  "api-reference/introduction"
+                ]
               },
               {
                 "group": "Anti-AI",
@@ -77,11 +90,15 @@
               },
               {
                 "group": "Watermark Embed",
-                "pages": ["api-reference/watermark-embed/create-order"]
+                "pages": [
+                  "api-reference/watermark-embed/create-order"
+                ]
               },
               {
                 "group": "Watermark Extract",
-                "pages": ["api-reference/watermark-extract/create-order"]
+                "pages": [
+                  "api-reference/watermark-extract/create-order"
+                ]
               },
               {
                 "group": "Orders",
@@ -113,7 +130,11 @@
             "groups": [
               {
                 "group": "Legal",
-                "pages": ["legal/terms", "legal/privacy", "legal/aup"]
+                "pages": [
+                  "legal/terms",
+                  "legal/privacy",
+                  "legal/aup"
+                ]
               }
             ]
           }
@@ -130,6 +151,7 @@
                 "pages": [
                   "ko/index",
                   "ko/authentication",
+                  "ko/test-api-keys",
                   "ko/quickstart",
                   "ko/quickstart/anti-ai",
                   "ko/quickstart/watermark-embed",
@@ -139,15 +161,22 @@
               },
               {
                 "group": "코드 없이 사용하기",
-                "pages": ["ko/mcp-connector"]
+                "pages": [
+                  "ko/mcp-connector"
+                ]
               },
               {
                 "group": "AI 에이전트로 개발하기",
-                "pages": ["ko/ai-agents"]
+                "pages": [
+                  "ko/ai-agents"
+                ]
               },
               {
                 "group": "가이드",
-                "pages": ["ko/errors", "ko/webhooks"]
+                "pages": [
+                  "ko/errors",
+                  "ko/webhooks"
+                ]
               }
             ]
           },
@@ -156,58 +185,58 @@
             "groups": [
               {
                 "group": "개요",
-                "pages": ["ko/api-reference/introduction"]
+                "pages": [
+                  "ko/api-reference/introduction"
+                ]
               },
               {
                 "group": "Anti-AI",
-                "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "POST /api/v2/orders/anti-ai",
-                  "POST /api/v2/orders/anti-ai/confirm",
-                  "POST /api/v2/orders/anti-ai/with-urls"
+                  "ko/api-reference/anti-ai/create-order",
+                  "ko/api-reference/anti-ai/confirm-order",
+                  "ko/api-reference/anti-ai/create-order-urls"
                 ]
               },
               {
                 "group": "AI Detection",
-                "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "POST /api/v2/orders/ai-detection",
-                  "POST /api/v2/orders/ai-detection/confirm"
+                  "ko/api-reference/ai-detection/create-order",
+                  "ko/api-reference/ai-detection/confirm-order"
                 ]
               },
               {
                 "group": "Watermark-Embed",
-                "openapi": "/ko/api-reference/openapi.yaml",
-                "pages": ["POST /api/v2/orders/wtr-embed"]
+                "pages": [
+                  "ko/api-reference/watermark-embed/create-order"
+                ]
               },
               {
                 "group": "Watermark-Extract",
-                "openapi": "/ko/api-reference/openapi.yaml",
-                "pages": ["POST /api/v2/orders/wtr-extract"]
+                "pages": [
+                  "ko/api-reference/watermark-extract/create-order"
+                ]
               },
               {
                 "group": "Orders",
-                "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "GET /api/v2/orders",
-                  "GET /api/v2/orders/{orderId}",
-                  "GET /api/v2/orders/{orderId}/download",
-                  "POST /api/v2/orders/{orderId}/refresh-urls",
-                  "GET /api/v2/orders/stats/recent"
+                  "ko/api-reference/orders/list-orders",
+                  "ko/api-reference/orders/get-order",
+                  "ko/api-reference/orders/download-order",
+                  "ko/api-reference/orders/refresh-urls",
+                  "ko/api-reference/orders/recent-stats"
                 ]
               },
               {
                 "group": "Webhooks",
-                "openapi": "/ko/api-reference/openapi.yaml",
                 "pages": [
-                  "GET /api/v2/orders/webhooks",
-                  "POST /api/v2/orders/webhooks",
-                  "GET /api/v2/orders/webhooks/{webhookId}",
-                  "PUT /api/v2/orders/webhooks/{webhookId}",
-                  "DELETE /api/v2/orders/webhooks/{webhookId}",
-                  "GET /api/v2/orders/webhooks/{webhookId}/events",
-                  "POST /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry",
-                  "POST /api/v2/orders/webhooks/{webhookId}/events/retry-failed"
+                  "ko/api-reference/webhooks/list-webhooks",
+                  "ko/api-reference/webhooks/create-webhook",
+                  "ko/api-reference/webhooks/get-webhook",
+                  "ko/api-reference/webhooks/update-webhook",
+                  "ko/api-reference/webhooks/delete-webhook",
+                  "ko/api-reference/webhooks/list-events",
+                  "ko/api-reference/webhooks/retry-event",
+                  "ko/api-reference/webhooks/retry-failed-events"
                 ]
               }
             ]
@@ -217,7 +246,127 @@
             "groups": [
               {
                 "group": "법적 고지",
-                "pages": ["ko/legal/terms", "ko/legal/privacy", "ko/legal/aup"]
+                "pages": [
+                  "ko/legal/terms",
+                  "ko/legal/privacy",
+                  "ko/legal/aup"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "language": "ja",
+        "tabs": [
+          {
+            "tab": "ガイド",
+            "groups": [
+              {
+                "group": "はじめに",
+                "pages": [
+                  "ja/index",
+                  "ja/authentication",
+                  "ja/test-api-keys",
+                  "ja/quickstart",
+                  "ja/quickstart/anti-ai",
+                  "ja/quickstart/watermark-embed",
+                  "ja/quickstart/watermark-extract",
+                  "ja/quickstart/ai-detection"
+                ]
+              },
+              {
+                "group": "コードなしで使う",
+                "pages": [
+                  "ja/mcp-connector"
+                ]
+              },
+              {
+                "group": "AI エージェントで開発する",
+                "pages": [
+                  "ja/ai-agents"
+                ]
+              },
+              {
+                "group": "ガイド",
+                "pages": [
+                  "ja/errors",
+                  "ja/webhooks"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "API リファレンス",
+            "groups": [
+              {
+                "group": "概要",
+                "pages": [
+                  "ja/api-reference/introduction"
+                ]
+              },
+              {
+                "group": "Anti-AI",
+                "pages": [
+                  "ja/api-reference/anti-ai/create-order",
+                  "ja/api-reference/anti-ai/confirm-order",
+                  "ja/api-reference/anti-ai/create-order-urls"
+                ]
+              },
+              {
+                "group": "AI Detection",
+                "pages": [
+                  "ja/api-reference/ai-detection/create-order",
+                  "ja/api-reference/ai-detection/confirm-order"
+                ]
+              },
+              {
+                "group": "Watermark-Embed",
+                "pages": [
+                  "ja/api-reference/watermark-embed/create-order"
+                ]
+              },
+              {
+                "group": "Watermark-Extract",
+                "pages": [
+                  "ja/api-reference/watermark-extract/create-order"
+                ]
+              },
+              {
+                "group": "Orders",
+                "pages": [
+                  "ja/api-reference/orders/list-orders",
+                  "ja/api-reference/orders/get-order",
+                  "ja/api-reference/orders/download-order",
+                  "ja/api-reference/orders/refresh-urls",
+                  "ja/api-reference/orders/recent-stats"
+                ]
+              },
+              {
+                "group": "Webhooks",
+                "pages": [
+                  "ja/api-reference/webhooks/list-webhooks",
+                  "ja/api-reference/webhooks/create-webhook",
+                  "ja/api-reference/webhooks/get-webhook",
+                  "ja/api-reference/webhooks/update-webhook",
+                  "ja/api-reference/webhooks/delete-webhook",
+                  "ja/api-reference/webhooks/list-events",
+                  "ja/api-reference/webhooks/retry-event",
+                  "ja/api-reference/webhooks/retry-failed-events"
+                ]
+              }
+            ]
+          },
+          {
+            "tab": "法的事項",
+            "groups": [
+              {
+                "group": "法的事項",
+                "pages": [
+                  "ja/legal/terms",
+                  "ja/legal/privacy",
+                  "ja/legal/aup"
+                ]
               }
             ]
           }
@@ -336,6 +485,7 @@
     ]
   },
   "api": {
+    "openapi": ["api-reference/openapi.yaml", "ko/api-reference/openapi.yaml", "ja/api-reference/openapi.yaml"],
     "baseUrl": "https://api.bizmori.com",
     "auth": {
       "method": "bearer"

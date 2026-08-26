@@ -2,3 +2,5 @@
 title: "Get order details"
 openapi: "/api-reference/openapi.yaml GET /api/v2/orders/{orderId}"
 ---
+
+With an `sk_test_` key, this endpoint returns only test orders owned by the key's account. Test orders use the same `pending`, `inProgress`, `complete`, and `failed` status values as live orders.

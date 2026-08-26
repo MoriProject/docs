@@ -1,0 +1,450 @@
+---
+title: "不可視 watermark の抽出"
+description: "画像から不可視 watermark を検出・抽出する"
+---
+
+このガイドでは、画像から不可視 watermark を検出する手順を説明します — 注文の作成から検出結果の確認までです。
+
+すべてのエンドポイントは純粋な HTTPS と JSON を使用するため、サーバーからでもブラウザからでも同じように呼び出せます。各ステップには **React** タブが含まれており、ページ下部で[コピー&ペーストしてそのまま使える完全なコンポーネント](#react-完全なサンプル)を確認できます。
+
+## 事前準備
+
+- BIZ MORI API キー（[こちらから発行](https://app.bizmori.com/keys)）
+- 不可視 watermark が埋め込まれた画像ファイル（`jpeg`、`jpg`、`png`、`webp`、`bmp`、または `tiff`）または PDF
+
+## ステップ1: 注文の作成
+
+不可視 watermark 検出注文を作成します。
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.bizmori.com/api/v2/orders/wtr-extract \
+  -H "Authorization: Bearer YOUR_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "idempotencyKey": "2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40",
+    "file": {
+      "fileName": "watermarked.jpg"
+    }
+  }'
+```
+
+```javascript Node.js
+const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-extract', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_TOKEN',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    idempotencyKey: '2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40',
+    file: {
+      fileName: 'watermarked.jpg',
+    },
+  }),
+});
+const { data } = await response.json();
+```
+
+```jsx React
+// すべての JSON 呼び出しで使用するヘルパー関数です。API は失敗時に `{ code: "ERROR_CODE" }` を
+// 返すため、単純なステータスコードの代わりにこの code をそのまま公開します。
+const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
+
+async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${API_TOKEN}`,
+      ...(body && { 'Content-Type': 'application/json' }),
+    },
+    body: body && JSON.stringify({ idempotencyKey, ...body }),
+  });
+
+  if (!res.ok) {
+    const { code } = await res.json().catch(() => ({}));
+    throw new Error(code ?? `HTTP_${res.status}`);
+  }
+  return (await res.json()).data;
+}
+
+// `file` はユーザーが選択した単一の File です
+const order = await api('/orders/wtr-extract', {
+  method: 'POST',
+  idempotencyKey: crypto.randomUUID(),
+  body: {
+    file: { fileName: file.name },
+  },
+});
+```
+
+```python Python
+import requests
+
+res = requests.post(
+    'https://api.bizmori.com/api/v2/orders/wtr-extract',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    json={
+        'idempotencyKey': '2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40',
+        'file': {
+            'fileName': 'watermarked.jpg',
+        },
+    },
+)
+data = res.json()['data']
+```
+</CodeGroup>
+
+**レスポンス:**
+```json
+{
+  "data": {
+    "orderName": "wtr_extract_2026-03-18",
+    "orderId": "123456789",
+    "file": {
+      "fileId": 1,
+      "fileName": "watermarked.jpg",
+      "uploadUrl": "https://s3.amazonaws.com/...",
+      "fileKey": "123/456/watermarked.jpg"
+    }
+  }
+}
+```
+
+<Tip>
+  より正確な検出のために、元の（不可視 watermark 埋め込み前の）画像を併せて提供できます。詳しい使用方法については、[API リファレンス](/ja/api-reference/watermark-extract/create-order)を参照してください。
+</Tip>
+
+## ステップ2: ファイルのアップロード
+
+ステップ1のレスポンスの `uploadUrl` にファイルを PUT アップロードします。**Authorization ヘッダーは不要です** — S3 への直接アップロードです。
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://s3.amazonaws.com/..." \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @watermarked.jpg
+```
+
+```jsx React
+// fetch() はアップロードの進捗を通知できないため、PUT リクエストには XMLHttpRequest を使用します。
+function putFile(file, uploadUrl, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', file.type);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(event.loaded / event.total);
+    };
+    xhr.onload = () =>
+      xhr.status < 300 ? resolve() : reject(new Error(`UPLOAD_FAILED_${xhr.status}`));
+    xhr.onerror = () => reject(new Error('UPLOAD_NETWORK_ERROR'));
+
+    xhr.send(file);
+  });
+}
+
+// 注文レスポンスには `files` 配列ではなく単一の `file` が含まれています。
+await putFile(file, order.file.uploadUrl, (ratio) => setProgress(ratio));
+```
+</CodeGroup>
+
+<Info>
+  **別途、確認（confirm）ステップは必要ありません。** 不可視 watermark の埋め込みと同様に、ファイルのアップロードが完了すると検出処理が自動的に開始されます。アップロード後はそのまま結果を確認してください。
+</Info>
+
+<Note>
+  プリサインド URL は **1時間** 後に失効します。失効した場合は、[URL の再発行](/ja/api-reference/orders/refresh-urls) エンドポイントを使用して新しい URL を取得してください。
+</Note>
+
+## ステップ3: 結果の確認
+
+注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して検出完了の通知を受け取ります。
+
+<CodeGroup>
+```bash cURL
+curl https://api.bizmori.com/api/v2/orders/123456789 \
+  -H "Authorization: Bearer YOUR_API_TOKEN"
+```
+
+```javascript Node.js
+const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
+  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
+});
+const { data } = await res.json();
+```
+
+```jsx React
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// 待つ時間が長くなるほど間隔を広げます：素早い応答は素早く受け取り、時間がかかる
+// 処理では API を叩き続けません。永遠にポーリングしないよう、10分後には諦めます。
+// `status` で完了かどうかを判断します — 検出結果は `statusCode` で別途届きます。
+async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let delay = 2000;
+
+  while (Date.now() < deadline) {
+    const order = await api(`/orders/${orderId}`);
+    onStatus?.(order.status);
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
+
+    await sleep(delay);
+    delay = Math.min(delay * 1.5, 15000);
+  }
+  throw new Error('ORDER_POLL_TIMEOUT');
+}
+```
+
+```python Python
+res = requests.get(
+    'https://api.bizmori.com/api/v2/orders/123456789',
+    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+)
+data = res.json()['data']
+```
+</CodeGroup>
+
+**レスポンス（不可視 watermark が検出された場合）:**
+```json
+{
+  "data": {
+    "type": "watermarkExtract",
+    "orderId": "123456789",
+    "channel": "api",
+    "thumbnailImageUrl": "https://s3.amazonaws.com/...",
+    "status": "complete",
+    "orderName": "wtr_extract_2026-03-18",
+    "fileCount": 1,
+    "createdAt": "2026-03-18T12:00:00.000Z",
+    "updatedAt": "2026-03-18T12:01:30.000Z",
+    "errors": null,
+    "statusCode": "detected",
+    "watermarkText": "MORI_WATERMARK"
+  }
+}
+```
+
+**レスポンス（不可視 watermark が検出されなかった場合）:**
+```json
+{
+  "data": {
+    "type": "watermarkExtract",
+    "orderId": "123456789",
+    "channel": "api",
+    "thumbnailImageUrl": "https://s3.amazonaws.com/...",
+    "status": "complete",
+    "orderName": "wtr_extract_2026-03-18",
+    "fileCount": 1,
+    "createdAt": "2026-03-18T12:00:00.000Z",
+    "updatedAt": "2026-03-18T12:01:30.000Z",
+    "errors": null,
+    "statusCode": "undetected"
+  }
+}
+```
+
+`status` で作業の完了を確認した後、`statusCode` で結果を読み取ってください：
+
+| `status` | 意味 |
+|------|------|
+| `pending` | ファイルのアップロード待ち |
+| `inProgress` | 検出処理中 |
+| `complete` | 完了 — `statusCode` を確認してください |
+| `failed` | 検出失敗 |
+
+| `statusCode` | 意味 |
+|------|------|
+| `detected` | 不可視 watermark が検出されました — `watermarkText` で抽出されたテキストを確認してください |
+| `undetected` | 画像から不可視 watermark が検出されませんでした |
+
+## React 完全なサンプル
+
+上記すべてを1つのコンポーネントにまとめました：進捗を表示する単一ファイルのアップロード、バックオフ付きポーリング、そして `statusCode` に基づいてレンダリングする検出結果までを含みます。React 以外の依存関係はありません。
+
+```jsx WatermarkExtractChecker.jsx
+import { useRef, useState } from 'react';
+
+const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
+
+const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp,.pdf';
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
+  // リトライは呼び出し元の idempotency key をそのまま再利用するため、リトライされた作成リクエストが
+  // 2番目の注文を作成することはありません。認証失敗は `AUTH_*` コードとして現れ、
+  // リトライしても意味がないため、下の throw にそのまま渡されます。
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(`${API_BASE}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${API_TOKEN}`,
+        ...(body && { 'Content-Type': 'application/json' }),
+      },
+      body: body && JSON.stringify({ idempotencyKey, ...body }),
+    });
+
+    if (!res.ok) {
+      const { code } = await res.json().catch(() => ({}));
+      // 429 は 2 つの意味を持ちます: 一時的なレート制限と、再試行しても
+      // 解消しないプラン使用量の超過（PLAN_LIMIT_EXCEEDED）です。
+      if (res.status === 429 && code !== 'PLAN_LIMIT_EXCEEDED' && attempt < 3) {
+        await sleep(2 ** attempt * 1000);
+        continue;
+      }
+      throw new Error(code ?? `HTTP_${res.status}`);
+    }
+    return (await res.json()).data;
+  }
+}
+
+function putFile(file, uploadUrl, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', file.type);
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) onProgress(event.loaded / event.total);
+    };
+    xhr.onload = () =>
+      xhr.status < 300 ? resolve() : reject(new Error(`UPLOAD_FAILED_${xhr.status}`));
+    xhr.onerror = () => reject(new Error('UPLOAD_NETWORK_ERROR'));
+
+    xhr.send(file);
+  });
+}
+
+
+async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let delay = 2000;
+
+  while (Date.now() < deadline) {
+    const order = await api(`/orders/${orderId}`);
+    onStatus?.(order.status);
+    if (['complete', 'failed', 'expired'].includes(order.status)) return order;
+
+    await sleep(delay);
+    delay = Math.min(delay * 1.5, 15000);
+  }
+  throw new Error('ORDER_POLL_TIMEOUT');
+}
+
+export default function WatermarkExtractChecker() {
+  const [file, setFile] = useState(null);
+  const [progress, setProgress] = useState(0);
+  const [status, setStatus] = useState('idle');
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [orderId, setOrderId] = useState(null);
+  const inFlight = useRef(false);
+
+  const busy = status !== 'idle' && status !== 'complete';
+
+  async function checkWatermark(event) {
+    event.preventDefault();
+    if (inFlight.current || !file) return;
+    inFlight.current = true;
+
+    // 選択されたファイルをスナップショットとして保存します。リクエストが進行している間にユーザーがファイルを
+    // 変更する可能性があるため、`selected` はその注文のアップロード URL とペアになっている必要があります。
+    const selected = file;
+    setError(null);
+    setOrderId(null);
+    setResult(null);
+    setProgress(0);
+
+    try {
+      setStatus('creating order');
+      const order = await api('/orders/wtr-extract', {
+        method: 'POST',
+        idempotencyKey: crypto.randomUUID(),
+        body: { file: { fileName: selected.name } },
+      });
+
+      setOrderId(order.orderId);
+      setStatus('uploading');
+      await putFile(selected, order.file.uploadUrl, setProgress);
+
+      const finished = await pollOrder(order.orderId, { onStatus: setStatus });
+      // `expired` も終了状態です。クリーンアップ処理が 7日後にファイルを削除します。
+      if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
+
+      setResult(finished);
+      setStatus('complete');
+    } catch (caught) {
+      setError(caught.message);
+      setStatus('idle');
+    } finally {
+      inFlight.current = false;
+    }
+  }
+
+  return (
+    <form onSubmit={checkWatermark}>
+      <input
+        type="file"
+        accept={ACCEPT_FORMATS}
+        disabled={busy}
+        onChange={(event) => {
+          setFile(event.target.files[0] ?? null);
+          setError(null);
+          setProgress(0);
+          setResult(null);
+        }}
+      />
+      <button type="submit" disabled={busy || !file}>
+        不可視 watermark を確認
+      </button>
+
+      {status !== 'idle' && <p>ステータス: {status}</p>}
+      {status === 'uploading' && <p>アップロード中: {Math.round(progress * 100)}%</p>}
+
+      {/* `status` は作業の完了を、`statusCode` は検出結果を表します。 */}
+      {result?.statusCode === 'detected' && (
+        <p>
+          不可視 watermark を検出: <strong>{result.watermarkText}</strong>
+        </p>
+      )}
+      {result?.statusCode === 'undetected' && <p>この画像から不可視 watermark は検出されませんでした。</p>}
+      {error && <p role="alert">失敗: {error}{orderId && ` (orderId: ${orderId})`}</p>}
+    </form>
+  );
+}
+```
+
+<Note>
+  `import.meta.env.VITE_MORI_API_TOKEN` は Vite の構文です。Next.js では `process.env.NEXT_PUBLIC_MORI_API_TOKEN` を使用するか、使用中のバンドラーがクライアントコードに公開する方式に従ってください。`crypto.randomUUID()` はセキュアコンテキストでのみ動作します。HTTPS と `localhost` では問題ありませんが、通常の HTTP の LAN アドレスでは使用できません。
+</Note>
+
+## エラー処理
+
+| HTTP ステータスコード | 意味 | 対応 |
+|----------------|------|------|
+| `400` | 不正なリクエスト | パラメータとファイル形式を確認 |
+| `401` | 認証失敗 | API キーを確認 |
+| `429` | レート制限、またはプラン使用量の超過時は `PLAN_LIMIT_EXCEEDED` | `code` を確認してください。レート制限は再試行で解消しますが、`PLAN_LIMIT_EXCEEDED` は解消しないためプランのアップグレードが必要です |
+
+エラーコードの一覧は、[エラーコード](/ja/errors) ページを参照してください。
+
+## 次のステップ
+
+<CardGroup cols={2}>
+  <Card title="Anti-AI" icon="shield" href="/ja/quickstart/anti-ai">
+    画像を AI 学習および生成から保護します。
+  </Card>
+  <Card title="不可視 watermark の埋め込み" icon="stamp" href="/ja/quickstart/watermark-embed">
+    画像に不可視 watermark を埋め込みます。
+  </Card>
+  <Card title="AI Detection" icon="robot" href="/ja/quickstart/ai-detection">
+    AI 生成画像を確率スコアで検出します。
+  </Card>
+  <Card title="Webhook" icon="bell" href="/ja/webhooks">
+    処理完了時に通知を受け取るために Webhook を設定します。
+  </Card>
+</CardGroup>

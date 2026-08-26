@@ -2,3 +2,7 @@
 title: "Create watermark extract order"
 openapi: "/api-reference/openapi.yaml POST /api/v2/orders/wtr-extract"
 ---
+
+<Note>
+  With an `sk_test_` key, upload to the returned BIZ MORI test upload URL. Watermark Extract starts after the upload finishes and uses `_detected` or `_undetected` in the file name to select the simulated result.
+</Note>

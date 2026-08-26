@@ -1,11 +1,10 @@
 ---
 title: "AI Detection 주문 생성"
-openapi: "POST /api/v2/orders/ai-detection"
+openapi: "/ko/api-reference/openapi.yaml POST /api/v2/orders/ai-detection"
 ---
-
 ## 이미지 업로드 방법
 
-응답에서 받은 `uploadUrl`을 사용하여 `PUT` 요청으로 S3에 직접 이미지를 업로드합니다:
+응답에서 받은 `uploadUrl`을 사용하여 `PUT` 요청으로 이미지를 업로드합니다. 일반 키는 프리사인드 저장소 URL을 반환하고, 테스트 키는 요청 본문을 소비한 뒤 폐기하는 BIZ MORI 테스트 업로드 URL을 반환합니다:
 
 ```bash
 curl -X PUT "UPLOAD_URL" \
@@ -14,7 +13,7 @@ curl -X PUT "UPLOAD_URL" \
 ```
 
 <Note>
-  프리사인드 업로드 URL은 **10분** 후 만료됩니다. 만료 전에 이미지를 업로드하고 [주문 확인](/ko/api-reference/ai-detection/confirm-order) 엔드포인트를 호출하세요.
+  일반 프리사인드 업로드 URL은 **1시간** 후 만료됩니다. 테스트 업로드 URL에는 자체 인증 정보가 있으므로 Bearer 헤더가 필요하지 않습니다. URL이 만료되기 전에 업로드하고 [주문 확인](/ko/api-reference/ai-detection/confirm-order) 엔드포인트를 호출하세요.
 </Note>
 
 ## 감지 결과 확인
@@ -38,6 +37,10 @@ curl -X PUT "UPLOAD_URL" \
   }
 }
 ```
+
+<Info>
+  테스트 주문은 파일명으로 감지 결과를 고정합니다. `_ai`는 확률 `0.98`, `_human`은 확률 `0.02`를 반환합니다. 테스트 주문은 다운로드 가능한 히트맵·오버레이 파일을 만들지 않습니다.
+</Info>
 
 ### 상태 코드
 

@@ -17,6 +17,7 @@ Full docs: https://docs.bizmori.com/llms-full.txt          <- guides, in plain t
 OpenAPI:   https://docs.bizmori.com/api-reference/openapi.yaml  <- authoritative schemas
 Base URL:  https://api.bizmori.com
 Auth:      Authorization: Bearer $BIZMORI_API_KEY  (read from env; never hardcode or log it)
+Testing:   use an sk_test_ key for the order lifecycle and webhook contract; use a live key for actual processing results
 Service:   <Anti-AI | Watermark Embed | Watermark Extract | AI Detection>
 Stack:     <e.g. TypeScript + Express, Python + FastAPI>
 My task:   <what you want built>
@@ -41,12 +42,16 @@ one up rather than assuming — do not ship code that skips them:
 - Order creation takes an idempotency key. Reuse it when retrying.
 
 After you finish, verify — do not just claim it works:
-1. Run a real end-to-end order with a test image and show me it reaching `complete`.
-2. Show me the result actually retrieved (the downloaded file, or the detection field).
+1. With an `sk_test_` key, verify the upload, service-specific confirm step, and synthetic result state. State that processing did not run. For an actual end-to-end result, use a live API key and show the order reaching `complete`.
+2. With a live key, show me the result actually retrieved (the downloaded file, or the detection field). With a test key, explain that no result file is created and download returns `PROCESSED_FILE_NOT_FOUND`.
 3. Grep your own diff for a hardcoded key or a logged token, and show me the output.
 4. If you built a webhook receiver, send it a bad signature and show it returns 401.
 If you could not run one of these, say so plainly instead of asserting it passed.
 ```
+
+<Info>
+  Use an `sk_test_` key for request, upload, state-transition, and webhook smoke tests. It does not run processing or consume credits, so use a live API key when you need to verify an actual completed result or download a file.
+</Info>
 
 ## Use it in your editor
 
@@ -115,7 +120,7 @@ The prompt above works because these docs are published in a machine-readable fo
     The HMAC must be computed over the raw request bytes. If a JSON body-parser runs first and the code re-serializes the object, the signature will not match and the agent may be tempted to "fix" it by skipping verification. It must compare in constant time.
   </Accordion>
   <Accordion title="Presigned URL expiry is handled" icon="clock">
-    Upload and download URLs are valid for 1 hour. A long-running batch job must call [Refresh URLs](/api-reference/orders/refresh-urls) rather than reusing a stale URL.
+    Upload URLs are valid for 1 hour; download URLs for 7 days. A long-running batch job must call [Refresh URLs](/api-reference/orders/refresh-urls) rather than reusing a stale URL.
   </Accordion>
 </AccordionGroup>
 

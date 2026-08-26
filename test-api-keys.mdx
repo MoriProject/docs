@@ -1,0 +1,126 @@
+---
+title: "Test API keys"
+description: "Exercise the BIZ MORI order lifecycle without processing files or consuming credits."
+---
+
+Use the automatically issued test API key with the `sk_test_` prefix to validate your integration before you use a live API key.
+
+Test API keys use the same Bearer authentication as live keys, but they do not run Anti-AI, watermark, or AI Detection processing. They also do not create result files or consume customer credits.
+
+<Info>
+  Persistent test orders and test webhooks are enabled per environment. If your environment returns synthetic orders that are not retained, it is using the legacy mock behavior. Use a live API key when you need to evaluate processing quality or download a result file.
+</Info>
+
+## Test order lifecycle
+
+<Steps>
+  <Step title="Create an order">
+    Call the same order creation endpoint that you use for a live integration. Send the test key in the `Authorization` header and provide an `idempotencyKey`. Generate a new UUIDv4 for each logical order, and reuse it only when retrying that same request after a network failure.
+
+    ```bash
+    curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
+      -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "idempotencyKey": "2f1c3e4a-8b57-4a6d-9c20-7e5f1a3b6d42",
+        "files": [{"fileName": "sample.png"}]
+      }'
+    ```
+  </Step>
+  <Step title="Upload the test file">
+    For an upload-mode test order, send the file to the `uploadUrl` returned by the order response. A test upload URL uses the `PUT /api/v2/test-uploads/{token}` route.
+
+    The upload URL carries its own authorization. Do not add an API key header. BIZ MORI consumes the request stream, records upload completion, and discards the file contents.
+
+    ```bash
+    curl -X PUT "TEST_UPLOAD_URL" \
+      --data-binary @sample.png
+    ```
+
+    The default test upload limit is 50 MiB. Use [Refresh presigned URLs](/api-reference/orders/refresh-urls) when an upload URL expires and the order is still waiting for an upload.
+  </Step>
+  <Step title="Confirm when the service requires it">
+    Call the confirm endpoint after the upload for Anti-AI upload mode and AI Detection. Watermark Embed and Watermark Extract start after their required uploads finish. Anti-AI URL mode starts when you create the order.
+  </Step>
+  <Step title="Observe the state transition">
+    Test orders follow the same state shape as live orders:
+
+    `pending → inProgress → complete` or `failed`
+
+    The simulated processing delay is about five seconds. Poll [Get order](/api-reference/orders/get-order), or use a test webhook endpoint when webhooks are enabled in your environment.
+  </Step>
+  <Step title="Inspect the test order">
+    Use [List orders](/api-reference/orders/list-orders), [Recent usage statistics](/api-reference/orders/recent-stats), and [Get order details](/api-reference/orders/get-order) with the same test key. You see only test orders owned by the account associated with that key.
+  </Step>
+</Steps>
+
+## Service flows
+
+| Service | Create | Upload | Confirm |
+| --- | --- | --- | --- |
+| Anti-AI upload mode | `POST /api/v2/orders/anti-ai` | Test upload URL | Required |
+| Anti-AI URL mode | `POST /api/v2/orders/anti-ai` | Not required | Not required |
+| Watermark Embed | `POST /api/v2/orders/wtr-embed` | Test upload URL | Not required |
+| Watermark Extract | `POST /api/v2/orders/wtr-extract` | Test upload URL | Not required |
+| AI Detection | `POST /api/v2/orders/ai-detection` | Test upload URL | Required |
+
+Do not call a confirm endpoint for Watermark Embed or Watermark Extract. The request will fail because those services start after their uploads complete.
+
+## Choose a deterministic result
+
+Use the input file name to exercise success and failure states without depending on an external processing service.
+
+| File name suffix | Result |
+| --- | --- |
+| `*_fail.<ext>` | The order fails |
+| `*_detected.<ext>` | Watermark Extract reports a detected watermark |
+| `*_undetected.<ext>` | Watermark Extract reports no watermark |
+| `*_ai.<ext>` | AI Detection returns probability `0.98` |
+| `*_human.<ext>` | AI Detection returns probability `0.02` |
+
+Without a suffix, Anti-AI and Watermark Embed complete successfully, Watermark Extract reports no watermark, and AI Detection returns probability `0.02`. If any file in a multi-file order uses `_fail`, the order fails.
+
+## Test webhooks
+
+Create an owned test webhook endpoint with the Dashboard, a live API key, or a test API key. A test key may omit `isTest` or set it to `true`; `isTest: false` returns `403 AUTH_FORBIDDEN`:
+
+```bash
+curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
+  -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Integration test webhook",
+    "url": "https://example.com/test-webhook",
+    "isTest": true
+  }'
+```
+
+- A test API key can create, list, get, update, and delete test endpoints owned by the same owner, list their events, and retry failed events. Live-mode and other-owner resources remain hidden.
+- `isTest: true` endpoints receive test order events only.
+- `isTest: false` endpoints receive live order events only.
+- Test webhook payloads use the same event names, HMAC-SHA256 signature, and retry behavior as live webhooks.
+- Anti-AI and Watermark Embed test events use `downloadUrl: null` because no result file is created.
+
+See [Webhooks](/webhooks) for owner and mode isolation, signature verification, event payloads, and retry rules.
+
+## API behavior and limitations
+
+| Operation | Test API key behavior |
+| --- | --- |
+| `GET /api/v2/orders` | Returns the account's persistent test orders |
+| `GET /api/v2/orders/stats/recent` | Returns statistics for the account's test orders |
+| `GET /api/v2/orders/{orderId}` | Returns a test order owned by the key's account |
+| `POST /api/v2/orders/{orderId}/refresh-urls` | Refreshes an upload URL that has not been used yet |
+| `GET /api/v2/orders/{orderId}/download` | Returns `404 PROCESSED_FILE_NOT_FOUND` |
+| Webhook management and retries | Manage only test endpoints owned by the same owner; live-mode and other-owner IDs return `404`, while `isTest: false` returns `403 AUTH_FORBIDDEN` |
+
+Test orders remain separate from live orders. A test key cannot read or modify live orders, and a live key cannot read or modify test orders.
+
+Test API keys do not:
+
+- run image or document processing;
+- reserve or consume credits;
+- create downloadable result files; or
+- send events to live webhook endpoints.
+
+For authentication details, see [Authentication](/authentication). For error handling, see [Error Codes](/errors).

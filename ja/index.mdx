@@ -1,0 +1,76 @@
+---
+title: "概要"
+description: "BIZ MORI API — 画像のためのプログラマティックなデジタルコンテンツ保護"
+---
+
+**BIZ MORI API** は、デジタルコンテンツ保護サービスへのプログラマティックなアクセスを提供します。シンプルな REST API を通じて、画像を無断の AI 学習から保護し、目に見えない watermark を埋め込み、watermark の真正性を検証してください。
+
+## サービス
+
+<Columns cols={3}>
+  <Card title="Anti-AI" icon="shield" href="/ja/api-reference/anti-ai/create-order">
+    AI システムがモデル学習に画像を使用できないよう、目に見えない保護膜を適用します — 見た目の変化はありません。
+  </Card>
+  <Card title="不可視 watermark の埋め込み" icon="stamp" href="/ja/api-reference/watermark-embed/create-order">
+    識別不可能なデジタル watermark を埋め込み、所有権を追跡して画像の真正性を証明します。
+  </Card>
+  <Card title="不可視 watermark の抽出" icon="magnifying-glass" href="/ja/api-reference/watermark-extract/create-order">
+    埋め込まれた watermark を検出して読み取り、画像の出所と所有権を検証します。
+  </Card>
+  <Card title="AI Detection" icon="robot" href="/ja/api-reference/ai-detection/create-order">
+    画像が AI によって生成されたかどうかを判定します。さまざまな生成モデルに対応しています。
+  </Card>
+</Columns>
+
+## はじめに
+
+<Columns cols={2}>
+  <Card title="認証" icon="key" href="/ja/authentication">
+    API キーを発行し、すべてのリクエストを認証する方法を学びましょう。
+  </Card>
+  <Card title="クイックスタート" icon="rocket" href="/ja/quickstart">
+    ステップバイステップガイドで、数分で最初の API 呼び出しを行いましょう。
+  </Card>
+  <Card title="エラーコード" icon="circle-exclamation" href="/ja/errors">
+    エラーコード、HTTP ステータス、トラブルシューティングガイドの全一覧。
+  </Card>
+  <Card title="Webhook" icon="bell" href="/ja/webhooks">
+    注文処理が完了または失敗した際にプッシュ通知を受け取りましょう。
+  </Card>
+</Columns>
+
+## ベース URL
+
+```
+https://api.bizmori.com
+```
+
+すべてのエンドポイントは **HTTPS** でのみ提供されます。HTTP リクエストはサポートされていません。
+
+## リクエスト形式
+
+`Content-Type: application/json` でリクエストを送信し、`Authorization` ヘッダーに API キーを含めます。
+
+```
+Authorization: Bearer YOUR_API_TOKEN
+```
+
+## レスポンス形式
+
+すべてのレスポンスは JSON を返します。
+
+**成功**
+```json
+{
+  "data": { ... }
+}
+```
+
+**エラー**
+```json
+{
+  "code": "ERROR_CODE"
+}
+```
+
+HTTP ステータスコードでエラーの種別を把握し、`code` フィールドでプログラム的な処理およびローカライゼーションを行ってください。全一覧は [エラーコード](/ja/errors) を参照してください。

@@ -46,7 +46,14 @@ HTTP 상태 코드가 오류 유형을 나타냅니다. 프로그래밍 방식�
 | `ORDER_ALREADY_FAILED` | 400 | 이미 실패한 주문 |
 | `ORDER_TYPE_NOT_MATCH` | 400 | 주문 유형 불일치 |
 | `ORDER_TYPE_CANT_DOWNLOAD` | 400 | 다운로드 불가능한 주문 유형 |
+| `PROCESSED_FILE_NOT_FOUND` | 404 | 주문에 처리 결과 파일이 없음 |
 | `ORDER_TIMEOUT` | 408 | 주문 처리 시간 초과 |
+
+## 테스트 업로드 오류
+
+| 오류 코드 | HTTP 상태 | 설명 |
+|-----------|-----------|------|
+| `TEST_UPLOAD_TOO_LARGE` | 413 | 테스트 업로드가 기본 50 MiB 제한을 초과함 |
 
 ## 사용량 및 플랜 오류
 
