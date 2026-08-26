@@ -124,6 +124,8 @@ Webhookは、注文処理が完了または失敗した際にサーバーへ HTT
 | `watermarkFound` | boolean | watermark が検出されたかどうか |
 | `watermarkInfo.text` | string | 検出された watermark のテキスト（`watermarkFound` が `true` の場合のみ） |
 
+ペイロードではテキストのみを公開し、MID、`midDecimal`、`midHex` は含みません。
+
 ### AI Detection — 追加フィールド（完了）
 
 | フィールド | 型 | 説明 |
