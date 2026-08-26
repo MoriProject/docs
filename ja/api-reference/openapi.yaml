@@ -16,6 +16,9 @@ info:
   contact:
     name: BIZ MORI サポート
     email: support@bizmori.com
+  license:
+    name: Proprietary
+    url: https://docs.bizmori.com/legal/terms
 servers:
 - url: https://api.bizmori.com
   description: 本番環境
@@ -30,7 +33,12 @@ components:
       type: object
       properties:
         data:
-          nullable: true
+          oneOf:
+          - type: object
+            nullable: true
+            additionalProperties: true
+          - type: array
+            items: {}
           description: レスポンスデータ（データがない場合はnull）
     ErrorResponse:
       type: object
@@ -613,6 +621,7 @@ paths:
   /api/v2/orders/anti-ai:
     post:
       summary: Anti-AI注文を作成
+      operationId: createAntiAiOrder
       description: 'AI検知防止処理のための注文を作成します。
 
 
@@ -786,7 +795,7 @@ paths:
                       orderId: '123456789'
                       status: pending
                       files:
-                      - fileId: 1
+                      - fileId: '1'
                         fileName: image1.jpg
                         uploadUrl: https://s3.amazonaws.com/...
                         fileKey: temp/123456789/0/image1.jpg
@@ -798,7 +807,7 @@ paths:
                       orderId: '123456789'
                       status: inProgress
                       files:
-                      - fileId: 1
+                      - fileId: '1'
                         fileName: image1.jpg
                         originalFileUrl: https://example.com/image1.jpg
         '400':
@@ -832,6 +841,7 @@ paths:
   /api/v2/orders/anti-ai/confirm:
     post:
       summary: Anti-AI注文を確認
+      operationId: confirmAntiAiOrder
       description: 'ファイルアップロード完了後、処理を開始するために呼び出します。
 
         - すべてのアップロードファイルがS3にアップロードされた後に呼び出してください
@@ -894,6 +904,7 @@ paths:
   /api/v2/orders/anti-ai/with-urls:
     post:
       summary: URLでAnti-AI注文を作成
+      operationId: createAntiAiOrderWithUrls
       deprecated: true
       description: '**非推奨**: 代わりに `originalFileUrl` フィールドを使用した `/anti-ai` エンドポイントを使用してください。
 
@@ -1021,6 +1032,7 @@ paths:
   /api/v2/orders/wtr-embed:
     post:
       summary: watermark 埋め込み注文を作成
+      operationId: createWatermarkEmbedOrder
       description: 'watermark 埋め込み注文を作成します。
 
         - 画像1枚あたり最大10個の watermark テキスト
@@ -1293,6 +1305,7 @@ paths:
   /api/v2/orders/wtr-extract:
     post:
       summary: watermark 抽出注文を作成
+      operationId: createWatermarkExtractOrder
       description: 'watermark 抽出注文を作成します。
 
         - 注文あたりファイル1つのみ
@@ -1454,6 +1467,7 @@ paths:
   /api/v2/orders/ai-detection:
     post:
       summary: AI Detection注文を作成
+      operationId: createAiDetectionOrder
       description: 'AI Detection注文を作成し、画像用のプリサインドS3アップロードURLを発行します。
 
 
@@ -1566,7 +1580,7 @@ paths:
                           uploadUrl:
                             type: string
                             format: uri
-                            description: ファイル直接アップロード用のプリサインドS3 URL
+                            description: ファイル直接アップロード用のプリサインドS3 URL。liveキーのプリサインドアップロードURLは発行後1時間有効です。
                           fileKey:
                             type: string
                             description: S3ファイルキー
@@ -1596,6 +1610,7 @@ paths:
   /api/v2/orders/ai-detection/confirm:
     post:
       summary: AI Detection注文を確認
+      operationId: confirmAiDetectionOrder
       description: '画像がS3にアップロードされたことを確認し、非同期のAI検知処理を開始します。
 
 
@@ -1670,6 +1685,7 @@ paths:
   /api/v2/orders:
     get:
       summary: 注文一覧を取得
+      operationId: listOrders
       description: 'ページネーション付きで注文を取得します。
 
         - ステータス、タイプ、チャネルでフィルタリング
@@ -1773,6 +1789,7 @@ paths:
   /api/v2/orders/stats/recent:
     get:
       summary: 直近の使用統計
+      operationId: getRecentOrderStats
       description: 過去7日間の使用統計
       tags:
       - Orders
@@ -1813,6 +1830,7 @@ paths:
   /api/v2/orders/{orderId}:
     get:
       summary: 注文詳細を取得
+      operationId: getOrder
       tags:
       - Orders
       security:
@@ -1917,10 +1935,11 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/{orderId}/download:
     get:
       summary: ダウンロードURLを取得
+      operationId: downloadOrderFiles
       description: '完了した注文ファイルのダウンロードURLを発行します。
 
         - `complete` ステータスの注文でのみ利用可能
@@ -1973,11 +1992,12 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}/download',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['url']\
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['url']\
           \ contains the presigned download URL"
   /api/v2/orders/{orderId}/refresh-urls:
     post:
       summary: プリサインドURLを再発行
+      operationId: refreshOrderUrls
       description: '期限切れのアップロードURLを再発行します。
 
         - `pending` ステータスの注文でのみ利用可能
@@ -2031,6 +2051,7 @@ paths:
   /api/v2/orders/webhook:
     post:
       summary: Webhookを登録（レガシー）
+      operationId: createLegacyWebhook
       deprecated: true
       description: '**非推奨**: このAPIは `/webhooks` に置き換えられました。
 
@@ -2076,6 +2097,7 @@ paths:
           )\ndata = response.json()"
     get:
       summary: Webhookを取得（レガシー）
+      operationId: getLegacyWebhook
       deprecated: true
       description: '**非推奨**: このAPIは `/webhooks` に置き換えられました。'
       tags:
@@ -2109,6 +2131,7 @@ paths:
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
     delete:
       summary: Webhookを削除（レガシー）
+      operationId: deleteLegacyWebhook
       deprecated: true
       description: '**非推奨**: このAPIは `/webhooks/{webhookId}` に置き換えられました。'
       tags:
@@ -2141,6 +2164,7 @@ paths:
   /api/v2/orders/webhooks:
     get:
       summary: Webhook一覧を取得
+      operationId: listWebhooks
       description: 'ページネーション付きで登録済みのWebhookを取得します。
 
         - 名前、URL、有効状態、最終送信日時を含みます'
@@ -2205,6 +2229,7 @@ paths:
           )\ndata = response.json()"
     post:
       summary: Webhookを作成
+      operationId: createWebhook
       description: "新しいWebhookを登録します。\n- 複数のWebhookを登録可能\n- 登録時に署名シークレットが返却されます\n\n**重要**: シークレットはこのレスポンスでのみ表示されます。安全に保管してください。\n\
         \n## Webhookイベントタイプ\n\n| イベントタイプ | 説明 |\n|-----------|-------------|\n| `order.antiAi.completed`\
         \ | Anti-AI処理が完了 |\n| `order.antiAi.failed` | Anti-AI処理が失敗 |\n| `order.watermarkEmbed.completed`\
@@ -2271,6 +2296,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}:
     get:
       summary: Webhook詳細を取得
+      operationId: getWebhook
       description: 特定のWebhookの詳細情報を取得します。
       tags:
       - Webhooks
@@ -2309,9 +2335,10 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'}\n)\ndata = response.json()"
     put:
       summary: Webhookを更新
+      operationId: updateWebhook
       description: Webhook情報を更新します。
       tags:
       - Webhooks
@@ -2375,10 +2402,11 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.put(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'},\n    json={\n        'name': 'Updated Webhook',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'},\n    json={\n        'name': 'Updated Webhook',\n\
           \        'url': 'https://example.com/webhook-v2'\n    }\n)\ndata = response.json()"
     delete:
       summary: Webhookを削除
+      operationId: deleteWebhook
       description: Webhookを削除します。
       tags:
       - Webhooks
@@ -2415,10 +2443,11 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.delete(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/webhooks/{webhookId}/events:
     get:
       summary: Webhookイベント一覧を取得
+      operationId: listWebhookEvents
       description: 'ページネーション付きで特定のWebhookの配信イベントを取得します。
 
         - ステータス、イベントタイプ、配信日時を含みます'
@@ -2487,6 +2516,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry:
     post:
       summary: Webhookイベントを再送
+      operationId: retryWebhookEvent
       description: '失敗した単一のWebhookイベントを手動で再送します。
 
         - `FAILED` ステータスのイベントのみ再送可能
@@ -2565,6 +2595,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}/events/retry-failed:
     post:
       summary: 失敗したWebhookイベントを一括再送
+      operationId: retryFailedWebhookEvents
       description: '指定した期間内のすべての失敗したWebhookイベントを再送します。
 
         - 1リクエストあたり最大50件の失敗イベントを再送

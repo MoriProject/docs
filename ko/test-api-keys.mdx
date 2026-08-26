@@ -15,14 +15,14 @@ description: "파일을 실제로 처리하거나 크레딧을 사용하지 않�
 
 <Steps>
   <Step title="주문 생성">
-    일반 연동과 동일한 주문 생성 엔드포인트를 호출합니다. `Authorization` 헤더에 테스트 키를 전달하고 `idempotencyKey`를 지정하세요.
+    일반 연동과 동일한 주문 생성 엔드포인트를 호출합니다. `Authorization` 헤더에 테스트 키를 전달하고 `idempotencyKey`를 지정하세요. 새 논리 주문마다 UUIDv4를 생성하고, 네트워크 실패 후 같은 요청을 재시도할 때만 재사용하세요.
 
     ```bash
     curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
       -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "idempotencyKey": "test-order-001",
+        "idempotencyKey": "2f1c3e4a-8b57-4a6d-9c20-7e5f1a3b6d42",
         "files": [{"fileName": "sample.png"}]
       }'
     ```

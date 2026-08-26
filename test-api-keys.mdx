@@ -15,14 +15,14 @@ Test API keys use the same Bearer authentication as live keys, but they do not r
 
 <Steps>
   <Step title="Create an order">
-    Call the same order creation endpoint that you use for a live integration. Send the test key in the `Authorization` header and provide an `idempotencyKey`.
+    Call the same order creation endpoint that you use for a live integration. Send the test key in the `Authorization` header and provide an `idempotencyKey`. Generate a new UUIDv4 for each logical order, and reuse it only when retrying that same request after a network failure.
 
     ```bash
     curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
       -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "idempotencyKey": "test-order-001",
+        "idempotencyKey": "2f1c3e4a-8b57-4a6d-9c20-7e5f1a3b6d42",
         "files": [{"fileName": "sample.png"}]
       }'
     ```

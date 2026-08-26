@@ -18,6 +18,9 @@ info:
   contact:
     name: BIZ MORI Support
     email: support@bizmori.com
+  license:
+    name: Proprietary
+    url: https://docs.bizmori.com/legal/terms
 servers:
 - url: https://api.bizmori.com
   description: Production
@@ -32,7 +35,12 @@ components:
       type: object
       properties:
         data:
-          nullable: true
+          oneOf:
+          - type: object
+            nullable: true
+            additionalProperties: true
+          - type: array
+            items: {}
           description: Response data (null if no data)
     ErrorResponse:
       type: object
@@ -649,14 +657,7 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: WEBHOOK_NOT_FOUND
-    WebhookEventNotFound:
-      description: Webhook event not found in the accessible endpoint
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          example:
-            code: WEBHOOK_EVENT_NOT_FOUND
+
 tags:
 - name: Anti-AI
   description: Anti-AI image protection orders
@@ -674,6 +675,7 @@ paths:
   /api/v2/orders/anti-ai:
     post:
       summary: Create Anti-AI order
+      operationId: createAntiAiOrder
       description: 'Create an order for AI detection protection processing.
 
 
@@ -855,7 +857,7 @@ paths:
                       orderId: '123456789'
                       status: pending
                       files:
-                      - fileId: 1
+                      - fileId: '1'
                         fileName: image1.jpg
                         uploadUrl: https://s3.amazonaws.com/...
                         fileKey: temp/123456789/0/image1.jpg
@@ -867,7 +869,7 @@ paths:
                       orderId: '123456789'
                       status: inProgress
                       files:
-                      - fileId: 1
+                      - fileId: '1'
                         fileName: image1.jpg
                         originalFileUrl: https://example.com/image1.jpg
         '400':
@@ -904,6 +906,7 @@ paths:
   /api/v2/orders/anti-ai/confirm:
     post:
       summary: Confirm Anti-AI order
+      operationId: confirmAntiAiOrder
       description: 'Call after file upload is complete to start processing.
 
         - Call after all upload files are uploaded to S3
@@ -970,6 +973,7 @@ paths:
   /api/v2/orders/anti-ai/with-urls:
     post:
       summary: Create Anti-AI order with URLs
+      operationId: createAntiAiOrderWithUrls
       deprecated: true
       description: '**Deprecated**: Use `/anti-ai` endpoint with `originalFileUrl` field instead.
 
@@ -1104,6 +1108,7 @@ paths:
   /api/v2/orders/wtr-embed:
     post:
       summary: Create watermark embed order
+      operationId: createWatermarkEmbedOrder
       description: 'Create a watermark embedding order.
 
         - Up to 10 watermark texts per image
@@ -1388,6 +1393,7 @@ paths:
   /api/v2/orders/wtr-extract:
     post:
       summary: Create watermark extract order
+      operationId: createWatermarkExtractOrder
       description: 'Create a watermark extraction order.
 
         - Only 1 file per order
@@ -1555,6 +1561,7 @@ paths:
   /api/v2/orders/ai-detection:
     post:
       summary: Create AI Detection order
+      operationId: createAiDetectionOrder
       description: 'Creates an AI Detection order and issues an upload URL for the image. Live keys receive an S3 presigned URL; test keys receive an absolute BIZ MORI test-upload URL.
 
 
@@ -1704,6 +1711,7 @@ paths:
   /api/v2/orders/ai-detection/confirm:
     post:
       summary: Confirm AI Detection order
+      operationId: confirmAiDetectionOrder
       description: 'Confirms that the image upload is complete and starts processing.
 
 
@@ -1786,6 +1794,7 @@ paths:
   /api/v2/orders:
     get:
       summary: List orders
+      operationId: listOrders
       description: 'Retrieve orders with pagination.
 
         - Filter by status, type, and channel
@@ -1891,6 +1900,7 @@ paths:
   /api/v2/orders/stats/recent:
     get:
       summary: Recent usage statistics
+      operationId: getRecentOrderStats
       description: Usage statistics for the last 7 days
       tags:
       - Orders
@@ -1931,6 +1941,7 @@ paths:
   /api/v2/orders/{orderId}:
     get:
       summary: Get order details
+      operationId: getOrder
       tags:
       - Orders
       security:
@@ -2035,10 +2046,11 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/{orderId}/download:
     get:
       summary: Get download URL
+      operationId: downloadOrderFiles
       description: 'Issue a download URL for completed order files.
 
         - Only available for orders with `complete` status
@@ -2098,11 +2110,12 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\norder_id = 'ORDER_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/{order_id}/download',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['url']\
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'}\n)\ndata = response.json()\n# data['data']['url']\
           \ contains the presigned download URL"
   /api/v2/orders/{orderId}/refresh-urls:
     post:
       summary: Refresh presigned URLs
+      operationId: refreshOrderUrls
       description: 'Reissue expired upload URLs. Live keys receive S3 presigned URLs; test keys receive absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URLs. Both are valid for one hour.
 
         - Only available for orders with `pending` status
@@ -2158,6 +2171,7 @@ paths:
   /api/v2/orders/webhook:
     post:
       summary: Register webhook (Legacy)
+      operationId: createLegacyWebhook
       deprecated: true
       description: '**Deprecated**: This API has been replaced by `/webhooks`.
 
@@ -2209,6 +2223,7 @@ paths:
           )\ndata = response.json()"
     get:
       summary: Get webhook (Legacy)
+      operationId: getLegacyWebhook
       deprecated: true
       description: '**Deprecated**: This API has been replaced by `/webhooks`.
 
@@ -2244,6 +2259,7 @@ paths:
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'}\n)\ndata = response.json()"
     delete:
       summary: Delete webhook (Legacy)
+      operationId: deleteLegacyWebhook
       deprecated: true
       description: '**Deprecated**: This API has been replaced by `/webhooks/{webhookId}`.
 
@@ -2278,6 +2294,7 @@ paths:
   /api/v2/orders/webhooks:
     get:
       summary: List webhooks
+      operationId: listWebhooks
       description: 'Retrieve registered webhooks with pagination. A test API key sees only endpoints owned by the same owner with `isTest=true`; live keys keep their existing mixed live/test list.
 
         - Includes name, URL, active status, and last sent time
@@ -2348,6 +2365,7 @@ paths:
           )\ndata = response.json()"
     post:
       summary: Create webhook
+      operationId: createWebhook
       description: "Register a new webhook. A test API key creates an owned test endpoint when `isTest` is omitted or true; `isTest: false` returns `AUTH_FORBIDDEN`.\n- Multiple webhooks can be registered\n\
         - A signing secret is returned upon registration\n\n**Important**: The secret\
         \ is only shown in this response. Store it securely.\n\n## Webhook Event Types\n\
@@ -2428,6 +2446,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}:
     get:
       summary: Get webhook details
+      operationId: getWebhook
       description: 'Retrieve detailed information for a specific webhook. A test API key can retrieve only its owner''s test endpoint; a live or other-owner ID returns `WEBHOOK_NOT_FOUND` without disclosing existence.'
       tags:
       - Webhooks
@@ -2468,9 +2487,10 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.get(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'}\n)\ndata = response.json()"
     put:
       summary: Update webhook
+      operationId: updateWebhook
       description: 'Update webhook information. A test API key can update only its owner''s test endpoint; omitting `isTest` keeps test mode, true is allowed, and false returns `AUTH_FORBIDDEN`. A live or other-owner ID returns `WEBHOOK_NOT_FOUND`.'
       tags:
       - Webhooks
@@ -2539,10 +2559,11 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.put(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'},\n    json={\n        'name': 'Updated Webhook',\n\
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'},\n    json={\n        'name': 'Updated Webhook',\n\
           \        'url': 'https://example.com/webhook-v2'\n    }\n)\ndata = response.json()"
     delete:
       summary: Delete webhook
+      operationId: deleteWebhook
       description: 'Delete a webhook. A test API key can delete only its owner''s test endpoint; a live or other-owner ID returns `WEBHOOK_NOT_FOUND` without disclosing existence.'
       tags:
       - Webhooks
@@ -2581,10 +2602,11 @@ paths:
       - lang: python
         label: Python
         source: "import requests\n\nwebhook_id = 'WEBHOOK_ID'\nresponse = requests.delete(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}',\n\
-          \    headers={'Authorization': 'YOUR_API_KEY'}\n)\ndata = response.json()"
+          \    headers={'Authorization': 'Bearer YOUR_API_KEY'}\n)\ndata = response.json()"
   /api/v2/orders/webhooks/{webhookId}/events:
     get:
       summary: List webhook events
+      operationId: listWebhookEvents
       description: 'Retrieve delivery events for a specific webhook with pagination. A test API key sees events only for its owner''s test endpoint; a live or other-owner ID returns `WEBHOOK_NOT_FOUND`.
 
         - Includes status, event type, and delivery time
@@ -2659,6 +2681,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}/events/{eventId}/retry:
     post:
       summary: Retry webhook event
+      operationId: retryWebhookEvent
       description: 'Manually retry sending a single failed webhook event. A test API key can retry only an event in its owner''s test endpoint; an inaccessible endpoint returns `WEBHOOK_NOT_FOUND`, and an event outside an accessible endpoint returns `WEBHOOK_EVENT_NOT_FOUND`.
 
         - Only events with `FAILED` status can be retried
@@ -2757,6 +2780,7 @@ paths:
   /api/v2/orders/webhooks/{webhookId}/events/retry-failed:
     post:
       summary: Retry failed webhook events
+      operationId: retryFailedWebhookEvents
       description: 'Retry all failed webhook events within a specified date range. A test API key can retry only its owner''s test endpoint; an inaccessible endpoint returns `WEBHOOK_NOT_FOUND`.
 
         - Retries up to 50 failed events per request

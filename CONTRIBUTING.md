@@ -32,3 +32,22 @@ For more details on local development, see our [development guide](development.m
 - **Lead with the goal**: Start instructions with what the user wants to accomplish
 - **Use consistent terminology**: Don't alternate between synonyms for the same concept
 - **Include examples**: Show, don't just tell
+
+## Validation
+
+Run the following checks before submitting a documentation pull request:
+
+```bash
+mint broken-links
+npx --yes @redocly/cli lint api-reference/openapi.yaml ko/api-reference/openapi.yaml ja/api-reference/openapi.yaml
+ruby scripts/validate-openapi-parity.rb api-reference/openapi.yaml ko/api-reference/openapi.yaml ja/api-reference/openapi.yaml
+ruby scripts/validate-openapi-description-links.rb api-reference/openapi.yaml ko/api-reference/openapi.yaml ja/api-reference/openapi.yaml
+```
+
+The OpenAPI description link validator checks root-relative Markdown links
+against existing `.mdx` pages because `mint broken-links` does not inspect
+links embedded in OpenAPI YAML strings.
+
+The root `redocly.yaml` extends the recommended ruleset. The only allowed
+exception is `no-ambiguous-paths: off`, which documents the existing Express
+backward-compatible route overlap. Do not add other lint exceptions.

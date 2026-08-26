@@ -15,14 +15,14 @@ description: "ファイルを処理したりクレジットを消費したりせ
 
 <Steps>
   <Step title="注文を作成する">
-    本番連携で使用するものと同じ注文作成エンドポイントを呼び出します。`Authorization` ヘッダーにテストキーを渡し、`idempotencyKey` を指定してください。
+    本番連携で使用するものと同じ注文作成エンドポイントを呼び出します。`Authorization` ヘッダーにテストキーを渡し、`idempotencyKey` を指定してください。論理注文ごとに新しい UUIDv4 を生成し、ネットワーク障害後に同じリクエストを再試行する場合にだけ再利用してください。
 
     ~~~bash
     curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
       -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
-        "idempotencyKey": "test-order-001",
+        "idempotencyKey": "2f1c3e4a-8b57-4a6d-9c20-7e5f1a3b6d42",
         "files": [{"fileName": "sample.png"}]
       }'
     ~~~
