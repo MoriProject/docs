@@ -126,6 +126,12 @@
             ]
           },
           {
+            "tab": "What's new",
+            "pages": [
+              "changelog"
+            ]
+          },
+          {
             "tab": "Legal",
             "groups": [
               {
@@ -239,6 +245,12 @@
                   "ko/api-reference/webhooks/retry-failed-events"
                 ]
               }
+            ]
+          },
+          {
+            "tab": "패치노트",
+            "pages": [
+              "ko/changelog"
             ]
           },
           {
@@ -358,6 +370,12 @@
             ]
           },
           {
+            "tab": "パッチノート",
+            "pages": [
+              "ja/changelog"
+            ]
+          },
+          {
             "tab": "法的事項",
             "groups": [
               {
@@ -454,6 +472,10 @@
           {
             "label": "Webhooks",
             "href": "/webhooks"
+          },
+          {
+            "label": "What's new",
+            "href": "/changelog"
           }
         ]
       },
