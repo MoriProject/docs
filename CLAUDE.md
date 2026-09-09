@@ -111,3 +111,7 @@ The Korean and Japanese API Reference endpoint lists must match the English side
 - Always include code examples for API usage
 - Korean (`ko/`) and Japanese (`ja/`) pages should be full translations, not summaries
 - Japanese pages write "watermark" in English rather than ウォーターマーク, with a half-width space between it and adjacent kana/kanji (e.g. `不可視 watermark の埋め込み`)
+
+## Patch Notes
+
+When asked to write or update patch notes (패치노트, changelog, What's new), follow the **패치노트 발행 규칙** section in `CONTRIBUTING.md` exactly — procedure, version rule, fixed body format, terminology, and checklist. The `1.1.0` block in `ko/changelog.mdx` (and its `changelog.mdx` / `ja/changelog.mdx` counterparts) is the reference sample; a new release must be indistinguishable from it in structure and tone.
