@@ -60,11 +60,15 @@ Test API keys use the same Bearer authentication as live keys, but they do not r
 | --- | --- | --- | --- |
 | Anti-AI upload mode | `POST /api/v2/orders/anti-ai` | Test upload URL | Required |
 | Anti-AI URL mode | `POST /api/v2/orders/anti-ai` | Not required | Not required |
-| Watermark Embed | `POST /api/v2/orders/wtr-embed` | Test upload URL | Not required |
-| Watermark Extract | `POST /api/v2/orders/wtr-extract` | Test upload URL | Not required |
+| Watermark Embed | `POST /api/v3/orders/wtr-embed` | Test upload URL | Not required |
+| Watermark Extract | `POST /api/v3/orders/wtr-extract` | Test upload URL | Not required |
 | AI Detection | `POST /api/v2/orders/ai-detection` | Test upload URL | Required |
 
 Do not call a confirm endpoint for Watermark Embed or Watermark Extract. The request will fail because those services start after their uploads complete.
+
+<Warning>
+  The Watermark v2 endpoints (`POST /api/v2/orders/wtr-embed` and `POST /api/v2/orders/wtr-extract`) are scheduled to end support. Migrate to the v3 endpoints (`/api/v3/orders/wtr-embed` and `/api/v3/orders/wtr-extract`). This guide describes the v3 endpoints for Watermark Embed and Watermark Extract.
+</Warning>
 
 ## Choose a deterministic result
 
@@ -73,12 +77,14 @@ Use the input file name to exercise success and failure states without depending
 | File name suffix | Result |
 | --- | --- |
 | `*_fail.<ext>` | The order fails |
-| `*_detected.<ext>` | Watermark Extract reports a detected watermark |
-| `*_undetected.<ext>` | Watermark Extract reports no watermark |
+| `*_detected.<ext>` | Watermark Extract reports a detected watermark (`detectionStatus` is `detected`) |
+| `*_undetected.<ext>` | Watermark Extract reports no watermark (`detectionStatus` is `not_detected`) |
 | `*_ai.<ext>` | AI Detection returns probability `0.98` |
 | `*_human.<ext>` | AI Detection returns probability `0.02` |
 
 Without a suffix, Anti-AI and Watermark Embed complete successfully, Watermark Extract reports no watermark, and AI Detection returns probability `0.02`. If any file in a multi-file order uses `_fail`, the order fails.
+
+For Watermark Extract, only the name of the inspected file (`file.fileName`) selects `detected` or `not_detected`. A `_detected` suffix on the original file has no effect, but `_fail` on either file fails the order.
 
 ## Test webhooks
 
@@ -103,6 +109,27 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 
 See [Webhooks](/webhooks) for owner and mode isolation, signature verification, event payloads, and retry rules.
 
+## Watermark results, downloads, and reports
+
+After the uploads finish, a Watermark order moves to `inProgress` and then to `complete` or `failed` about five seconds later. Get order returns `outputs` and `result` in the same shape as a live order.
+
+| Operation | Test API key behavior |
+| --- | --- |
+| `GET /api/v3/orders/{orderId}` | Returns the test order. A Watermark Embed order has one item in `outputs` for each watermark text. |
+| `GET /api/v3/orders/{orderId}/download`, `GET /api/v3/orders/{orderId}/files/{fileId}/download` | Watermark Embed only. Returns a download URL for a fixed sample file that is valid for 300 seconds. |
+| `POST /api/v3/orders/{orderId}/reports`, `GET /api/v3/orders/{orderId}/reports/{locale}` | Watermark Extract orders with a `detected` result only. Returns `completed` and a sample report PDF URL that is valid for 300 seconds. |
+
+- The download URL returns a fixed sample file that matches the input format: PNG, JPG, WEBP, or PDF. A multi-output order returns a sample ZIP file. The file is not your watermarked output.
+- A detected result returns `watermarkText` as `MORI TEST WATERMARK` and `reportSupported` as `true`.
+- The report is a one-page sample PDF. It does not contain your detection result, and the content does not change with `locale`.
+- Report requests fail with `REPORT_NOT_AVAILABLE` for a `not_detected` order, `ORDER_NOT_COMPLETED` for an order that is not complete or failed, and `ORDER_TYPE_NOT_MATCH` for a Watermark Embed order. Other owners' orders and live orders return `ORDER_NOT_FOUND`.
+
+Differences from live Watermark orders:
+
+- A test report request returns `200 completed` immediately. It never returns `202 queued` or `processing`, and it does not consume credits.
+- The `reports` array in Get order is always empty because test reports are not stored.
+- Reusing an `idempotencyKey` returns the existing order without comparing the request body, so it never returns `409`.
+
 ## API behavior and limitations
 
 | Operation | Test API key behavior |
@@ -120,7 +147,7 @@ Test API keys do not:
 
 - run image or document processing;
 - reserve or consume credits;
-- create downloadable result files; or
+- create downloadable result files, except the fixed sample files returned by the Watermark download and report endpoints; or
 - send events to live webhook endpoints.
 
 For authentication details, see [Authentication](/authentication). For error handling, see [Error Codes](/errors).
