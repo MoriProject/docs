@@ -89,6 +89,16 @@
                 ]
               },
               {
+                "group": "Invisible Watermark (v3)",
+                "pages": [
+                  "api-reference/watermark-v3/create-embed-order",
+                  "api-reference/watermark-v3/create-extract-order",
+                  "api-reference/watermark-v3/get-order",
+                  "api-reference/watermark-v3/download-order",
+                  "api-reference/watermark-v3/download-file"
+                ]
+              },
+              {
                 "group": "Watermark Embed",
                 "pages": [
                   "api-reference/watermark-embed/create-order"
@@ -108,6 +118,13 @@
                   "api-reference/orders/download-order",
                   "api-reference/orders/refresh-urls",
                   "api-reference/orders/recent-stats"
+                ]
+              },
+              {
+                "group": "Reports",
+                "pages": [
+                  "api-reference/reports/create-report",
+                  "api-reference/reports/get-report"
                 ]
               },
               {
@@ -211,6 +228,16 @@
                 ]
               },
               {
+                "group": "비가시성 워터마크 (v3)",
+                "pages": [
+                  "ko/api-reference/watermark-v3/create-embed-order",
+                  "ko/api-reference/watermark-v3/create-extract-order",
+                  "ko/api-reference/watermark-v3/get-order",
+                  "ko/api-reference/watermark-v3/download-order",
+                  "ko/api-reference/watermark-v3/download-file"
+                ]
+              },
+              {
                 "group": "Watermark-Embed",
                 "pages": [
                   "ko/api-reference/watermark-embed/create-order"
@@ -230,6 +257,13 @@
                   "ko/api-reference/orders/download-order",
                   "ko/api-reference/orders/refresh-urls",
                   "ko/api-reference/orders/recent-stats"
+                ]
+              },
+              {
+                "group": "보고서",
+                "pages": [
+                  "ko/api-reference/reports/create-report",
+                  "ko/api-reference/reports/get-report"
                 ]
               },
               {
@@ -333,6 +367,16 @@
                 ]
               },
               {
+                "group": "不可視 watermark (v3)",
+                "pages": [
+                  "ja/api-reference/watermark-v3/create-embed-order",
+                  "ja/api-reference/watermark-v3/create-extract-order",
+                  "ja/api-reference/watermark-v3/get-order",
+                  "ja/api-reference/watermark-v3/download-order",
+                  "ja/api-reference/watermark-v3/download-file"
+                ]
+              },
+              {
                 "group": "Watermark-Embed",
                 "pages": [
                   "ja/api-reference/watermark-embed/create-order"
@@ -352,6 +396,13 @@
                   "ja/api-reference/orders/download-order",
                   "ja/api-reference/orders/refresh-urls",
                   "ja/api-reference/orders/recent-stats"
+                ]
+              },
+              {
+                "group": "レポート",
+                "pages": [
+                  "ja/api-reference/reports/create-report",
+                  "ja/api-reference/reports/get-report"
                 ]
               },
               {
