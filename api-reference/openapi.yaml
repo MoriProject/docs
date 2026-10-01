@@ -956,8 +956,6 @@ tags:
   description: Order query and management
 - name: Webhooks
   description: Webhook configuration and events
-- name: Invisible Watermark
-  description: Invisible watermark orders on the current engine (v3)
 - name: Reports
   description: PDF analysis reports for watermark extract and AI Detection orders
 paths:
@@ -3173,9 +3171,9 @@ paths:
         - For each file without `originalFileUrl`, upload the file with `PUT` to `files[].uploadUrl` (valid for 900 seconds)
         - Processing starts automatically when every file is uploaded. There is no confirm step
         - Orders whose files are not uploaded within 12 hours become `failed`
-        - Poll [`GET /api/v3/orders/{orderId}`](/api-reference/watermark-v3/get-order) until `status` is `complete`, then call the download endpoint
+        - Poll [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) until `status` is `complete`, then call the download endpoint
       tags:
-      - Invisible Watermark
+      - Watermark Embed
       security:
       - BearerAuth: []
       requestBody:
@@ -3429,9 +3427,9 @@ paths:
         - Image originals accept PNG, JPEG, or WebP files to inspect. PDF originals accept PDF, PNG, or JPEG files to inspect
         - The response `files[]` contains two entries: `files[0]` is the original and `files[1]` is the file to inspect. Upload each with `PUT` to its `uploadUrl`
         - Processing starts automatically when both files are uploaded. Each order uses 1 credit, and `unsupported` or `error` results are refunded
-        - Read the outcome from `result` in [`GET /api/v3/orders/{orderId}`](/api-reference/watermark-v3/get-order)
+        - Read the outcome from `result` in [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3)
       tags:
-      - Invisible Watermark
+      - Watermark Extract
       security:
       - BearerAuth: []
       requestBody:
@@ -3570,16 +3568,18 @@ paths:
           data = response.json()['data']
   /api/v3/orders/{orderId}:
     get:
-      summary: Get order details
+      summary: Get watermark order details
       operationId: getWatermarkV1Order
       description: |
-        Get the status, upload URLs, embed outputs, extract result, and report status of an order created with the v3 API. You can always call this endpoint, whatever the order status.
+        Get the status, upload URLs, embed outputs, extract result, and report status of a watermark order created with the v3 API. You can always call this endpoint, whatever the order status.
+
+        This endpoint returns only watermark orders created with `POST /api/v3/orders/wtr-embed` or `wtr-extract`. Other orders, including Anti-AI and AI Detection orders, return `404 ORDER_NOT_FOUND`; use [`GET /api/v2/orders/{orderId}`](/api-reference/orders/get-order) for them.
 
         - `files[].uploadUrl` is issued only while the order `status` is `pending`, the retention period has not ended, and the file is still waiting for upload. Otherwise it is `null`
         - `result` contains only `detectionStatus`, `reportSupported`, and `watermarkText`. It is `null` for embed orders and before an extract result is ready
         - `result.watermarkText` returns the embedded text only when your account embedded the detected watermark and exactly one issuance record matches. Otherwise it is `null`
       tags:
-      - Invisible Watermark
+      - Orders
       security:
       - BearerAuth: []
       parameters:
@@ -3666,7 +3666,7 @@ paths:
         - The URL is valid for 300 seconds. Call this endpoint again for a new URL
         - Returns `400 VALIDATION_FAILED` before the order is `complete`, and `400 ORDER_EXPIRED` after the retention period ends
       tags:
-      - Invisible Watermark
+      - Orders
       security:
       - BearerAuth: []
       parameters:
@@ -3740,11 +3740,11 @@ paths:
       summary: Get output file download URL
       operationId: downloadWatermarkV1OutputFile
       description: |
-        Issue a download URL for one output of a completed embed order. Use `outputs[].fileId` from [`GET /api/v3/orders/{orderId}`](/api-reference/watermark-v3/get-order).
+        Issue a download URL for one output of a completed embed order. Use `outputs[].fileId` from [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3).
 
         The URL is valid for 300 seconds. Returns `400 ORDER_EXPIRED` after the retention period ends.
       tags:
-      - Invisible Watermark
+      - Orders
       security:
       - BearerAuth: []
       parameters:

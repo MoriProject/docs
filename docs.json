@@ -89,25 +89,17 @@
                 ]
               },
               {
-                "group": "Invisible Watermark (v3)",
-                "pages": [
-                  "api-reference/watermark-v3/create-embed-order",
-                  "api-reference/watermark-v3/create-extract-order",
-                  "api-reference/watermark-v3/get-order",
-                  "api-reference/watermark-v3/download-order",
-                  "api-reference/watermark-v3/download-file"
-                ]
-              },
-              {
                 "group": "Watermark Embed",
                 "pages": [
-                  "api-reference/watermark-embed/create-order"
+                  "api-reference/watermark-embed/create-order",
+                  "api-reference/watermark-embed/create-order-v3"
                 ]
               },
               {
                 "group": "Watermark Extract",
                 "pages": [
-                  "api-reference/watermark-extract/create-order"
+                  "api-reference/watermark-extract/create-order",
+                  "api-reference/watermark-extract/create-order-v3"
                 ]
               },
               {
@@ -115,7 +107,10 @@
                 "pages": [
                   "api-reference/orders/list-orders",
                   "api-reference/orders/get-order",
+                  "api-reference/orders/get-order-v3",
                   "api-reference/orders/download-order",
+                  "api-reference/orders/download-order-v3",
+                  "api-reference/orders/download-file-v3",
                   "api-reference/orders/refresh-urls",
                   "api-reference/orders/recent-stats"
                 ]
@@ -228,25 +223,17 @@
                 ]
               },
               {
-                "group": "비가시성 워터마크 (v3)",
-                "pages": [
-                  "ko/api-reference/watermark-v3/create-embed-order",
-                  "ko/api-reference/watermark-v3/create-extract-order",
-                  "ko/api-reference/watermark-v3/get-order",
-                  "ko/api-reference/watermark-v3/download-order",
-                  "ko/api-reference/watermark-v3/download-file"
-                ]
-              },
-              {
                 "group": "Watermark-Embed",
                 "pages": [
-                  "ko/api-reference/watermark-embed/create-order"
+                  "ko/api-reference/watermark-embed/create-order",
+                  "ko/api-reference/watermark-embed/create-order-v3"
                 ]
               },
               {
                 "group": "Watermark-Extract",
                 "pages": [
-                  "ko/api-reference/watermark-extract/create-order"
+                  "ko/api-reference/watermark-extract/create-order",
+                  "ko/api-reference/watermark-extract/create-order-v3"
                 ]
               },
               {
@@ -254,7 +241,10 @@
                 "pages": [
                   "ko/api-reference/orders/list-orders",
                   "ko/api-reference/orders/get-order",
+                  "ko/api-reference/orders/get-order-v3",
                   "ko/api-reference/orders/download-order",
+                  "ko/api-reference/orders/download-order-v3",
+                  "ko/api-reference/orders/download-file-v3",
                   "ko/api-reference/orders/refresh-urls",
                   "ko/api-reference/orders/recent-stats"
                 ]
@@ -367,25 +357,17 @@
                 ]
               },
               {
-                "group": "不可視 watermark (v3)",
-                "pages": [
-                  "ja/api-reference/watermark-v3/create-embed-order",
-                  "ja/api-reference/watermark-v3/create-extract-order",
-                  "ja/api-reference/watermark-v3/get-order",
-                  "ja/api-reference/watermark-v3/download-order",
-                  "ja/api-reference/watermark-v3/download-file"
-                ]
-              },
-              {
                 "group": "Watermark-Embed",
                 "pages": [
-                  "ja/api-reference/watermark-embed/create-order"
+                  "ja/api-reference/watermark-embed/create-order",
+                  "ja/api-reference/watermark-embed/create-order-v3"
                 ]
               },
               {
                 "group": "Watermark-Extract",
                 "pages": [
-                  "ja/api-reference/watermark-extract/create-order"
+                  "ja/api-reference/watermark-extract/create-order",
+                  "ja/api-reference/watermark-extract/create-order-v3"
                 ]
               },
               {
@@ -393,7 +375,10 @@
                 "pages": [
                   "ja/api-reference/orders/list-orders",
                   "ja/api-reference/orders/get-order",
+                  "ja/api-reference/orders/get-order-v3",
                   "ja/api-reference/orders/download-order",
+                  "ja/api-reference/orders/download-order-v3",
+                  "ja/api-reference/orders/download-file-v3",
                   "ja/api-reference/orders/refresh-urls",
                   "ja/api-reference/orders/recent-stats"
                 ]

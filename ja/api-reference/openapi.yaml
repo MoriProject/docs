@@ -898,8 +898,6 @@ tags:
   description: 注文の照会と管理
 - name: Webhooks
   description: Webhookの設定とイベント
-- name: Invisible Watermark
-  description: 現行エンジン(v3)の不可視 watermark 注文
 - name: Reports
   description: watermark 抽出・AI Detection 注文の PDF 分析レポート
 paths:
@@ -2978,9 +2976,9 @@ paths:
         - `originalFileUrl` のないファイルは `files[].uploadUrl`(900 秒有効)へ `PUT` でアップロードします
         - すべてのファイルのアップロードが終わると処理が自動で始まります。confirm の呼び出しはありません
         - 12 時間以内にアップロードされない注文は `failed` になります
-        - [`GET /api/v3/orders/{orderId}`](/ja/api-reference/watermark-v3/get-order) で `status` が `complete` になるまで照会してから、ダウンロード API を呼び出してください
+        - [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) で `status` が `complete` になるまで照会してから、ダウンロード API を呼び出してください
       tags:
-      - Invisible Watermark
+      - Watermark Embed
       security:
       - BearerAuth: []
       requestBody:
@@ -3230,9 +3228,9 @@ paths:
         - 画像の元ファイルには PNG・JPEG・WebP の検査ファイル、PDF の元ファイルには PDF・PNG・JPEG の検査ファイルを指定できます
         - レスポンスの `files[]` は 2 件です。`files[0]` が元ファイル、`files[1]` が検査ファイルで、それぞれ `uploadUrl` へ `PUT` でアップロードします
         - 2 つのファイルのアップロードが終わると処理が自動で始まります。注文あたり 1 クレジットを使用し、`unsupported`・`error` の結果は返金されます
-        - 結果は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/watermark-v3/get-order) の `result` で確認します
+        - 結果は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) の `result` で確認します
       tags:
-      - Invisible Watermark
+      - Watermark Extract
       security:
       - BearerAuth: []
       requestBody:
@@ -3370,16 +3368,18 @@ paths:
           data = response.json()['data']
   /api/v3/orders/{orderId}:
     get:
-      summary: 注文詳細を取得
+      summary: watermark 注文詳細を取得
       operationId: getWatermarkV1Order
       description: |
-        v3 API で作成した注文のステータス、アップロード URL、埋め込み結果、抽出結果、レポートのステータスを取得します。注文のステータスに関係なく、いつでも呼び出せます。
+        v3 API で作成した watermark 注文のステータス、アップロード URL、埋め込み結果、抽出結果、レポートのステータスを取得します。注文のステータスに関係なく、いつでも呼び出せます。
+
+        `POST /api/v3/orders/wtr-embed`・`wtr-extract` で作成した watermark 注文だけを取得します。Anti-AI、AI Detection などそれ以外の注文は `404 ORDER_NOT_FOUND` を返すため、[`GET /api/v2/orders/{orderId}`](/ja/api-reference/orders/get-order) を使用してください。
 
         - `files[].uploadUrl` は、注文の `status` が `pending` で保管期限前、かつアップロード待ちのファイルにだけ発行します。それ以外は `null` です
         - `result` には `detectionStatus`、`reportSupported`、`watermarkText` だけが含まれます。埋め込み注文と、抽出結果が出る前は `null` です
         - `result.watermarkText` は、検出された watermark を呼び出し元のアカウントが埋め込み、発行記録がちょうど 1 件のときだけ埋め込みテキストを返します。それ以外は `null` です
       tags:
-      - Invisible Watermark
+      - Orders
       security:
       - BearerAuth: []
       parameters:
@@ -3466,7 +3466,7 @@ paths:
         - URL は 300 秒間有効です。新しい URL が必要な場合は再度呼び出してください
         - 注文が `complete` になる前は `400 VALIDATION_FAILED`、保管期限を過ぎると `400 ORDER_EXPIRED` を返します
       tags:
-      - Invisible Watermark
+      - Orders
       security:
       - BearerAuth: []
       parameters:
@@ -3539,11 +3539,11 @@ paths:
       summary: 個別結果ファイルのダウンロード URL を発行
       operationId: downloadWatermarkV1OutputFile
       description: |
-        完了した埋め込み注文の結果ファイル 1 件のダウンロード URL を発行します。[`GET /api/v3/orders/{orderId}`](/ja/api-reference/watermark-v3/get-order) の `outputs[].fileId` を使用します。
+        完了した埋め込み注文の結果ファイル 1 件のダウンロード URL を発行します。[`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) の `outputs[].fileId` を使用します。
 
         URL は 300 秒間有効です。保管期限を過ぎると `400 ORDER_EXPIRED` を返します。
       tags:
-      - Invisible Watermark
+      - Orders
       security:
       - BearerAuth: []
       parameters:

@@ -947,8 +947,6 @@ tags:
   description: 주문 조회 및 관리
 - name: Webhooks
   description: 웹훅 설정 및 이벤트
-- name: Invisible Watermark
-  description: 현재 엔진(v3)의 비가시성 워터마크 주문
 - name: Reports
   description: 워터마크 추출·AI Detection 주문의 PDF 분석 보고서
 paths:
@@ -3157,9 +3155,9 @@ paths:
         - `originalFileUrl`이 없는 파일은 `files[].uploadUrl`(900초 유효)로 `PUT` 업로드합니다
         - 모든 파일 업로드가 끝나면 처리가 자동으로 시작됩니다. confirm 호출은 없습니다
         - 12시간 안에 업로드되지 않은 주문은 `failed`가 됩니다
-        - [`GET /api/v3/orders/{orderId}`](/ko/api-reference/watermark-v3/get-order)로 `status`가 `complete`가 될 때까지 조회한 뒤 다운로드 API를 호출하세요
+        - [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)로 `status`가 `complete`가 될 때까지 조회한 뒤 다운로드 API를 호출하세요
       tags:
-      - Invisible Watermark
+      - Watermark Embed
       security:
       - BearerAuth: []
       requestBody:
@@ -3409,9 +3407,9 @@ paths:
         - 이미지 원본은 PNG·JPEG·WebP 검사 파일을, PDF 원본은 PDF·PNG·JPEG 검사 파일을 받습니다
         - 응답 `files[]`는 2개입니다. `files[0]`은 원본, `files[1]`은 검사 파일이며 각각 `uploadUrl`로 `PUT` 업로드합니다
         - 두 파일 업로드가 끝나면 처리가 자동으로 시작됩니다. 주문당 1크레딧을 사용하며 `unsupported`·`error` 결과는 환불됩니다
-        - 결과는 [`GET /api/v3/orders/{orderId}`](/ko/api-reference/watermark-v3/get-order)의 `result`에서 확인합니다
+        - 결과는 [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)의 `result`에서 확인합니다
       tags:
-      - Invisible Watermark
+      - Watermark Extract
       security:
       - BearerAuth: []
       requestBody:
@@ -3549,16 +3547,18 @@ paths:
           data = response.json()['data']
   /api/v3/orders/{orderId}:
     get:
-      summary: 주문 상세 조회
+      summary: 워터마크 주문 상세 조회
       operationId: getWatermarkV1Order
       description: |
-        v3 API로 생성한 주문의 상태, 업로드 URL, 삽입 결과, 추출 결과, 보고서 상태를 조회합니다. 주문 상태와 관계없이 항상 호출할 수 있습니다.
+        v3 API로 생성한 워터마크 주문의 상태, 업로드 URL, 삽입 결과, 추출 결과, 보고서 상태를 조회합니다. 주문 상태와 관계없이 항상 호출할 수 있습니다.
+
+        `POST /api/v3/orders/wtr-embed`·`wtr-extract`로 만든 워터마크 주문만 조회합니다. Anti-AI, AI Detection 등 그 외 주문은 `404 ORDER_NOT_FOUND`를 반환하므로 [`GET /api/v2/orders/{orderId}`](/ko/api-reference/orders/get-order)를 사용하세요.
 
         - `files[].uploadUrl`은 주문 `status`가 `pending`이고 보관 기한 전이며 업로드 대기 중인 파일에만 발급합니다. 그 외에는 `null`입니다
         - `result`는 `detectionStatus`, `reportSupported`, `watermarkText`만 포함합니다. 삽입 주문과 추출 결과가 나오기 전에는 `null`입니다
         - `result.watermarkText`는 검출된 워터마크를 호출 계정이 직접 삽입했고 발급 기록이 정확히 1건일 때만 삽입 문구를 반환하며, 그 외에는 `null`입니다
       tags:
-      - Invisible Watermark
+      - Orders
       security:
       - BearerAuth: []
       parameters:
@@ -3645,7 +3645,7 @@ paths:
         - URL은 300초 동안 유효합니다. 새 URL이 필요하면 다시 호출하세요
         - 주문이 `complete` 전이면 `400 VALIDATION_FAILED`, 보관 기한이 지나면 `400 ORDER_EXPIRED`를 반환합니다
       tags:
-      - Invisible Watermark
+      - Orders
       security:
       - BearerAuth: []
       parameters:
@@ -3718,11 +3718,11 @@ paths:
       summary: 개별 결과 파일 다운로드 URL 발급
       operationId: downloadWatermarkV1OutputFile
       description: |
-        완료된 삽입 주문의 결과 파일 1개에 대한 다운로드 URL을 발급합니다. [`GET /api/v3/orders/{orderId}`](/ko/api-reference/watermark-v3/get-order)의 `outputs[].fileId`를 사용합니다.
+        완료된 삽입 주문의 결과 파일 1개에 대한 다운로드 URL을 발급합니다. [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)의 `outputs[].fileId`를 사용합니다.
 
         URL은 300초 동안 유효합니다. 보관 기한이 지나면 `400 ORDER_EXPIRED`를 반환합니다.
       tags:
-      - Invisible Watermark
+      - Orders
       security:
       - BearerAuth: []
       parameters:
