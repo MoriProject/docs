@@ -60,11 +60,15 @@ description: "ファイルを処理したりクレジットを消費したりせ
 | --- | --- | --- | --- |
 | Anti-AI アップロード方式 | `POST /api/v2/orders/anti-ai` | テストアップロード URL | 必要 |
 | Anti-AI URL 方式 | `POST /api/v2/orders/anti-ai` | 不要 | 不要 |
-| Watermark Embed | `POST /api/v2/orders/wtr-embed` | テストアップロード URL | 不要 |
-| Watermark Extract | `POST /api/v2/orders/wtr-extract` | テストアップロード URL | 不要 |
+| Watermark Embed | `POST /api/v3/orders/wtr-embed` | テストアップロード URL | 不要 |
+| Watermark Extract | `POST /api/v3/orders/wtr-extract` | テストアップロード URL | 不要 |
 | AI Detection | `POST /api/v2/orders/ai-detection` | テストアップロード URL | 必要 |
 
 Watermark Embed または Watermark Extract では確認エンドポイントを呼び出さないでください。アップロード完了後に処理が開始されるため、確認リクエストは失敗します。
+
+<Warning>
+  Watermark v2 エンドポイント（`POST /api/v2/orders/wtr-embed`、`POST /api/v2/orders/wtr-extract`）はサポート終了予定です。v3 エンドポイント（`/api/v3/orders/wtr-embed`、`/api/v3/orders/wtr-extract`）へ移行してください。このガイドでは Watermark Embed と Watermark Extract について v3 エンドポイントを説明します。
+</Warning>
 
 ## 決定的な結果を選択する
 
@@ -73,12 +77,14 @@ Watermark Embed または Watermark Extract では確認エンドポイントを
 | ファイル名のサフィックス | 結果 |
 | --- | --- |
 | `*_fail.<ext>` | 注文が失敗します |
-| `*_detected.<ext>` | Watermark Extract が watermark を検出します |
-| `*_undetected.<ext>` | Watermark Extract が watermark を検出しません |
+| `*_detected.<ext>` | Watermark Extract が watermark を検出します（`detectionStatus` は `detected`） |
+| `*_undetected.<ext>` | Watermark Extract が watermark を検出しません（`detectionStatus` は `not_detected`） |
 | `*_ai.<ext>` | AI Detection が確率 `0.98` を返します |
 | `*_human.<ext>` | AI Detection が確率 `0.02` を返します |
 
 サフィックスがない場合、Anti-AI と Watermark Embed は成功し、Watermark Extract は watermark を検出せず、AI Detection は確率 `0.02` を返します。複数ファイルの注文で 1 つでも `_fail` を使用すると、注文は失敗します。
+
+Watermark Extract では、`detected` と `not_detected` は検査対象ファイル名（`file.fileName`）だけで決まります。元ファイルの `_detected` サフィックスは結果に影響しませんが、どちらのファイルでも `_fail` があると注文は失敗します。
 
 ## テスト Webhook
 
@@ -103,6 +109,27 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 
 所有者とモードの分離、署名検証、イベントペイロード、再送ルールについては [Webhook](/ja/webhooks) を参照してください。
 
+## Watermark の結果、ダウンロード、レポート
+
+アップロードが完了すると、Watermark 注文は `inProgress` になり、約 5 秒後に `complete` または `failed` になります。注文取得の `outputs` と `result` は本番注文と同じ形式です。
+
+| 操作 | テスト API キーの動作 |
+| --- | --- |
+| `GET /api/v3/orders/{orderId}` | テスト注文を返します。Watermark Embed の注文では、watermark の文言ごとに `outputs` の項目が 1 件作成されます。 |
+| `GET /api/v3/orders/{orderId}/download`, `GET /api/v3/orders/{orderId}/files/{fileId}/download` | Watermark Embed の注文でのみ動作します。300 秒間有効な固定サンプルファイルのダウンロード URL を返します。 |
+| `POST /api/v3/orders/{orderId}/reports`, `GET /api/v3/orders/{orderId}/reports/{locale}` | 結果が `detected` の Watermark Extract 注文でのみ動作します。`completed` と、300 秒間有効なサンプルレポート PDF の URL を返します。 |
+
+- ダウンロード URL は、入力形式（PNG、JPG、WEBP、PDF）に合った固定のサンプルファイルを返します。出力が複数ある注文ではサンプル ZIP ファイルを返します。実際に watermark を挿入した結果ファイルではありません。
+- 検出結果が `detected` の場合、`watermarkText` は `MORI TEST WATERMARK`、`reportSupported` は `true` です。
+- レポートは 1 ページのサンプル PDF です。実際の検出結果は含まれず、`locale` によって内容は変わりません。
+- `not_detected` の注文は `REPORT_NOT_AVAILABLE`、未完了または失敗した注文は `ORDER_NOT_COMPLETED`、Watermark Embed の注文は `ORDER_TYPE_NOT_MATCH` で拒否されます。別所有者の注文と本番注文は `ORDER_NOT_FOUND` を返します。
+
+本番の Watermark 注文との違い:
+
+- テストのレポートリクエストは即座に `200 completed` を返します。`202 queued` や `processing` は返さず、クレジットも消費しません。
+- テストレポートは保存されないため、注文取得の `reports` 配列は常に空です。
+- 同じ `idempotencyKey` を再送すると、リクエスト本文を比較せずに既存の注文を返すため、`409` は発生しません。
+
 ## API の動作と制限
 
 | 操作 | テスト API キーの動作 |
@@ -120,7 +147,7 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 
 - 画像またはドキュメントの実処理
 - クレジットの予約または消費
-- ダウンロード可能な結果ファイルの作成
+- ダウンロード可能な結果ファイルの作成（Watermark のダウンロードおよびレポートのエンドポイントが返す固定サンプルファイルを除く）
 - 本番 Webhook エンドポイントへのイベント送信
 
 認証の詳細は [認証](/ja/authentication)、エラー処理は [エラーコード](/ja/errors) を参照してください。
