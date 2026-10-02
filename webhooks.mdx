@@ -125,8 +125,25 @@ All webhook payloads follow this structure:
 | `updatedAt` | string | Order last updated time (ISO 8601) |
 | `failedAt` | string | Processing failure time (ISO 8601) |
 | `status` | string | Always `failed` |
-| `errorCode` | string | Error code |
-| `errorMessage` | string | Error message |
+| `errorCode` | string | Error code. See [Failed event error codes](#failed-event-error-codes) |
+| `errorMessage` | string | Fixed guidance message for the error code (Korean). It never contains raw processor output |
+
+### Failed event error codes
+
+`errorCode` is always one of the public codes below. Internal processor codes and raw error output are never included.
+
+| Service | `errorCode` | Meaning |
+|---------|-------------|---------|
+| Anti-AI | `PROCESSING_ERROR` | Processing failed |
+| Watermark embed / extract | `WATERMARK_INPUT_UNSUPPORTED` | The watermark engine cannot process the file (format, corruption, size, resolution, color mode, and similar) |
+| Watermark embed / extract | `ORDER_TIMEOUT` | Processing timed out. Try again |
+| Watermark embed / extract | `PROCESSING_ERROR` | Any other processing failure |
+| AI detection | `AI_DETECTION_INVALID_IMAGE` | The image cannot be read |
+| AI detection | `AI_DETECTION_TIMEOUT` | Detection timed out. Try again |
+| AI detection | `AI_DETECTION_SERVICE_ERROR` | Temporary detection service error. Try again |
+| AI detection | `AI_DETECTION_FAILED` | Any other detection failure |
+
+Test orders always use `PROCESSING_ERROR`. Handle unknown codes as a generic failure so that new codes do not break your integration.
 
 ### Anti-AI / Watermark Embed — additional fields (completed)
 
@@ -141,7 +158,7 @@ The `status` field is always `complete`. Use `statusCode` to determine the detec
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `statusCode` | string | `detected` or `undetected` |
+| `statusCode` | string | `detected` or `undetected`. Orders from the new watermark engine can also return `inconclusive` (result could not be confirmed), `unsupported` (the file cannot be checked), or `error` (detection error) |
 | `watermarkFound` | boolean | Whether a watermark was detected |
 | `watermarkInfo.text` | string | Detected watermark text (only when `watermarkFound` is `true`) |
 

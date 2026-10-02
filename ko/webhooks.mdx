@@ -125,8 +125,25 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 | `updatedAt` | string | 주문 최종 업데이트 시간 (ISO 8601) |
 | `failedAt` | string | 처리 실패 시간 (ISO 8601) |
 | `status` | string | 항상 `failed` |
-| `errorCode` | string | 오류 코드 |
-| `errorMessage` | string | 오류 메시지 |
+| `errorCode` | string | 오류 코드. [실패 이벤트 오류 코드](#실패-이벤트-오류-코드) 참고 |
+| `errorMessage` | string | 오류 코드에 대응하는 고정 안내 문구(한국어). 처리 서버의 원문은 포함하지 않습니다 |
+
+### 실패 이벤트 오류 코드
+
+`errorCode`는 항상 아래 공개 코드 중 하나입니다. 내부 처리 서버의 코드나 오류 원문은 포함하지 않습니다.
+
+| 서비스 | `errorCode` | 의미 |
+|--------|-------------|------|
+| Anti-AI | `PROCESSING_ERROR` | 처리 실패 |
+| 워터마크 삽입 / 추출 | `WATERMARK_INPUT_UNSUPPORTED` | 워터마크 엔진이 처리할 수 없는 파일 (형식, 손상, 크기, 해상도, 색상 모드 등) |
+| 워터마크 삽입 / 추출 | `ORDER_TIMEOUT` | 처리 시간 초과. 다시 시도하세요 |
+| 워터마크 삽입 / 추출 | `PROCESSING_ERROR` | 그 밖의 처리 실패 |
+| AI Detection | `AI_DETECTION_INVALID_IMAGE` | 이미지를 읽을 수 없음 |
+| AI Detection | `AI_DETECTION_TIMEOUT` | 판별 시간 초과. 다시 시도하세요 |
+| AI Detection | `AI_DETECTION_SERVICE_ERROR` | 판별 서비스 일시 오류. 다시 시도하세요 |
+| AI Detection | `AI_DETECTION_FAILED` | 그 밖의 판별 실패 |
+
+테스트 주문은 항상 `PROCESSING_ERROR`입니다. 새 코드가 추가돼도 연동이 깨지지 않도록, 모르는 코드는 일반 실패로 처리하세요.
 
 ### Anti-AI / 워터마크 삽입 — 추가 필드 (완료)
 
@@ -141,7 +158,7 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `statusCode` | string | `detected` 또는 `undetected` |
+| `statusCode` | string | `detected` 또는 `undetected`. 새 워터마크 엔진 주문은 `inconclusive`(결과 확정 불가), `unsupported`(검사할 수 없는 파일), `error`(검출 오류)도 반환할 수 있습니다 |
 | `watermarkFound` | boolean | 워터마크 감지 여부 |
 | `watermarkInfo.text` | string | 감지된 워터마크 텍스트 (`watermarkFound`가 `true`일 때만) |
 
