@@ -49,6 +49,10 @@ HTTP 상태 코드가 오류 유형을 나타냅니다. 프로그래밍 방식�
 | `PROCESSED_FILE_NOT_FOUND` | 404 | 주문에 처리 결과 파일이 없음 |
 | `ORDER_TIMEOUT` | 408 | 주문 처리 시간 초과 |
 
+### 주문 실패 코드
+
+생성된 주문이 처리 중 실패하면 주문 상세의 `errors.errorCode`·`errors.errorMessage`와 실패 웹훅 이벤트에 같은 값이 담깁니다. 이 코드는 처리 실패 원인을 나타냅니다(예: `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED`). 전체 목록은 [실패 이벤트 오류 코드](/ko/webhooks#실패-이벤트-오류-코드)를 참고하세요.
+
 ## 테스트 업로드 오류
 
 | 오류 코드 | HTTP 상태 | 설명 |
