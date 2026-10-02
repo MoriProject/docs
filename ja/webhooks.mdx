@@ -114,13 +114,13 @@ Webhookは、注文処理が完了または失敗した際にサーバーへ HTT
 | サービス | `errorCode` | 意味 |
 |---------|-------------|------|
 | Anti-AI | `PROCESSING_ERROR` | 処理に失敗しました |
-| watermark 埋め込み / 抽出 | `WATERMARK_FILE_FORMAT_UNSUPPORTED` | 対応していないファイル形式（アニメーション画像、内容と形式が一致しないファイルを含む）。JPEG、PNG、WEBP の静止画像または PDF を使用してください |
+| watermark 埋め込み / 抽出 | `WATERMARK_FILE_FORMAT_UNSUPPORTED` | 対応していないファイル形式（アニメーション画像、内容と形式が一致しないファイルを含む）。JPEG、PNG、WEBP、BMP、TIFF の静止画像または PDF を使用してください |
 | watermark 埋め込み / 抽出 | `WATERMARK_FILE_CORRUPTED` | ファイルが破損しているか読み取れません |
 | watermark 埋め込み / 抽出 | `WATERMARK_FILE_SIZE_UNSUPPORTED` | 空のファイル、またはサイズ上限を超えています |
-| watermark 埋め込み / 抽出 | `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED` | グレースケールや透過チャネルなど対応していないカラーモード。RGB 画像を使用してください |
+| watermark 埋め込み / 抽出 | `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED` | パレット、CMYK、16 ビット、グレースケール＋透過など対応していないカラーモード。RGB、グレースケール、または透過付き RGBA（PNG、WEBP）画像を使用してください |
 | watermark 埋め込み / 抽出 | `WATERMARK_IMAGE_DIMENSIONS_UNSUPPORTED` | 対応していない画像の解像度または向き |
 | watermark 埋め込み / 抽出 | `WATERMARK_PDF_UNSUPPORTED` | 処理できない PDF（暗号化、ページ数超過、破損など） |
-| watermark 埋め込み / 抽出 | `WATERMARK_INPUT_UNSUPPORTED` | その他、watermark エンジンが処理できない入力 |
+| watermark 埋め込み / 抽出 | `WATERMARK_INPUT_UNSUPPORTED` | その他、watermark エンジンが処理できない入力（不透明な領域がない、小さすぎる、または偏っている透過背景の画像を含む） |
 | watermark 埋め込み / 抽出 | `WATERMARK_ENGINE_UNAVAILABLE` | watermark エンジンの一時的なエラー。同じファイルで再試行してください |
 | watermark 埋め込み / 抽出 | `ORDER_TIMEOUT` | 処理がタイムアウトしました。再試行してください |
 | watermark 埋め込み / 抽出 | `UPLOAD_EXPIRED` | アップロード待機時間内にファイルがアップロードされませんでした。新しい注文を作成してください |

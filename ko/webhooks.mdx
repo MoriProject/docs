@@ -135,13 +135,13 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 | 서비스 | `errorCode` | 의미 |
 |--------|-------------|------|
 | Anti-AI | `PROCESSING_ERROR` | 처리 실패 |
-| 워터마크 삽입 / 추출 | `WATERMARK_FILE_FORMAT_UNSUPPORTED` | 지원하지 않는 파일 형식 (애니메이션 이미지, 내용과 형식이 다른 파일 포함). JPEG, PNG, WEBP 정지 이미지 또는 PDF를 사용하세요 |
+| 워터마크 삽입 / 추출 | `WATERMARK_FILE_FORMAT_UNSUPPORTED` | 지원하지 않는 파일 형식 (애니메이션 이미지, 내용과 형식이 다른 파일 포함). JPEG, PNG, WEBP, BMP, TIFF 정지 이미지 또는 PDF를 사용하세요 |
 | 워터마크 삽입 / 추출 | `WATERMARK_FILE_CORRUPTED` | 손상됐거나 읽을 수 없는 파일 |
 | 워터마크 삽입 / 추출 | `WATERMARK_FILE_SIZE_UNSUPPORTED` | 빈 파일이거나 크기 제한 초과 |
-| 워터마크 삽입 / 추출 | `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED` | 흑백·투명 채널 등 지원하지 않는 색상 모드. RGB 이미지를 사용하세요 |
+| 워터마크 삽입 / 추출 | `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED` | 팔레트·CMYK·16비트·흑백+투명도 등 지원하지 않는 색상 모드. RGB, 흑백 또는 투명도가 있는 RGBA(PNG·WEBP) 이미지를 사용하세요 |
 | 워터마크 삽입 / 추출 | `WATERMARK_IMAGE_DIMENSIONS_UNSUPPORTED` | 지원하지 않는 이미지 해상도 또는 방향 |
 | 워터마크 삽입 / 추출 | `WATERMARK_PDF_UNSUPPORTED` | 처리할 수 없는 PDF (암호화, 페이지 수 초과, 손상 등) |
-| 워터마크 삽입 / 추출 | `WATERMARK_INPUT_UNSUPPORTED` | 그 밖에 워터마크 엔진이 처리할 수 없는 입력 |
+| 워터마크 삽입 / 추출 | `WATERMARK_INPUT_UNSUPPORTED` | 그 밖에 워터마크 엔진이 처리할 수 없는 입력 (불투명 영역이 없거나 너무 작거나 고르지 않은 투명 배경 이미지 포함) |
 | 워터마크 삽입 / 추출 | `WATERMARK_ENGINE_UNAVAILABLE` | 워터마크 엔진 일시 오류. 같은 파일로 다시 시도하세요 |
 | 워터마크 삽입 / 추출 | `ORDER_TIMEOUT` | 처리 시간 초과. 다시 시도하세요 |
 | 워터마크 삽입 / 추출 | `UPLOAD_EXPIRED` | 업로드 대기 시간 안에 파일이 업로드되지 않음. 새 주문을 만드세요 |
