@@ -104,8 +104,33 @@ Webhookは、注文処理が完了または失敗した際にサーバーへ HTT
 | `updatedAt` | string | 注文の最終更新日時（ISO 8601） |
 | `failedAt` | string | 処理失敗日時（ISO 8601） |
 | `status` | string | 常に `failed` |
-| `errorCode` | string | エラーコード |
-| `errorMessage` | string | エラーメッセージ |
+| `errorCode` | string | エラーコード。[失敗イベントのエラーコード](#失敗イベントのエラーコード)を参照してください |
+| `errorMessage` | string | エラーコードに対応する固定の案内文（韓国語）。処理サーバーの原文は含みません |
+
+### 失敗イベントのエラーコード
+
+`errorCode` は常に以下の公開コードのいずれかです。内部処理サーバーのコードやエラー原文は含みません。
+
+| サービス | `errorCode` | 意味 |
+|---------|-------------|------|
+| Anti-AI | `PROCESSING_ERROR` | 処理に失敗しました |
+| watermark 埋め込み / 抽出 | `WATERMARK_FILE_FORMAT_UNSUPPORTED` | 対応していないファイル形式（アニメーション画像、内容と形式が一致しないファイルを含む）。JPEG、PNG、WEBP の静止画像または PDF を使用してください |
+| watermark 埋め込み / 抽出 | `WATERMARK_FILE_CORRUPTED` | ファイルが破損しているか読み取れません |
+| watermark 埋め込み / 抽出 | `WATERMARK_FILE_SIZE_UNSUPPORTED` | 空のファイル、またはサイズ上限を超えています |
+| watermark 埋め込み / 抽出 | `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED` | グレースケールや透過チャネルなど対応していないカラーモード。RGB 画像を使用してください |
+| watermark 埋め込み / 抽出 | `WATERMARK_IMAGE_DIMENSIONS_UNSUPPORTED` | 対応していない画像の解像度または向き |
+| watermark 埋め込み / 抽出 | `WATERMARK_PDF_UNSUPPORTED` | 処理できない PDF（暗号化、ページ数超過、破損など） |
+| watermark 埋め込み / 抽出 | `WATERMARK_INPUT_UNSUPPORTED` | その他、watermark エンジンが処理できない入力 |
+| watermark 埋め込み / 抽出 | `WATERMARK_ENGINE_UNAVAILABLE` | watermark エンジンの一時的なエラー。同じファイルで再試行してください |
+| watermark 埋め込み / 抽出 | `ORDER_TIMEOUT` | 処理がタイムアウトしました。再試行してください |
+| watermark 埋め込み / 抽出 | `UPLOAD_EXPIRED` | アップロード待機時間内にファイルがアップロードされませんでした。新しい注文を作成してください |
+| watermark 埋め込み / 抽出 | `PROCESSING_ERROR` | その他の処理失敗 |
+| AI Detection | `AI_DETECTION_INVALID_IMAGE` | 画像を読み取れません |
+| AI Detection | `AI_DETECTION_TIMEOUT` | 判定がタイムアウトしました。再試行してください |
+| AI Detection | `AI_DETECTION_SERVICE_ERROR` | 判定サービスの一時的なエラー。再試行してください |
+| AI Detection | `AI_DETECTION_FAILED` | その他の判定失敗 |
+
+テスト注文は常に `PROCESSING_ERROR` です。新しいコードが追加されても連携が壊れないよう、不明なコードは一般的な失敗として処理してください。
 
 ### Anti-AI / watermark 埋め込み — 追加フィールド（完了）
 

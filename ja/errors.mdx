@@ -48,6 +48,10 @@ HTTP ステータスコードがエラーの種類を示します。プログラ
 | `ORDER_TYPE_CANT_DOWNLOAD` | 400 | ダウンロードできない注文タイプです |
 | `ORDER_TIMEOUT` | 408 | 注文処理がタイムアウトしました |
 
+### 注文失敗コード
+
+作成済みの注文が処理中に失敗すると、注文詳細の `errors.errorCode`・`errors.errorMessage` と失敗Webhookイベントに同じ値が入ります。このコードは処理失敗の原因を表します（例: `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED`）。一覧は[失敗イベントのエラーコード](/ja/webhooks#失敗イベントのエラーコード)を参照してください。
+
 ## 使用量・プランエラー
 
 | エラーコード | HTTP ステータス | 説明 |

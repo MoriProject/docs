@@ -340,9 +340,19 @@ components:
           format: date-time
           description: Updated at
         errors:
-          type: string
+          type: object
           nullable: true
-          description: Error message (on failure)
+          description: Failure details. null unless the order failed. Watermark orders always return a public
+            errorCode and a fixed errorMessage; see the failed webhook event error codes for the list.
+          properties:
+            errorCode:
+              type: string
+              description: Public error code, for example WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED, ORDER_TIMEOUT, or
+                PROCESSING_ERROR
+              example: WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED
+            errorMessage:
+              type: string
+              description: Fixed guidance message for the error code (Korean). It never contains raw processor output
         watermarks:
           type: array
           items:

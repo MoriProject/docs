@@ -135,8 +135,16 @@ All webhook payloads follow this structure:
 | Service | `errorCode` | Meaning |
 |---------|-------------|---------|
 | Anti-AI | `PROCESSING_ERROR` | Processing failed |
-| Watermark embed / extract | `WATERMARK_INPUT_UNSUPPORTED` | The watermark engine cannot process the file (format, corruption, size, resolution, color mode, and similar) |
+| Watermark embed / extract | `WATERMARK_FILE_FORMAT_UNSUPPORTED` | Unsupported file format, including animated images and a file whose content does not match its type. Use a still JPEG, PNG, or WEBP image, or a PDF |
+| Watermark embed / extract | `WATERMARK_FILE_CORRUPTED` | The file is corrupted or cannot be read |
+| Watermark embed / extract | `WATERMARK_FILE_SIZE_UNSUPPORTED` | The file is empty or exceeds the size limit |
+| Watermark embed / extract | `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED` | Unsupported color mode, such as grayscale or transparency. Use an RGB image |
+| Watermark embed / extract | `WATERMARK_IMAGE_DIMENSIONS_UNSUPPORTED` | Unsupported image resolution or orientation |
+| Watermark embed / extract | `WATERMARK_PDF_UNSUPPORTED` | The PDF cannot be processed (for example, it is encrypted, has too many pages, or is damaged) |
+| Watermark embed / extract | `WATERMARK_INPUT_UNSUPPORTED` | Any other input the watermark engine cannot process |
+| Watermark embed / extract | `WATERMARK_ENGINE_UNAVAILABLE` | Temporary watermark engine error. Try again with the same file |
 | Watermark embed / extract | `ORDER_TIMEOUT` | Processing timed out. Try again |
+| Watermark embed / extract | `UPLOAD_EXPIRED` | The file was not uploaded before the upload window expired. Create a new order |
 | Watermark embed / extract | `PROCESSING_ERROR` | Any other processing failure |
 | AI detection | `AI_DETECTION_INVALID_IMAGE` | The image cannot be read |
 | AI detection | `AI_DETECTION_TIMEOUT` | Detection timed out. Try again |

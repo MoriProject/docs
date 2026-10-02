@@ -49,6 +49,10 @@ The HTTP status code conveys the error category. Use the `code` field for progra
 | `PROCESSED_FILE_NOT_FOUND` | 404 | No processed result file exists for this order |
 | `ORDER_TIMEOUT` | 408 | Order processing timed out |
 
+### Failed order codes
+
+When an order fails after it was created, the order details return `errors.errorCode` and `errors.errorMessage`, and the failed webhook event carries the same values. These codes describe why processing failed (for example, `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED`). See [Failed event error codes](/webhooks#failed-event-error-codes) for the full list.
+
 ## Test upload errors
 
 | Error Code | HTTP Status | Description |
