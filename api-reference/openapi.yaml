@@ -1832,7 +1832,7 @@ paths:
         name: keyword
         schema:
           type: string
-        description: Search keyword
+        description: Search keyword. Matches the order ID, the stored order name, and, except for Anti-AI orders, the file name of the first file in the order.
       - in: query
         name: status
         schema:

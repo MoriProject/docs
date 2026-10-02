@@ -1721,7 +1721,7 @@ paths:
         name: keyword
         schema:
           type: string
-        description: 検索キーワード
+        description: 検索キーワード。注文ID、保存された注文名、およびAnti-AI注文を除く注文の最初のファイル名を検索します。
       - in: query
         name: status
         schema:

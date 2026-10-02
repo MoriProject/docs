@@ -1827,7 +1827,7 @@ paths:
         name: keyword
         schema:
           type: string
-        description: 검색 키워드
+        description: 검색 키워드. 주문 ID, 저장된 주문 이름, 그리고 Anti-AI 주문을 제외한 주문의 첫 번째 파일명을 검색합니다.
       - in: query
         name: status
         schema:
