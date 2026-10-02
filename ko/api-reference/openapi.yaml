@@ -208,7 +208,8 @@ components:
           description: 주문 ID
         orderName:
           type: string
-          description: 주문 이름
+          description: '주문 이름. Anti-AI 주문은 생성 시 저장된 이름이고, 그 외 모든 주문은 주문에 속한 첫 번째 파일의 파일명(확장자 포함)입니다. 워터마크 삽입과 AI Detection은 원본 파일, 워터마크 추출은 검사를 위해 제출한 파일 기준이며, 파일명을 알 수 없으면 저장된 주문 이름을 반환합니다.'
+          example: sample_photo.png
         type:
           type: string
           enum:
@@ -292,7 +293,8 @@ components:
           description: 주문 ID
         orderName:
           type: string
-          description: 주문 이름
+          description: '주문 이름. Anti-AI 주문은 생성 시 저장된 이름이고, 그 외 모든 주문은 주문에 속한 첫 번째 파일의 파일명(확장자 포함)입니다. 워터마크 삽입과 AI Detection은 원본 파일, 워터마크 추출은 검사를 위해 제출한 파일 기준이며, 파일명을 알 수 없으면 저장된 주문 이름을 반환합니다.'
+          example: sample_photo.png
         type:
           type: string
           enum:
@@ -1798,6 +1800,8 @@ paths:
 
         - 최신순 정렬
 
+        - `orderName`은 각 주문의 첫 번째 파일명입니다 (Anti-AI 주문은 저장된 이름)
+
         '
       tags:
       - Orders
@@ -1939,6 +1943,7 @@ paths:
     get:
       summary: 주문 상세 조회
       operationId: getOrder
+      description: ID로 주문을 조회합니다. orderName은 주문에 속한 첫 번째 파일명입니다 (Anti-AI 주문은 저장된 이름).
       x-mint:
         href: /ko/api-reference/orders/get-order
       tags:
@@ -1986,7 +1991,7 @@ paths:
                       channel: api
                       thumbnailImageUrl: https://s3.amazonaws.com/...
                       status: complete
-                      orderName: wtr_embed_2026-03-12
+                      orderName: brand_logo.png
                       fileCount: 2
                       createdAt: '2026-03-12T10:00:00.000Z'
                       updatedAt: '2026-03-12T10:03:00.000Z'
@@ -2003,7 +2008,7 @@ paths:
                       channel: api
                       thumbnailImageUrl: https://s3.amazonaws.com/...
                       status: complete
-                      orderName: wtr_extract_2026-03-12
+                      orderName: suspect_image.jpg
                       fileCount: 1
                       createdAt: '2026-03-12T10:00:00.000Z'
                       updatedAt: '2026-03-12T10:02:00.000Z'
@@ -2020,7 +2025,7 @@ paths:
                       thumbnailImageUrl: https://s3.amazonaws.com/...
                       originalImageUrl: https://s3.amazonaws.com/...
                       status: complete
-                      orderName: ai_detection_2026-03-12
+                      orderName: portrait.jpg
                       fileCount: 1
                       createdAt: '2026-03-12T10:00:00.000Z'
                       updatedAt: '2026-03-12T10:01:00.000Z'
