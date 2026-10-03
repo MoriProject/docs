@@ -4,6 +4,10 @@ title: "Create watermark embed order"
 openapi: "/api-reference/openapi.yaml POST /api/v2/orders/wtr-embed"
 ---
 
+<Warning>
+  **Deprecated.** This v2 endpoint ends support on October 7, 2026. Use [`POST /api/v3/orders/wtr-embed`](/api-reference/watermark-embed/create-order-v3) for new integrations, and see the [watermark embed quickstart](/quickstart/watermark-embed#migrating-from-v2-to-v3) to migrate.
+</Warning>
+
 <Note>
   With an `sk_test_` key, upload to the returned BIZ MORI test upload URL. The order moves to processing after its uploads finish, without a confirm call. Test processing does not create a downloadable result file.
 </Note>
