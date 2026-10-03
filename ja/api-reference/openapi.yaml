@@ -2973,6 +2973,8 @@ paths:
 
         - 注文あたりファイル最大 100 件、ファイルあたりテキスト 1〜10 件、テキストあたり 1〜1,000 文字
         - テキストごとに `outputs[]` に別の結果ファイルが作成され、1 クレジットを使用します
+        - 対応拡張子: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, `pdf`。BMP は無圧縮 24 ビット RGB または 1・8 ビットのグレースケール、TIFF は単一ページの 8 ビット RGB または 1・8 ビットのグレースケール(アルファなし)のみ処理できます
+        - この範囲外の BMP・TIFF(複数ページ、16 ビット、パレット、アルファ、CMYK など)は、公開 `errorCode` とともに注文が `failed` になり、クレジットは戻ります
         - `originalFileUrl` のないファイルは `files[].uploadUrl`(900 秒有効)へ `PUT` でアップロードします
         - すべてのファイルのアップロードが終わると処理が自動で始まります。confirm の呼び出しはありません
         - 12 時間以内にアップロードされない注文は `failed` になります
@@ -3010,7 +3012,7 @@ paths:
                       fileName:
                         type: string
                         maxLength: 255
-                        description: '拡張子を含むファイル名。対応形式: `png`, `jpg`, `jpeg`, `webp`, `pdf`'
+                        description: '拡張子を含むファイル名。対応形式: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, `pdf`'
                       originalFileUrl:
                         type: string
                         format: uri
@@ -3225,7 +3227,8 @@ paths:
         1 つのファイルから不可視 watermark を検査する注文を作成します。
 
         - リクエストごとに元ファイルと検査するファイルを一緒に提出します
-        - 画像の元ファイルには PNG・JPEG・WebP の検査ファイル、PDF の元ファイルには PDF・PNG・JPEG の検査ファイルを指定できます
+        - 画像の元ファイルには `jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff` の検査ファイル、PDF の元ファイルには PDF・PNG・JPEG の検査ファイルを指定できます
+        - BMP・TIFF の処理可能な範囲は watermark の埋め込みと同じです。処理できないファイルは注文が `failed` ではなく `complete` で終わり、`detectionStatus` が `unsupported` になり、クレジットは返金されます
         - レスポンスの `files[]` は 2 件です。`files[0]` が元ファイル、`files[1]` が検査ファイルで、それぞれ `uploadUrl` へ `PUT` でアップロードします
         - 2 つのファイルのアップロードが終わると処理が自動で始まります。注文あたり 1 クレジットを使用し、`unsupported`・`error` の結果は返金されます
         - 結果は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) の `result` で確認します
