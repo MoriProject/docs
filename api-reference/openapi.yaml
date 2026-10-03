@@ -3168,6 +3168,8 @@ paths:
 
         - Up to 100 files per order, 1–10 watermark texts per file, 1–1,000 characters per text
         - Each watermark text produces its own output file in `outputs[]` and uses 1 credit
+        - Supported extensions: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, `pdf`. BMP must be uncompressed 24-bit RGB or 1- or 8-bit grayscale. TIFF must be single-page 8-bit RGB or 1- or 8-bit grayscale, without alpha
+        - A BMP or TIFF file outside that range (multi-page, 16-bit, palette, alpha, CMYK, and so on) fails the order with a public `errorCode`, and the credits are restored
         - For each file without `originalFileUrl`, upload the file with `PUT` to `files[].uploadUrl` (valid for 900 seconds)
         - Processing starts automatically when every file is uploaded. There is no confirm step
         - Orders whose files are not uploaded within 12 hours become `failed`
@@ -3206,8 +3208,8 @@ paths:
                       fileName:
                         type: string
                         maxLength: 255
-                        description: 'File name with extension. Supported: `png`, `jpg`, `jpeg`, `webp`,
-                          `pdf`.'
+                        description: 'File name with extension. Supported: `jpg`, `jpeg`, `png`, `webp`,
+                          `bmp`, `tif`, `tiff`, `pdf`.'
                       originalFileUrl:
                         type: string
                         format: uri
@@ -3424,7 +3426,8 @@ paths:
         Create an order that checks one file for an invisible watermark.
 
         - Submit the original file together with the file to inspect on every request
-        - Image originals accept PNG, JPEG, or WebP files to inspect. PDF originals accept PDF, PNG, or JPEG files to inspect
+        - Image originals accept `jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, or `tiff` files to inspect. PDF originals accept PDF, PNG, or JPEG files to inspect
+        - BMP and TIFF files follow the same limits as watermark embed. A file that cannot be processed finishes as `complete` with `detectionStatus` `unsupported`, not `failed`, and the credit is refunded
         - The response `files[]` contains two entries: `files[0]` is the original and `files[1]` is the file to inspect. Upload each with `PUT` to its `uploadUrl`
         - Processing starts automatically when both files are uploaded. Each order uses 1 credit, and `unsupported` or `error` results are refunded
         - Read the outcome from `result` in [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3)
