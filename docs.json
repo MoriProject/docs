@@ -91,13 +91,15 @@
               {
                 "group": "Watermark Embed",
                 "pages": [
-                  "api-reference/watermark-embed/create-order"
+                  "api-reference/watermark-embed/create-order",
+                  "api-reference/watermark-embed/create-order-v3"
                 ]
               },
               {
                 "group": "Watermark Extract",
                 "pages": [
-                  "api-reference/watermark-extract/create-order"
+                  "api-reference/watermark-extract/create-order",
+                  "api-reference/watermark-extract/create-order-v3"
                 ]
               },
               {
@@ -105,9 +107,19 @@
                 "pages": [
                   "api-reference/orders/list-orders",
                   "api-reference/orders/get-order",
+                  "api-reference/orders/get-order-v3",
                   "api-reference/orders/download-order",
+                  "api-reference/orders/download-order-v3",
+                  "api-reference/orders/download-file-v3",
                   "api-reference/orders/refresh-urls",
                   "api-reference/orders/recent-stats"
+                ]
+              },
+              {
+                "group": "Reports",
+                "pages": [
+                  "api-reference/reports/create-report",
+                  "api-reference/reports/get-report"
                 ]
               },
               {
@@ -213,13 +225,15 @@
               {
                 "group": "Watermark-Embed",
                 "pages": [
-                  "ko/api-reference/watermark-embed/create-order"
+                  "ko/api-reference/watermark-embed/create-order",
+                  "ko/api-reference/watermark-embed/create-order-v3"
                 ]
               },
               {
                 "group": "Watermark-Extract",
                 "pages": [
-                  "ko/api-reference/watermark-extract/create-order"
+                  "ko/api-reference/watermark-extract/create-order",
+                  "ko/api-reference/watermark-extract/create-order-v3"
                 ]
               },
               {
@@ -227,9 +241,19 @@
                 "pages": [
                   "ko/api-reference/orders/list-orders",
                   "ko/api-reference/orders/get-order",
+                  "ko/api-reference/orders/get-order-v3",
                   "ko/api-reference/orders/download-order",
+                  "ko/api-reference/orders/download-order-v3",
+                  "ko/api-reference/orders/download-file-v3",
                   "ko/api-reference/orders/refresh-urls",
                   "ko/api-reference/orders/recent-stats"
+                ]
+              },
+              {
+                "group": "보고서",
+                "pages": [
+                  "ko/api-reference/reports/create-report",
+                  "ko/api-reference/reports/get-report"
                 ]
               },
               {
@@ -335,13 +359,15 @@
               {
                 "group": "Watermark-Embed",
                 "pages": [
-                  "ja/api-reference/watermark-embed/create-order"
+                  "ja/api-reference/watermark-embed/create-order",
+                  "ja/api-reference/watermark-embed/create-order-v3"
                 ]
               },
               {
                 "group": "Watermark-Extract",
                 "pages": [
-                  "ja/api-reference/watermark-extract/create-order"
+                  "ja/api-reference/watermark-extract/create-order",
+                  "ja/api-reference/watermark-extract/create-order-v3"
                 ]
               },
               {
@@ -349,9 +375,19 @@
                 "pages": [
                   "ja/api-reference/orders/list-orders",
                   "ja/api-reference/orders/get-order",
+                  "ja/api-reference/orders/get-order-v3",
                   "ja/api-reference/orders/download-order",
+                  "ja/api-reference/orders/download-order-v3",
+                  "ja/api-reference/orders/download-file-v3",
                   "ja/api-reference/orders/refresh-urls",
                   "ja/api-reference/orders/recent-stats"
+                ]
+              },
+              {
+                "group": "レポート",
+                "pages": [
+                  "ja/api-reference/reports/create-report",
+                  "ja/api-reference/reports/get-report"
                 ]
               },
               {

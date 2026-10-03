@@ -206,7 +206,7 @@ components:
           - watermarkEmbed
           - watermarkExtract
           - aiDetection
-          description: 注文タイプ
+          description: 注文タイプ。v3 watermark API で作成した注文も `watermarkEmbed` または `watermarkExtract` として返します
         channel:
           type: string
           enum:
@@ -234,12 +234,14 @@ components:
             * expired - 期限切れ（注文作成から7日経過するとファイルはダウンロードできません）'
         fileCount:
           type: integer
-          description: ファイル数
+          description: ファイル数。v3 watermark 注文は、埋め込みなら元ファイルの数、抽出なら検査ファイルだけを数えます
         thumbnailImageUrl:
           type: string
           format: uri
           nullable: true
-          description: サムネイル画像URL（プリサインドURL）
+          description: |
+            サムネイル画像 URL(presigned URL、1 時間有効)。aiDetection 注文は generateThumbnail オプションを使用した場合のみ返します。失効すると null です。
+            v3 watermark 注文は、処理完了後に最大 100×100 の WebP サムネイル(PDF は 1 ページ目)を返します。処理前・失敗・サムネイルがない注文はステータス画像を返します。
         createdAt:
           type: string
           format: date-time
@@ -256,19 +258,32 @@ components:
           type: string
           nullable: true
           enum:
+          - detected
+          - undetected
+          - inconclusive
+          - unsupported
+          - error
           - likely_real
           - uncertain_real
           - uncertain_ai
           - likely_ai
-          description: 'AI検知結果コード（aiDetection注文専用）
+          description: |
+            注文タイプ別のステータスコード。結果が出る前は `null` です。
 
-            * likely_real - 実在コンテンツである可能性が高い
+            **watermarkExtract 注文:**
 
-            * uncertain_real - 不確実、実在寄り
+            * `detected` - watermark を検出
+            * `undetected` - watermark 未検出
+            * `inconclusive` - 判定不可 (v3 注文のみ)
+            * `unsupported` - 処理できない入力 (v3 注文のみ)
+            * `error` - 検出処理の失敗 (v3 注文のみ)
 
-            * uncertain_ai - 不確実、AI生成寄り
+            **aiDetection 注文** (probability から算出):
 
-            * likely_ai - AI生成コンテンツである可能性が高い'
+            * `likely_real` - 実際のコンテンツの可能性が高い
+            * `uncertain_real` - 不確実、実際のコンテンツ寄り
+            * `uncertain_ai` - 不確実、AI 生成寄り
+            * `likely_ai` - AI 生成の可能性が高い
     OrderDetail:
       type: object
       description: 注文詳細情報
@@ -563,6 +578,272 @@ components:
         totalPages:
           type: integer
           description: 総ページ数
+    WatermarkV1OrderResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/WatermarkV1Order'
+    WatermarkV1Order:
+      type: object
+      description: v3 API で作成した不可視 watermark 注文
+      required:
+      - orderId
+      - status
+      - processingDelayed
+      - files
+      - outputs
+      - result
+      - reports
+      properties:
+        orderId:
+          type: string
+          description: 注文 ID
+        status:
+          type: string
+          enum:
+          - pending
+          - inProgress
+          - complete
+          - failed
+          - expired
+          description: |
+            注文の処理ステータス
+
+            * `pending` - ファイルのアップロード待ち
+            * `inProgress` - 処理中
+            * `complete` - 処理完了。抽出注文は `result` で結果を確認します
+            * `failed` - 処理失敗、または 12 時間以内にアップロードされなかった
+            * `expired` - 保管期限を過ぎ、ファイルが削除された
+        processingDelayed:
+          type: boolean
+          description: 自動再試行をすべて使い切り、手動復旧を待っている場合は `true`。注文は `inProgress` のままです
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 注文ファイルが削除される日時。以降のダウンロードとレポートは `ORDER_EXPIRED` を返します
+        files:
+          type: array
+          description: リクエスト順の入力ファイル。抽出注文は元ファイル、検査ファイルの順です
+          items:
+            $ref: '#/components/schemas/WatermarkV1UploadFile'
+        outputs:
+          type: array
+          description: 埋め込み結果。watermark テキストごとに 1 件で、抽出注文では空の配列です
+          items:
+            $ref: '#/components/schemas/WatermarkV1Output'
+        result:
+          $ref: '#/components/schemas/WatermarkV1DetectionResult'
+        reports:
+          type: array
+          description: この注文でリクエストしたレポート
+          items:
+            type: object
+            required:
+            - locale
+            - status
+            properties:
+              locale:
+                type: string
+                enum:
+                - ko-KR
+                - en-US
+                - ja-JP
+              status:
+                type: string
+                enum:
+                - queued
+                - processing
+                - completed
+                - failed
+    WatermarkV1UploadFile:
+      type: object
+      required:
+      - fileId
+      - uploadUrl
+      properties:
+        fileId:
+          type: string
+          description: 入力ファイル ID
+        uploadUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: |
+            ファイルアップロード用の presigned `PUT` URL(900 秒有効)。注文の `status` が `pending` で保管期限前、かつアップロード待ちのファイルにだけ発行します。
+            `originalFileUrl` で指定したファイル、アップロード済みのファイル、12 時間のアップロード期限を過ぎて `failed` になった注文、保管期限を過ぎた注文は `null` です。
+    WatermarkV1Output:
+      type: object
+      required:
+      - fileId
+      - inputFileId
+      - outputIndex
+      - watermarkText
+      - status
+      - mediaKind
+      properties:
+        fileId:
+          type: string
+          description: '`{inputFileId}-{連番}` 形式の結果ファイル ID(`outputs[].fileId`)'
+        inputFileId:
+          type: string
+          description: この結果を作成した入力ファイル ID
+        outputIndex:
+          type: integer
+          minimum: 0
+          description: 入力ファイルの `watermarks` 内でのテキストの位置
+        watermarkText:
+          type: string
+          description: 埋め込んだ watermark テキスト
+        status:
+          type: string
+          enum:
+          - pending
+          - queued
+          - processing
+          - completed
+          - failed
+          - retry_required
+          description: この結果ファイルの処理ステータス
+        mediaKind:
+          type: string
+          enum:
+          - image
+          - pdf
+    WatermarkV1DetectionResult:
+      type: object
+      nullable: true
+      description: 抽出結果の概要。埋め込み注文と、結果が出る前は `null` で、以下のフィールドだけを含みます
+      required:
+      - detectionStatus
+      - reportSupported
+      - watermarkText
+      additionalProperties: false
+      properties:
+        detectionStatus:
+          type: string
+          enum:
+          - detected
+          - not_detected
+          - inconclusive
+          - unsupported
+          - error
+          description: |
+            * `detected` - watermark を検出
+            * `not_detected` - 最後まで検査したが watermark なし
+            * `inconclusive` - 候補はあるが確信度の基準に満たず判定不可
+            * `unsupported` - 処理できない入力 (クレジット返金)
+            * `error` - 検出処理の失敗。watermark なしとは異なる (クレジット返金)
+        reportSupported:
+          type: boolean
+          description: この結果からレポートを作成できるかどうか。PDF からキャプチャした画像は `false`
+        watermarkText:
+          type: string
+          nullable: true
+          description: |
+            検出された watermark の埋め込みテキスト。`detectionStatus` が `detected` で、呼び出し元のアカウントが埋め込み、発行記録がちょうど 1 件のときだけ返します。
+            別のアカウントが埋め込んだ watermark など、それ以外は `null` です。
+    DownloadLinkResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          type: object
+          required:
+          - downloadUrl
+          - expiresInSeconds
+          properties:
+            downloadUrl:
+              type: string
+              format: uri
+              description: 300 秒間有効な署名付きダウンロード URL
+            expiresInSeconds:
+              type: integer
+              example: 300
+    OrderReportResponse:
+      type: object
+      required:
+      - data
+      properties:
+        data:
+          $ref: '#/components/schemas/OrderReportResource'
+    OrderReportResource:
+      type: object
+      required:
+      - orderId
+      - reportType
+      - locale
+      - status
+      - download
+      properties:
+        orderId:
+          type: string
+          description: 注文 ID
+        reportType:
+          type: string
+          enum:
+          - watermarkDetection
+          - aiDetection
+          description: BIZ MORI が注文の種類から決定
+        locale:
+          type: string
+          enum:
+          - ko-KR
+          - en-US
+          - ja-JP
+        status:
+          type: string
+          enum:
+          - queued
+          - processing
+          - completed
+          - failed
+          description: レポートの作成ステータス
+        download:
+          nullable: true
+          description: ダウンロード情報。`status` が `completed` のときだけ存在
+          allOf:
+          - $ref: '#/components/schemas/OrderReportDownload'
+        failure:
+          nullable: true
+          description: 失敗情報。`status` が `failed` のときだけ存在
+          allOf:
+          - $ref: '#/components/schemas/OrderReportFailure'
+    OrderReportDownload:
+      type: object
+      required:
+      - url
+      - expiresInSeconds
+      properties:
+        url:
+          type: string
+          format: uri
+          description: |
+            300 秒間有効な PDF の署名付き URL。watermark レポートは `<注文名>-report-<locale>.pdf` という名前で保存されます(例: `春キャンペーン-report-ja-JP.pdf`)。
+            URL を保存せず、新しい URL が必要なときはレポート API を再度呼び出してください。
+        expiresInSeconds:
+          type: integer
+          enum:
+          - 300
+    OrderReportFailure:
+      type: object
+      required:
+      - code
+      - retryable
+      properties:
+        code:
+          type: string
+          enum:
+          - REPORT_GENERATION_FAILED
+          - REPORT_NOT_AVAILABLE
+        retryable:
+          type: boolean
+          description: |
+            `true` の場合、同じ注文・locale で `POST /api/v3/orders/{orderId}/reports` を再度呼び出すと新しく作成できます。
+            watermark レポートは失敗が 3 回に達すると `false` です。
   responses:
     BadRequest:
       description: 不正なリクエスト
@@ -617,6 +898,8 @@ tags:
   description: 注文の照会と管理
 - name: Webhooks
   description: Webhookの設定とイベント
+- name: Reports
+  description: watermark 抽出・AI Detection 注文の PDF 分析レポート
 paths:
   /api/v2/orders/anti-ai:
     post:
@@ -2681,3 +2964,939 @@ paths:
         source: "import requests\n\nresponse = requests.post(\n    f'https://api.bizmori.com/api/v2/orders/webhooks/{webhook_id}/events/retry-failed',\n\
           \    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},\n    json={\n        'fromDate': '2026-01-01',\n\
           \        'toDate': '2026-01-07'\n    }\n)\ndata = response.json()"
+  /api/v3/orders/wtr-embed:
+    post:
+      summary: watermark 埋め込み注文を作成
+      operationId: createWatermarkV1EmbedOrder
+      description: |
+        画像と PDF に不可視 watermark を埋め込む注文を作成します。
+
+        - 注文あたりファイル最大 100 件、ファイルあたりテキスト 1〜10 件、テキストあたり 1〜1,000 文字
+        - テキストごとに `outputs[]` に別の結果ファイルが作成され、1 クレジットを使用します
+        - 対応拡張子: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, `pdf`。BMP は無圧縮 24 ビット RGB または 1・8 ビットのグレースケール、TIFF は単一ページの 8 ビット RGB または 1・8 ビットのグレースケール(アルファなし)のみ処理できます
+        - この範囲外の BMP・TIFF(複数ページ、16 ビット、パレット、アルファ、CMYK など)は、公開 `errorCode` とともに注文が `failed` になり、クレジットは戻ります
+        - `originalFileUrl` のないファイルは `files[].uploadUrl`(900 秒有効)へ `PUT` でアップロードします
+        - すべてのファイルのアップロードが終わると処理が自動で始まります。confirm の呼び出しはありません
+        - 12 時間以内にアップロードされない注文は `failed` になります
+        - [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) で `status` が `complete` になるまで照会してから、ダウンロード API を呼び出してください
+      tags:
+      - Watermark Embed
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - files
+              properties:
+                idempotencyKey:
+                  type: string
+                  maxLength: 255
+                  description: 冪等性キー。新しい注文ごとに新しい UUIDv4 を使い、同じリクエストを再試行するときだけ再利用します。同じキーは既存の注文を返し、同じキーで異なるリクエストボディを送ると
+                    `409 WATERMARK_V2_CONFLICT` を返します。
+                files:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  description: 1 つの注文に画像と PDF を混在できます。
+                  items:
+                    type: object
+                    required:
+                    - fileName
+                    - watermarks
+                    properties:
+                      fileName:
+                        type: string
+                        maxLength: 255
+                        description: '拡張子を含むファイル名。対応形式: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, `pdf`'
+                      originalFileUrl:
+                        type: string
+                        format: uri
+                        description: 元ファイルの公開 HTTPS URL(任意)。指定すると BIZ MORI がファイルをダウンロードし(最大 32 MiB、リダイレクト非対応)、そのファイルの
+                          `uploadUrl` は発行しません。
+                      watermarks:
+                        type: array
+                        minItems: 1
+                        maxItems: 10
+                        description: 埋め込む watermark テキスト。テキストごとに別の結果ファイルが作成され、1 クレジットを使用します。
+                        items:
+                          type: object
+                          required:
+                          - text
+                          properties:
+                            text:
+                              type: string
+                              minLength: 1
+                              maxLength: 1000
+            example:
+              idempotencyKey: f47ac10b-58cc-4372-a567-0e02b2c3d479
+              files:
+              - fileName: campaign.png
+                watermarks:
+                - text: MORI-2026-001
+              - fileName: contract.pdf
+                originalFileUrl: https://example.com/contract.pdf
+                watermarks:
+                - text: PARTNER-A
+                - text: PARTNER-B
+      responses:
+        '200':
+          description: 注文を作成、または同じ `idempotencyKey` の既存注文を返却
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatermarkV1OrderResponse'
+              example:
+                data:
+                  orderId: '1234567890'
+                  status: pending
+                  processingDelayed: false
+                  expiresAt: '2026-10-08T03:00:00.000Z'
+                  files:
+                  - fileId: '501'
+                    uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...
+                  - fileId: '502'
+                    uploadUrl: null
+                  outputs:
+                  - fileId: 501-1
+                    inputFileId: '501'
+                    outputIndex: 0
+                    watermarkText: MORI-2026-001
+                    status: pending
+                    mediaKind: image
+                  - fileId: 502-1
+                    inputFileId: '502'
+                    outputIndex: 0
+                    watermarkText: PARTNER-A
+                    status: pending
+                    mediaKind: pdf
+                  - fileId: 502-2
+                    inputFileId: '502'
+                    outputIndex: 1
+                    watermarkText: PARTNER-B
+                    status: pending
+                    mediaKind: pdf
+                  result: null
+                  reports: []
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 同じ `idempotencyKey` で異なるリクエストボディを送信
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_CONFLICT
+        '429':
+          description: リクエスト回数の超過
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: RATE_LIMIT_EXCEEDED
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          description: watermark 処理を一時的に利用できない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_UNAVAILABLE
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl -X POST https://api.bizmori.com/api/v3/orders/wtr-embed \
+            -H "Authorization: Bearer YOUR_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+            "idempotencyKey": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+            "files": [
+              {
+                "fileName": "campaign.png",
+                "watermarks": [
+                  {
+                    "text": "MORI-2026-001"
+                  }
+                ]
+              },
+              {
+                "fileName": "contract.pdf",
+                "originalFileUrl": "https://example.com/contract.pdf",
+                "watermarks": [
+                  {
+                    "text": "PARTNER-A"
+                  },
+                  {
+                    "text": "PARTNER-B"
+                  }
+                ]
+              }
+            ]
+          }'
+      - lang: javascript
+        label: JavaScript
+        source: |
+          const response = await fetch(`https://api.bizmori.com/api/v3/orders/wtr-embed`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer YOUR_API_KEY',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              "idempotencyKey": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+              "files": [
+                {
+                  "fileName": "campaign.png",
+                  "watermarks": [
+                    {
+                      "text": "MORI-2026-001"
+                    }
+                  ]
+                },
+                {
+                  "fileName": "contract.pdf",
+                  "originalFileUrl": "https://example.com/contract.pdf",
+                  "watermarks": [
+                    {
+                      "text": "PARTNER-A"
+                    },
+                    {
+                      "text": "PARTNER-B"
+                    }
+                  ]
+                }
+              ]
+            })
+          });
+          const { data } = await response.json();
+          // 各ファイルを presigned URL へ PUT でアップロードします (files[] はリクエスト順)
+          // await fetch(data.files[0].uploadUrl, { method: 'PUT', body: file });
+      - lang: python
+        label: Python
+        source: |
+          import requests
+
+          response = requests.post(
+              f'https://api.bizmori.com/api/v3/orders/wtr-embed',
+              headers={'Authorization': 'Bearer YOUR_API_KEY'},
+              json={
+                "idempotencyKey": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+                "files": [
+                  {
+                    "fileName": "campaign.png",
+                    "watermarks": [
+                      {
+                        "text": "MORI-2026-001"
+                      }
+                    ]
+                  },
+                  {
+                    "fileName": "contract.pdf",
+                    "originalFileUrl": "https://example.com/contract.pdf",
+                    "watermarks": [
+                      {
+                        "text": "PARTNER-A"
+                      },
+                      {
+                        "text": "PARTNER-B"
+                      }
+                    ]
+                  }
+                ]
+              }
+          )
+          data = response.json()['data']
+          # 各ファイルを presigned URL へ PUT でアップロードします (files[] はリクエスト順)
+          # requests.put(data['files'][0]['uploadUrl'], data=open('campaign.png', 'rb'))
+  /api/v3/orders/wtr-extract:
+    post:
+      summary: watermark 抽出注文を作成
+      operationId: createWatermarkV1ExtractOrder
+      description: |
+        1 つのファイルから不可視 watermark を検査する注文を作成します。
+
+        - リクエストごとに元ファイルと検査するファイルを一緒に提出します
+        - 画像の元ファイルには `jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff` の検査ファイル、PDF の元ファイルには PDF・PNG・JPEG の検査ファイルを指定できます
+        - BMP・TIFF の処理可能な範囲は watermark の埋め込みと同じです。処理できないファイルは注文が `failed` ではなく `complete` で終わり、`detectionStatus` が `unsupported` になり、クレジットは返金されます
+        - レスポンスの `files[]` は 2 件です。`files[0]` が元ファイル、`files[1]` が検査ファイルで、それぞれ `uploadUrl` へ `PUT` でアップロードします
+        - 2 つのファイルのアップロードが終わると処理が自動で始まります。注文あたり 1 クレジットを使用し、`unsupported`・`error` の結果は返金されます
+        - 結果は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) の `result` で確認します
+      tags:
+      - Watermark Extract
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - idempotencyKey
+              - file
+              properties:
+                idempotencyKey:
+                  type: string
+                  maxLength: 255
+                  description: 冪等性キー。新しい注文ごとに新しい UUIDv4 を使い、同じリクエストを再試行するときだけ再利用します。同じキーは既存の注文を返し、同じキーで異なるリクエストボディを送ると
+                    `409 WATERMARK_V2_CONFLICT` を返します。
+                file:
+                  type: object
+                  required:
+                  - fileName
+                  - originalFile
+                  description: 検査するファイル
+                  properties:
+                    fileName:
+                      type: string
+                      maxLength: 255
+                      description: 拡張子を含む検査ファイル名
+                    originalFile:
+                      type: object
+                      required:
+                      - fileName
+                      description: watermark を埋め込んだ元ファイル
+                      properties:
+                        fileName:
+                          type: string
+                          maxLength: 255
+            example:
+              idempotencyKey: 6c3b9f7e-2d41-4a8e-9b5f-0e1d2c3b4a59
+              file:
+                fileName: suspect.png
+                originalFile:
+                  fileName: campaign.png
+      responses:
+        '200':
+          description: 元ファイルと検査ファイルのアップロード URL とともに注文を作成
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatermarkV1OrderResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 同じ `idempotencyKey` で異なるリクエストボディを送信
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_CONFLICT
+        '429':
+          description: リクエスト回数の超過
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: RATE_LIMIT_EXCEEDED
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          description: watermark 処理を一時的に利用できない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_UNAVAILABLE
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl -X POST https://api.bizmori.com/api/v3/orders/wtr-extract \
+            -H "Authorization: Bearer YOUR_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+            "idempotencyKey": "6c3b9f7e-2d41-4a8e-9b5f-0e1d2c3b4a59",
+            "file": {
+              "fileName": "suspect.png",
+              "originalFile": {
+                "fileName": "campaign.png"
+              }
+            }
+          }'
+      - lang: javascript
+        label: JavaScript
+        source: |
+          const response = await fetch(`https://api.bizmori.com/api/v3/orders/wtr-extract`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer YOUR_API_KEY',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              "idempotencyKey": "6c3b9f7e-2d41-4a8e-9b5f-0e1d2c3b4a59",
+              "file": {
+                "fileName": "suspect.png",
+                "originalFile": {
+                  "fileName": "campaign.png"
+                }
+              }
+            })
+          });
+          const { data } = await response.json();
+      - lang: python
+        label: Python
+        source: |
+          import requests
+
+          response = requests.post(
+              f'https://api.bizmori.com/api/v3/orders/wtr-extract',
+              headers={'Authorization': 'Bearer YOUR_API_KEY'},
+              json={
+                "idempotencyKey": "6c3b9f7e-2d41-4a8e-9b5f-0e1d2c3b4a59",
+                "file": {
+                  "fileName": "suspect.png",
+                  "originalFile": {
+                    "fileName": "campaign.png"
+                  }
+                }
+              }
+          )
+          data = response.json()['data']
+  /api/v3/orders/{orderId}:
+    get:
+      summary: watermark 注文詳細を取得
+      operationId: getWatermarkV1Order
+      description: |
+        v3 API で作成した watermark 注文のステータス、アップロード URL、埋め込み結果、抽出結果、レポートのステータスを取得します。注文のステータスに関係なく、いつでも呼び出せます。
+
+        `POST /api/v3/orders/wtr-embed`・`wtr-extract` で作成した watermark 注文だけを取得します。Anti-AI、AI Detection などそれ以外の注文は `404 ORDER_NOT_FOUND` を返すため、[`GET /api/v2/orders/{orderId}`](/ja/api-reference/orders/get-order) を使用してください。
+
+        - `files[].uploadUrl` は、注文の `status` が `pending` で保管期限前、かつアップロード待ちのファイルにだけ発行します。それ以外は `null` です
+        - `result` には `detectionStatus`、`reportSupported`、`watermarkText` だけが含まれます。埋め込み注文と、抽出結果が出る前は `null` です
+        - `result.watermarkText` は、検出された watermark を呼び出し元のアカウントが埋め込み、発行記録がちょうど 1 件のときだけ埋め込みテキストを返します。それ以外は `null` です
+      tags:
+      - Orders
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+        description: 注文 ID
+      responses:
+        '200':
+          description: 注文詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatermarkV1OrderResponse'
+              example:
+                data:
+                  orderId: '1234567891'
+                  status: complete
+                  processingDelayed: false
+                  expiresAt: '2026-10-08T03:00:00.000Z'
+                  files:
+                  - fileId: '601'
+                    uploadUrl: null
+                  - fileId: '602'
+                    uploadUrl: null
+                  outputs: []
+                  result:
+                    detectionStatus: detected
+                    reportSupported: true
+                    watermarkText: MORI-2026-001
+                  reports:
+                  - locale: en-US
+                    status: completed
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 注文が存在しないか、別のアカウントの注文
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_FOUND
+        '500':
+          $ref: '#/components/responses/InternalError'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl -X GET https://api.bizmori.com/api/v3/orders/ORDER_ID \
+            -H "Authorization: Bearer YOUR_API_KEY"
+      - lang: javascript
+        label: JavaScript
+        source: |
+          const orderId = 'ORDER_ID';
+          const response = await fetch(`https://api.bizmori.com/api/v3/orders/${orderId}`, {
+            headers: { 'Authorization': 'Bearer YOUR_API_KEY' }
+          });
+          const { data } = await response.json();
+      - lang: python
+        label: Python
+        source: |
+          import requests
+
+          order_id = 'ORDER_ID'
+          response = requests.get(
+              f'https://api.bizmori.com/api/v3/orders/{order_id}',
+              headers={'Authorization': 'Bearer YOUR_API_KEY'}
+          )
+          data = response.json()['data']
+  /api/v3/orders/{orderId}/download:
+    get:
+      summary: 埋め込み結果のダウンロード URL を発行
+      operationId: downloadWatermarkV1Order
+      description: |
+        完了した埋め込み注文の結果ダウンロード URL を発行します。
+
+        - 結果が 1 件ならそのファイル、2 件以上なら `<orderId>-watermarked.zip` の ZIP ファイルを返します
+        - 各結果ファイル名は `<元のファイル名>-watermarked-<結果 fileId>.<拡張子>` です
+        - URL は 300 秒間有効です。新しい URL が必要な場合は再度呼び出してください
+        - 注文が `complete` になる前は `400 VALIDATION_FAILED`、保管期限を過ぎると `400 ORDER_EXPIRED` を返します
+      tags:
+      - Orders
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]{1,20}$
+        description: 注文 ID
+      responses:
+        '200':
+          description: ファイルまたは ZIP の署名付き URL(300 秒有効)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadLinkResponse'
+        '400':
+          description: 不正なリクエスト、未完了の注文、または保管期限を過ぎた注文(`ORDER_EXPIRED`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation:
+                  value:
+                    code: VALIDATION_FAILED
+                expired:
+                  value:
+                    code: ORDER_EXPIRED
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 注文が存在しないか、別のアカウントの注文
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_FOUND
+        '500':
+          $ref: '#/components/responses/InternalError'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl -X GET https://api.bizmori.com/api/v3/orders/ORDER_ID/download \
+            -H "Authorization: Bearer YOUR_API_KEY"
+      - lang: javascript
+        label: JavaScript
+        source: |
+          const orderId = 'ORDER_ID';
+          const response = await fetch(`https://api.bizmori.com/api/v3/orders/${orderId}/download`, {
+            headers: { 'Authorization': 'Bearer YOUR_API_KEY' }
+          });
+          const { data } = await response.json();
+      - lang: python
+        label: Python
+        source: |
+          import requests
+
+          order_id = 'ORDER_ID'
+          response = requests.get(
+              f'https://api.bizmori.com/api/v3/orders/{order_id}/download',
+              headers={'Authorization': 'Bearer YOUR_API_KEY'}
+          )
+          data = response.json()['data']
+  /api/v3/orders/{orderId}/files/{fileId}/download:
+    get:
+      summary: 個別結果ファイルのダウンロード URL を発行
+      operationId: downloadWatermarkV1OutputFile
+      description: |
+        完了した埋め込み注文の結果ファイル 1 件のダウンロード URL を発行します。[`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) の `outputs[].fileId` を使用します。
+
+        URL は 300 秒間有効です。保管期限を過ぎると `400 ORDER_EXPIRED` を返します。
+      tags:
+      - Orders
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]{1,20}$
+        description: 注文 ID
+      - in: path
+        name: fileId
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]+-[0-9]+$
+        description: '`{inputFileId}-{連番}` 形式の結果ファイル ID(`outputs[].fileId`)'
+      responses:
+        '200':
+          description: 結果ファイルの署名付き URL(300 秒有効)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DownloadLinkResponse'
+        '400':
+          description: 不正なリクエスト、未完了の注文、または保管期限を過ぎた注文(`ORDER_EXPIRED`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation:
+                  value:
+                    code: VALIDATION_FAILED
+                expired:
+                  value:
+                    code: ORDER_EXPIRED
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 注文が存在しないか、別のアカウントの注文
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_FOUND
+        '500':
+          $ref: '#/components/responses/InternalError'
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl -X GET https://api.bizmori.com/api/v3/orders/ORDER_ID/files/FILE_ID/download \
+            -H "Authorization: Bearer YOUR_API_KEY"
+      - lang: javascript
+        label: JavaScript
+        source: |
+          const orderId = 'ORDER_ID';
+          const fileId = 'FILE_ID';
+          const response = await fetch(`https://api.bizmori.com/api/v3/orders/${orderId}/files/${fileId}/download`, {
+            headers: { 'Authorization': 'Bearer YOUR_API_KEY' }
+          });
+          const { data } = await response.json();
+      - lang: python
+        label: Python
+        source: |
+          import requests
+
+          order_id = 'ORDER_ID'
+          file_id = 'FILE_ID'
+          response = requests.get(
+              f'https://api.bizmori.com/api/v3/orders/{order_id}/files/{file_id}/download',
+              headers={'Authorization': 'Bearer YOUR_API_KEY'}
+          )
+          data = response.json()['data']
+  /api/v3/orders/{orderId}/reports:
+    post:
+      summary: 注文レポートを作成
+      operationId: createOrderReport
+      description: |
+        注文の PDF 分析レポートを作成します。レポートの種類は BIZ MORI が注文の種類から決めるため、送信しません。
+
+        - v3 API で作成した watermark 抽出注文 → `watermarkDetection`
+        - AI Detection 注文 → `aiDetection`
+
+        画像の watermark レポートは `ko-KR`、`en-US`、`ja-JP`、PDF の watermark レポートは `ko-KR` のみ対応します。同じ注文・locale を再度リクエストすると既存のレポートを返します。
+
+        **レスポンス**
+        - `202` と `queued`・`processing`: 作成中です。[`GET /api/v3/orders/{orderId}/reports/{locale}`](/ja/api-reference/reports/get-report) で照会してください
+        - `200` と `completed`: 作成済みのレポートで、`download` を含みます
+        - `200` と `failed`: 作成に失敗し、再試行できません(`failure.retryable` が `false`)
+
+        **watermark レポートの再試行**
+        watermark レポートが `failed` の場合、同じ注文・locale で再度呼び出すと新しく作成します(`202`)。試行ごとに 1 クレジットを予約し、失敗した試行は返金され、成功した試行だけが差し引かれます。失敗が 3 回に達すると再作成しません。
+
+        注文の保管期限を過ぎると、レポートがあっても `400 ORDER_EXPIRED` を返します。
+      tags:
+      - Reports
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+        description: 注文 ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                locale:
+                  type: string
+                  enum:
+                  - ko-KR
+                  - en-US
+                  - ja-JP
+                  default: ko-KR
+                  description: レポートの言語。デフォルトは `ko-KR`
+            example:
+              locale: en-US
+      responses:
+        '200':
+          description: 作成済みのレポート、または再試行できない失敗レポート
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderReportResponse'
+        '202':
+          description: レポートのリクエストを受け付け、`queued` または `processing` の状態
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderReportResponse'
+        '400':
+          description: 不正なリクエスト、注文の種類が対応していない locale、または保管期限を過ぎた注文
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation:
+                  value:
+                    code: VALIDATION_FAILED
+                locale:
+                  value:
+                    code: REPORT_LOCALE_UNSUPPORTED
+                expired:
+                  value:
+                    code: ORDER_EXPIRED
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 注文が存在しないか別のアカウントの注文、または完了したレポートファイルが存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                order:
+                  value:
+                    code: ORDER_NOT_FOUND
+                report:
+                  value:
+                    code: REPORT_NOT_FOUND
+        '409':
+          description: 注文が完了していないか、まだレポートを作成できない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: REPORT_NOT_AVAILABLE
+        '429':
+          description: リクエスト回数の超過
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: RATE_LIMIT_EXCEEDED
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          description: レポート作成を一時的に利用できない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: SERVICE_UNAVAILABLE
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl -X POST https://api.bizmori.com/api/v3/orders/ORDER_ID/reports \
+            -H "Authorization: Bearer YOUR_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{
+            "locale": "en-US"
+          }'
+      - lang: javascript
+        label: JavaScript
+        source: |
+          const orderId = 'ORDER_ID';
+          const response = await fetch(`https://api.bizmori.com/api/v3/orders/${orderId}/reports`, {
+            method: 'POST',
+            headers: {
+              'Authorization': 'Bearer YOUR_API_KEY',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              "locale": "en-US"
+            })
+          });
+          const { data } = await response.json();
+      - lang: python
+        label: Python
+        source: |
+          import requests
+
+          order_id = 'ORDER_ID'
+          response = requests.post(
+              f'https://api.bizmori.com/api/v3/orders/{order_id}/reports',
+              headers={'Authorization': 'Bearer YOUR_API_KEY'},
+              json={
+                "locale": "en-US"
+              }
+          )
+          data = response.json()['data']
+  /api/v3/orders/{orderId}/reports/{locale}:
+    get:
+      summary: 注文レポートを取得
+      operationId: getOrderReport
+      description: |
+        レポートのステータスと、`completed` のときはダウンロード URL を取得します。作成リクエストのない locale は `404 REPORT_NOT_FOUND` です。
+
+        `download.url` は呼び出すたびに新しく署名され、300 秒後に失効します。失効した URL はストレージが `403` を返し、更新できません。URL を保存せず、ユーザーがダウンロードを押したときにこの API を呼び出し、返された URL へすぐに移動してください。
+
+        注文の保管期限を過ぎると、レポートのステータスに関係なく `400 ORDER_EXPIRED` を返します。
+      tags:
+      - Reports
+      security:
+      - BearerAuth: []
+      parameters:
+      - in: path
+        name: orderId
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]{1,20}$
+        description: 注文 ID
+      - in: path
+        name: locale
+        required: true
+        schema:
+          type: string
+          enum:
+          - ko-KR
+          - en-US
+          - ja-JP
+        description: レポートの言語
+      responses:
+        '200':
+          description: '`queued`・`processing`・`completed`・`failed` 状態のレポート。`download` は `completed` のときだけ存在'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderReportResponse'
+              example:
+                data:
+                  orderId: '1234567891'
+                  reportType: watermarkDetection
+                  locale: en-US
+                  status: completed
+                  download:
+                    url: https://s3.ap-northeast-2.amazonaws.com/...
+                    expiresInSeconds: 300
+                  failure: null
+        '400':
+          description: 不正なリクエスト、注文の種類が対応していない locale、または保管期限を過ぎた注文
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation:
+                  value:
+                    code: VALIDATION_FAILED
+                locale:
+                  value:
+                    code: REPORT_LOCALE_UNSUPPORTED
+                expired:
+                  value:
+                    code: ORDER_EXPIRED
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: 注文が存在しない、この locale のレポートがリクエストされていない、または完了したレポートファイルが存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                order:
+                  value:
+                    code: ORDER_NOT_FOUND
+                report:
+                  value:
+                    code: REPORT_NOT_FOUND
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          description: レポート作成を一時的に利用できない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: SERVICE_UNAVAILABLE
+      x-codeSamples:
+      - lang: curl
+        label: cURL
+        source: |
+          curl -X GET https://api.bizmori.com/api/v3/orders/ORDER_ID/reports/en-US \
+            -H "Authorization: Bearer YOUR_API_KEY"
+      - lang: javascript
+        label: JavaScript
+        source: |
+          const orderId = 'ORDER_ID';
+          const locale = 'en-US';
+          const response = await fetch(`https://api.bizmori.com/api/v3/orders/${orderId}/reports/${locale}`, {
+            headers: { 'Authorization': 'Bearer YOUR_API_KEY' }
+          });
+          const { data } = await response.json();
+          if (data.status === 'completed') window.location.href = data.download.url;
+      - lang: python
+        label: Python
+        source: |
+          import requests
+
+          order_id = 'ORDER_ID'
+          locale = 'en-US'
+          response = requests.get(
+              f'https://api.bizmori.com/api/v3/orders/{order_id}/reports/{locale}',
+              headers={'Authorization': 'Bearer YOUR_API_KEY'}
+          )
+          data = response.json()['data']
+          if data['status'] == 'completed':
+              pdf = requests.get(data['download']['url']).content
