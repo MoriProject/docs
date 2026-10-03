@@ -652,7 +652,7 @@ v3의 요청 본문은 v2와 형태가 같습니다. 대부분은 엔드포인�
 |---|---|---|
 | 주문 생성 | `POST /api/v2/orders/wtr-embed` | `POST /api/v3/orders/wtr-embed` |
 | 요청 본문 | `files[].fileName`, `originalFileUrl`, `watermarks` | 동일 |
-| 크레딧 | 워터마크 문구당 계산하며, PDF는 페이지 수를 곱함 | 이미지·PDF 구분 없이 워터마크 문구당 1크레딧 |
+| 크레딧 | — | 이미지·PDF 구분 없이 워터마크 문구당 1크레딧 |
 | 결과 | 주문 전체를 한 번에 다운로드 | 워터마크 문구마다 결과 파일이 하나씩 `outputs[]`에 생기며, 한 번에 받거나 하나씩 받을 수 있음 |
 | 주문 조회 | `GET /api/v2/orders/{orderId}` | [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3) |
 | 다운로드 | `GET /api/v2/orders/{orderId}/download` (URL 7일 유효) | [주문 전체](/ko/api-reference/orders/download-order-v3) 또는 [결과 파일 하나](/ko/api-reference/orders/download-file-v3) (URL 300초 유효) |

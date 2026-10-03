@@ -652,7 +652,7 @@ The v3 request body has the same shape as v2, so most integrations only change t
 |---|---|---|
 | Create an order | `POST /api/v2/orders/wtr-embed` | `POST /api/v3/orders/wtr-embed` |
 | Request body | `files[].fileName`, `originalFileUrl`, `watermarks` | Same fields |
-| Credits | Per watermark text; a PDF also multiplies by its page count | 1 credit per watermark text, for images and PDFs alike |
+| Credits | — | 1 credit per watermark text, for images and PDFs alike |
 | Results | One download for the whole order | One output file per watermark text, listed in `outputs[]`; download all at once or one at a time |
 | Get the order | `GET /api/v2/orders/{orderId}` | [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) |
 | Download | `GET /api/v2/orders/{orderId}/download` (URL valid for 7 days) | [Whole order](/api-reference/orders/download-order-v3) or [one output file](/api-reference/orders/download-file-v3) (URL valid for 300 seconds) |

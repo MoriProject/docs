@@ -713,7 +713,7 @@ v3 always compares the file to check against its original, so the request now na
 | Request body | `file.fileName`, `file.includeOriginal`, `file.originalFile` | `file.fileName` and `file.originalFile.fileName`. There is no `includeOriginal` |
 | Uploads | One file, or two with `includeOriginal` | Always two: `files[0]` is the original, `files[1]` is the file to check |
 | Get the result | `GET /api/v2/orders/{orderId}` → `statusCode` (`detected` / `undetected`) | [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) → `result.detectionStatus` (five values), `result.watermarkText`, `result.reportSupported` |
-| Credits | 1 credit per image; a PDF uses 1 credit per page | 1 credit per order, for images and PDFs alike. `unsupported` and `error` results are refunded |
+| Credits | — | 1 credit per order, for images and PDFs alike. `unsupported` and `error` results are refunded |
 | PDF report | Not available | [Create](/api-reference/reports/create-report) and [get](/api-reference/reports/get-report) a report |
 | Confirm step | None | None |
 | Webhooks | `order.watermarkExtract.completed` / `failed` | Same event names and `data` fields. `statusCode` can also be `inconclusive`, `unsupported`, or `error` |

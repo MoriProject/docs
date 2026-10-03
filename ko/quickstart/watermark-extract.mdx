@@ -713,7 +713,7 @@ v3는 검사할 파일을 항상 원본과 비교하므로, 요청에 두 파일
 | 요청 본문 | `file.fileName`, `file.includeOriginal`, `file.originalFile` | `file.fileName`, `file.originalFile.fileName`. `includeOriginal`은 없음 |
 | 업로드 | 파일 1개, `includeOriginal` 사용 시 2개 | 항상 2개: `files[0]`은 원본, `files[1]`은 검사할 파일 |
 | 결과 조회 | `GET /api/v2/orders/{orderId}` → `statusCode`(`detected` / `undetected`) | [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3) → `result.detectionStatus`(5가지 값), `result.watermarkText`, `result.reportSupported` |
-| 크레딧 | 이미지 1크레딧, PDF는 페이지당 1크레딧 | 이미지·PDF 구분 없이 주문당 1크레딧. `unsupported`·`error` 결과는 복구 |
+| 크레딧 | — | 이미지·PDF 구분 없이 주문당 1크레딧. `unsupported`·`error` 결과는 복구 |
 | PDF 보고서 | 없음 | 보고서 [생성](/ko/api-reference/reports/create-report)·[조회](/ko/api-reference/reports/get-report) |
 | confirm 단계 | 없음 | 없음 |
 | 웹훅 | `order.watermarkExtract.completed` / `failed` | 이벤트 이름과 `data` 필드 동일. `statusCode`에 `inconclusive`, `unsupported`, `error`가 추가됨 |

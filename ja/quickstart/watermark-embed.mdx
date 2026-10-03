@@ -652,7 +652,7 @@ v3 のリクエスト本文は v2 と同じ形式です。ほとんどの場合�
 |---|---|---|
 | 注文の作成 | `POST /api/v2/orders/wtr-embed` | `POST /api/v3/orders/wtr-embed` |
 | リクエスト本文 | `files[].fileName`、`originalFileUrl`、`watermarks` | 同じ |
-| クレジット | watermark 文言ごとに計算し、PDF はページ数を掛ける | 画像・PDF を問わず watermark 文言ごとに 1 クレジット |
+| クレジット | — | 画像・PDF を問わず watermark 文言ごとに 1 クレジット |
 | 結果 | 注文全体をまとめてダウンロード | watermark 文言ごとに結果ファイルが 1 つずつ `outputs[]` に作成され、まとめても 1 つずつでも取得可能 |
 | 注文の取得 | `GET /api/v2/orders/{orderId}` | [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) |
 | ダウンロード | `GET /api/v2/orders/{orderId}/download`（URL は 7 日間有効） | [注文全体](/ja/api-reference/orders/download-order-v3)または[結果ファイル 1 つ](/ja/api-reference/orders/download-file-v3)（URL は 300 秒間有効） |

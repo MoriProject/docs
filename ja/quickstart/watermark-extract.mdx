@@ -713,7 +713,7 @@ v3 では検査するファイルを常に元のファイルと比較するた�
 | リクエスト本文 | `file.fileName`、`file.includeOriginal`、`file.originalFile` | `file.fileName` と `file.originalFile.fileName`。`includeOriginal` はなし |
 | アップロード | 1 ファイル、`includeOriginal` 使用時は 2 ファイル | 常に 2 ファイル：`files[0]` は元のファイル、`files[1]` は検査するファイル |
 | 結果の取得 | `GET /api/v2/orders/{orderId}` → `statusCode`（`detected` / `undetected`） | [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) → `result.detectionStatus`（5 種類）、`result.watermarkText`、`result.reportSupported` |
-| クレジット | 画像は 1 クレジット、PDF はページごとに 1 クレジット | 画像・PDF を問わず注文ごとに 1 クレジット。`unsupported`・`error` の結果は返還 |
+| クレジット | — | 画像・PDF を問わず注文ごとに 1 クレジット。`unsupported`・`error` の結果は返還 |
 | PDF レポート | なし | レポートの[作成](/ja/api-reference/reports/create-report)・[取得](/ja/api-reference/reports/get-report) |
 | confirm ステップ | なし | なし |
 | Webhook | `order.watermarkExtract.completed` / `failed` | イベント名と `data` フィールドは同じ。`statusCode` に `inconclusive`、`unsupported`、`error` が追加 |
