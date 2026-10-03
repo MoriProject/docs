@@ -3,6 +3,11 @@ tag: "v2"
 title: "워터마크 삽입 주문 생성"
 openapi: "/ko/api-reference/openapi.yaml POST /api/v2/orders/wtr-embed"
 ---
+
+<Warning>
+  **지원 종료 예정.** 이 v2 엔드포인트는 2026년 10월 7일에 지원이 종료됩니다. 새로 연동한다면 [`POST /api/v3/orders/wtr-embed`](/ko/api-reference/watermark-embed/create-order-v3)를 사용하고, 마이그레이션 방법은 [워터마크 삽입 빠른 시작](/ko/quickstart/watermark-embed#v2에서-v3로-마이그레이션)을 참고하세요.
+</Warning>
+
 <Note>
   `sk_test_` 키를 사용하면 응답의 BIZ MORI 테스트 업로드 URL로 파일을 업로드합니다. 업로드가 끝나면 confirm 없이 처리가 시작되며 다운로드 가능한 결과 파일은 만들지 않습니다.
 </Note>

@@ -1,37 +1,48 @@
 ---
 title: "Watermark Embed"
-description: "Embed invisible watermarks into your images"
+description: "Embed invisible watermarks into images and PDFs with the v3 API"
 ---
 
-This guide walks you through embedding an invisible watermark into an image — from creating an order to downloading the watermarked result.
+This guide walks you through embedding invisible watermarks with the v3 API — from creating an order to downloading the watermarked files.
 
 Every endpoint here is plain HTTPS and JSON, so the same calls work from a server or straight from the browser. Each step includes a **React** tab, and a [full copy-paste component](#full-react-example) is at the bottom of the page.
+
+<Warning>
+  The v2 watermark embed endpoint (`POST /api/v2/orders/wtr-embed`) ends support on October 7, 2026. This guide uses the v3 API. If you already call v2, see [Migrating from v2 to v3](#migrating-from-v2-to-v3).
+</Warning>
 
 ## Prerequisites
 
 - A BIZ MORI API key ([get one here](https://app.bizmori.com/keys))
-- An image or PDF file to watermark (`jpeg`, `jpg`, `png`, `webp`, `tiff`, `bmp`, or `pdf`)
+- An image or PDF file to watermark (`jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, or `pdf`)
 
 <Info>
-  Use the automatically issued [`sk_test_` key](/test-api-keys) to exercise the order lifecycle without running watermark processing or consuming credits. Test uploads discard file contents and do not produce a downloadable result. Use a live API key when you need an actual watermarked file.
+  Use the automatically issued [`sk_test_` key](/test-api-keys) to exercise the whole v3 flow without running watermark processing or consuming credits. Test orders complete about five seconds after the upload, and their download URLs return a fixed sample file instead of your watermarked output. Use a live API key when you need an actual watermarked file.
 </Info>
+
+## How it works
+
+1. **Create an order** with the file names and the watermark texts for each file.
+2. **Upload each file** with `PUT` to the presigned `uploadUrl` in the response. Processing starts automatically once every file is uploaded — there is no confirm step.
+3. **Wait for the order to finish** by polling `GET /api/v3/orders/{orderId}` or by receiving a [webhook](/webhooks).
+4. **Download the results**, either all at once or one output file at a time.
 
 ## Step 1: Create an order
 
-Create a watermark embed order with your watermark text.
+Create a watermark embed order. Each file takes 1 to 10 watermark texts, and **each text produces its own output file and uses 1 credit**. The request below embeds two texts into one image, so it creates two output files and uses 2 credits.
 
 <CodeGroup>
 ```bash cURL
 ORDER_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
-curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \
-  -H "Authorization: Bearer YOUR_API_TOKEN" \
+curl -X POST https://api.bizmori.com/api/v3/orders/wtr-embed \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "idempotencyKey": "'$ORDER_IDEMPOTENCY_KEY'",
     "files": [
       {
         "fileName": "photo.jpg",
-        "watermarks": [{ "text": "MORI_WATERMARK" }]
+        "watermarks": [{ "text": "PARTNER-A" }, { "text": "PARTNER-B" }]
       }
     ]
   }'
@@ -40,37 +51,36 @@ curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \
 ```javascript Node.js
 import { randomUUID } from 'node:crypto';
 
-const orderIdempotencyKey = randomUUID();
-const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-embed', {
+const API_BASE = 'https://api.bizmori.com/api/v3';
+const headers = { Authorization: 'Bearer YOUR_API_KEY' };
+
+const response = await fetch(`${API_BASE}/orders/wtr-embed`, {
   method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_TOKEN',
-    'Content-Type': 'application/json',
-  },
+  headers: { ...headers, 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    idempotencyKey: orderIdempotencyKey,
+    idempotencyKey: randomUUID(),
     files: [
       {
         fileName: 'photo.jpg',
-        watermarks: [{ text: 'MORI_WATERMARK' }],
+        watermarks: [{ text: 'PARTNER-A' }, { text: 'PARTNER-B' }],
       },
     ],
   }),
 });
-const { data } = await response.json();
+const { data: order } = await response.json();
 ```
 
 ```jsx React
 // One helper for every JSON call. The API returns `{ code: "ERROR_CODE" }`
 // on failure, so surface that code instead of a bare status number.
-const API_BASE = 'https://api.bizmori.com/api/v2';
-const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
+const API_BASE = 'https://api.bizmori.com/api/v3';
+const API_KEY = import.meta.env.VITE_MORI_API_KEY;
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers: {
-      Authorization: `Bearer ${API_TOKEN}`,
+      Authorization: `Bearer ${API_KEY}`,
       ...(body && { 'Content-Type': 'application/json' }),
     },
     body: body && JSON.stringify({ idempotencyKey, ...body }),
@@ -83,7 +93,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   return (await res.json()).data;
 }
 
-// `file` is the single File the user picked, `watermarkTexts` is a string[]
+// `file` is the File the user picked, `watermarkTexts` is a string[]
 const order = await api('/orders/wtr-embed', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
@@ -102,21 +112,23 @@ const order = await api('/orders/wtr-embed', {
 import uuid
 import requests
 
-order_idempotency_key = str(uuid.uuid4())
+API_BASE = 'https://api.bizmori.com/api/v3'
+HEADERS = {'Authorization': 'Bearer YOUR_API_KEY'}
+
 res = requests.post(
-    'https://api.bizmori.com/api/v2/orders/wtr-embed',
-    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    f'{API_BASE}/orders/wtr-embed',
+    headers=HEADERS,
     json={
-        'idempotencyKey': order_idempotency_key,
+        'idempotencyKey': str(uuid.uuid4()),
         'files': [
             {
                 'fileName': 'photo.jpg',
-                'watermarks': [{'text': 'MORI_WATERMARK'}],
+                'watermarks': [{'text': 'PARTNER-A'}, {'text': 'PARTNER-B'}],
             }
         ],
     },
 )
-data = res.json()['data']
+order = res.json()['data']
 ```
 </CodeGroup>
 
@@ -124,41 +136,100 @@ data = res.json()['data']
 ```json
 {
   "data": {
-    "orderName": "wtr_embed_2026-03-18",
-    "orderId": "123456789",
+    "orderId": "1234567890",
     "status": "pending",
+    "processingDelayed": false,
+    "expiresAt": "2026-10-10T03:00:00.000Z",
     "files": [
       {
-        "fileId": 1,
-        "fileName": "photo.jpg",
-        "uploadUrl": "https://s3.amazonaws.com/...",
-        "fileKey": "wtr-embed/123456789/images/1/photo.jpg",
-        "fileFormat": "JPG",
-        "fileType": "IMG"
+        "fileId": "501",
+        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/..."
       }
-    ]
+    ],
+    "outputs": [
+      {
+        "fileId": "501-1",
+        "inputFileId": "501",
+        "outputIndex": 0,
+        "watermarkText": "PARTNER-A",
+        "status": "pending",
+        "mediaKind": "image"
+      },
+      {
+        "fileId": "501-2",
+        "inputFileId": "501",
+        "outputIndex": 1,
+        "watermarkText": "PARTNER-B",
+        "status": "pending",
+        "mediaKind": "image"
+      }
+    ],
+    "result": null,
+    "reports": []
   }
 }
 ```
 
+- `files[]` follows the order of `files` in your request. Use `files[i].uploadUrl` to upload the file you sent as `files[i]`.
+- `outputs[]` has one entry per watermark text. Keep `outputs[].fileId` if you want to download output files one at a time.
+- `expiresAt` is when the order files are deleted. Download your results before then.
+
+<Tip>
+  One order can hold up to 100 files, and images and PDFs can be mixed. If a file is already hosted, send its public HTTPS URL in `originalFileUrl` instead of uploading it. BIZ MORI downloads the file (up to 32 MiB, redirects are not followed), and that file's `uploadUrl` is `null`.
+</Tip>
+
+<Note>
+  Reuse the same `idempotencyKey` only when you retry the same request. It returns the existing order instead of creating a new one. The same key with a different request body returns `409 WATERMARK_V2_CONFLICT`.
+</Note>
+
 ## Step 2: Upload files
 
-PUT your file to the presigned `uploadUrl` from Step 1. This is a direct S3 upload — **no Authorization header needed**.
+PUT each file to its presigned `uploadUrl`. This is a direct upload to storage — **no Authorization header needed**.
+
+Send a `Content-Type` header that matches the file extension. The presigned URL is signed for that type, so any other value is rejected.
+
+| Extension | `Content-Type` |
+|-----------|----------------|
+| `jpg`, `jpeg` | `image/jpeg` |
+| `png` | `image/png` |
+| `webp` | `image/webp` |
+| `bmp` | `image/bmp` |
+| `tif`, `tiff` | `image/tiff` |
+| `pdf` | `application/pdf` |
 
 <CodeGroup>
 ```bash cURL
-curl -X PUT "https://s3.amazonaws.com/..." \
+curl -X PUT "https://s3.ap-northeast-2.amazonaws.com/..." \
   -H "Content-Type: image/jpeg" \
   --data-binary @photo.jpg
 ```
 
+```javascript Node.js
+import { readFile } from 'node:fs/promises';
+
+const upload = await fetch(order.files[0].uploadUrl, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'image/jpeg' },
+  body: await readFile('photo.jpg'),
+});
+if (!upload.ok) throw new Error(`UPLOAD_FAILED_${upload.status}`);
+```
+
 ```jsx React
+// The presigned URL is signed for the type that matches the file extension,
+// so derive Content-Type from the name instead of trusting `file.type`.
+const CONTENT_TYPES = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+  bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', pdf: 'application/pdf',
+};
+const contentTypeOf = (name) => CONTENT_TYPES[name.split('.').pop().toLowerCase()];
+
 // fetch() cannot report upload progress, so use XMLHttpRequest for the PUT.
 function putFile(file, uploadUrl, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', file.type);
+    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -171,35 +242,52 @@ function putFile(file, uploadUrl, onProgress) {
   });
 }
 
-// There's exactly one file, so upload progress is a single number.
 await putFile(file, order.files[0].uploadUrl, (ratio) => setProgress(ratio));
+```
+
+```python Python
+with open('photo.jpg', 'rb') as f:
+    upload = requests.put(
+        order['files'][0]['uploadUrl'],
+        headers={'Content-Type': 'image/jpeg'},
+        data=f,
+    )
+upload.raise_for_status()
 ```
 </CodeGroup>
 
 <Info>
-  **No confirm step needed.** Unlike Anti-AI and AI Detection, Watermark Embed processing starts automatically after your file upload completes. Proceed directly to checking the order status.
+  **No confirm step needed.** Processing starts automatically once every file in the order is uploaded.
 </Info>
 
 <Note>
-  Live keys receive S3 presigned URLs. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`; both expire after **1 hour** and accept the same unauthenticated PUT. Test uploads are streamed only, not stored or processed. Use [Refresh URLs](/api-reference/orders/refresh-urls) if a URL expires.
+  A live `uploadUrl` expires after **900 seconds**. If it expires, call [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) to receive a fresh `uploadUrl` for each file that is still waiting for upload. Upload every file within **12 hours** of creating the order, or the order becomes `failed`. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` instead, valid for 1 hour; it accepts the same unauthenticated PUT and discards the file contents.
 </Note>
 
-## Step 3: Check order status & download result
+## Step 3: Wait for the order to finish
 
-Poll the order or use [webhooks](/webhooks) to receive a push notification when processing completes.
+Poll the order until `status` is `complete`, or set up [webhooks](/webhooks) to receive `order.watermarkEmbed.completed` or `order.watermarkEmbed.failed` instead of polling.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789 \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
+curl https://api.bizmori.com/api/v3/orders/1234567890 \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
-  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
-});
-const { data } = await res.json();
-// data.status: 'pending' | 'inProgress' | 'complete' | 'failed'
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForOrder(orderId) {
+  for (let delay = 2000; ; delay = Math.min(delay * 1.5, 15000)) {
+    const res = await fetch(`${API_BASE}/orders/${orderId}`, { headers });
+    const { data } = await res.json();
+    if (['complete', 'failed', 'expired'].includes(data.status)) return data;
+    await sleep(delay);
+  }
+}
+
+const finished = await waitForOrder(order.orderId);
+// finished.outputs[].status is 'completed' for each finished output file
 ```
 
 ```jsx React
@@ -224,49 +312,59 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
 ```
 
 ```python Python
-res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789',
-    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
-)
-status = res.json()['data']['status']
+import time
+
+def wait_for_order(order_id):
+    delay = 2
+    while True:
+        res = requests.get(f'{API_BASE}/orders/{order_id}', headers=HEADERS)
+        data = res.json()['data']
+        if data['status'] in ('complete', 'failed', 'expired'):
+            return data
+        time.sleep(delay)
+        delay = min(delay * 1.5, 15)
+
+finished = wait_for_order(order['orderId'])
 ```
 </CodeGroup>
 
-| Status | Meaning |
-|--------|---------|
-| `pending` | Waiting for file upload |
+| `status` | Meaning |
+|----------|---------|
+| `pending` | Waiting for file uploads |
 | `inProgress` | Processing |
 | `complete` | Ready for download |
-| `failed` | Processing failed |
+| `failed` | Processing failed. Used credits are restored |
+| `expired` | The retention period ended and the files were deleted |
 
-Once `status` is `complete`, fetch the download URL:
+If `processingDelayed` is `true`, automatic retries are exhausted and the order is waiting for manual recovery. It stays `inProgress`, so keep polling or wait for the webhook.
+
+The `order.watermarkEmbed.failed` webhook includes an `errorCode` that explains why the order failed. See [Webhooks](/webhooks) for the event payloads and error codes.
+
+## Step 4: Download the results
+
+Once `status` is `complete`, request a download URL for the whole order. If the order has one output file, the URL points to that file; if it has several, it points to a ZIP archive.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789/download \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
+curl https://api.bizmori.com/api/v3/orders/1234567890/download \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789/download', {
-  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
-});
+const res = await fetch(`${API_BASE}/orders/${order.orderId}/download`, { headers });
 const { data } = await res.json();
-// data.url — valid for 7 days
+// data.downloadUrl is valid for data.expiresInSeconds (300) seconds
 ```
 
 ```jsx React
-const { url } = await api(`/orders/${order.orderId}/download`);
-// Hand it to an <a href={url} download> — the URL is valid for 7 days
-setDownloadUrl(url);
+// Request the URL right when the user clicks Download: it expires after 300 seconds.
+const { downloadUrl } = await api(`/orders/${order.orderId}/download`);
+window.location.assign(downloadUrl);
 ```
 
 ```python Python
-res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789/download',
-    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
-)
-download_url = res.json()['data']['url']
+res = requests.get(f'{API_BASE}/orders/{order["orderId"]}/download', headers=HEADERS)
+download_url = res.json()['data']['downloadUrl']
 ```
 </CodeGroup>
 
@@ -274,28 +372,45 @@ download_url = res.json()['data']['url']
 ```json
 {
   "data": {
-    "url": "https://s3.amazonaws.com/..."
+    "downloadUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
+    "expiresInSeconds": 300
   }
 }
 ```
 
-The `url` is a presigned S3 URL valid for **7 days**.
+To download a single output file, pass its `outputs[].fileId` to the per-file endpoint:
+
+```bash
+curl https://api.bizmori.com/api/v3/orders/1234567890/files/501-2/download \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+The response has the same shape. Both URLs expire after **300 seconds**, so request a new one each time you download instead of storing it. After `expiresAt`, both endpoints return `400 ORDER_EXPIRED`.
+
+<Note>
+  For a test order, these endpoints return a URL for a fixed sample file (a ZIP when the order has several outputs). The sample is not your watermarked file.
+</Note>
 
 ## Full React example
 
-Everything above, wired into one component: single-file upload with progress, a watermark text list with add/remove and duplicate detection, backoff polling, and a download link. No dependencies beyond React.
+Everything above, wired into one component: single-file upload with progress, a watermark text list with add/remove and duplicate detection, backoff polling, and a download button that fetches a fresh URL on each click. No dependencies beyond React.
 
 ```jsx WatermarkEmbedUploader.jsx
 import { useMemo, useRef, useState } from 'react';
 
-const API_BASE = 'https://api.bizmori.com/api/v2';
-const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
+const API_BASE = 'https://api.bizmori.com/api/v3';
+const API_KEY = import.meta.env.VITE_MORI_API_KEY;
 
-const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp,.pdf';
+const CONTENT_TYPES = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+  bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', pdf: 'application/pdf',
+};
+const ACCEPT_FORMATS = Object.keys(CONTENT_TYPES).map((ext) => `.${ext}`).join(',');
 const MAX_WATERMARKS = 10;
 const MAX_TEXT_LENGTH = 1000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const contentTypeOf = (name) => CONTENT_TYPES[name.split('.').pop().toLowerCase()];
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   // Retries reuse the caller's idempotency key, so a retried create can never
@@ -305,7 +420,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
     const res = await fetch(`${API_BASE}${path}`, {
       method,
       headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
+        Authorization: `Bearer ${API_KEY}`,
         ...(body && { 'Content-Type': 'application/json' }),
       },
       body: body && JSON.stringify({ idempotencyKey, ...body }),
@@ -329,7 +444,7 @@ function putFile(file, uploadUrl, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', file.type);
+    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -341,7 +456,6 @@ function putFile(file, uploadUrl, onProgress) {
     xhr.send(file);
   });
 }
-
 
 async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {}) {
   const deadline = Date.now() + timeoutMs;
@@ -364,7 +478,6 @@ export default function WatermarkEmbedUploader() {
   const [watermarks, setWatermarks] = useState(() => [{ id: crypto.randomUUID(), text: '' }]);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('idle');
-  const [downloadUrl, setDownloadUrl] = useState(null);
   const [error, setError] = useState(null);
   const [orderId, setOrderId] = useState(null);
   const inFlight = useRef(false);
@@ -387,6 +500,7 @@ export default function WatermarkEmbedUploader() {
 
   const canSubmit =
     file !== null &&
+    contentTypeOf(file.name) !== undefined &&
     watermarks.length > 0 &&
     watermarks.every((watermark) => watermark.text.trim() !== '') &&
     duplicateIds.size === 0 &&
@@ -397,7 +511,6 @@ export default function WatermarkEmbedUploader() {
   }
 
   function addWatermark() {
-    if (watermarks.length >= MAX_WATERMARKS) return;
     setWatermarks((prev) => [...prev, { id: crypto.randomUUID(), text: '' }]);
   }
 
@@ -416,7 +529,6 @@ export default function WatermarkEmbedUploader() {
     const selectedWatermarks = watermarks;
     setError(null);
     setOrderId(null);
-    setDownloadUrl(null);
     setProgress(0);
 
     try {
@@ -440,18 +552,24 @@ export default function WatermarkEmbedUploader() {
 
       // No confirm step — processing starts automatically once the upload completes.
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired` is terminal too: the cleanup job drops the files after 7 days.
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
-      setStatus('fetching download URL');
-      const { url } = await api(`/orders/${order.orderId}/download`);
-      setDownloadUrl(url);
       setStatus('complete');
     } catch (caught) {
       setError(caught.message);
       setStatus('idle');
     } finally {
       inFlight.current = false;
+    }
+  }
+
+  // Download URLs expire after 300 seconds, so fetch a fresh one on every click.
+  async function download() {
+    try {
+      const { downloadUrl } = await api(`/orders/${orderId}/download`);
+      window.location.assign(downloadUrl);
+    } catch (caught) {
+      setError(caught.message);
     }
   }
 
@@ -465,7 +583,7 @@ export default function WatermarkEmbedUploader() {
           setFile(event.target.files[0] ?? null);
           setError(null);
           setProgress(0);
-          setDownloadUrl(null);
+          setStatus('idle');
         }}
       />
 
@@ -491,6 +609,7 @@ export default function WatermarkEmbedUploader() {
         Add watermark text ({watermarks.length}/{MAX_WATERMARKS})
       </button>
 
+      <p>This order uses {watermarks.length} credit{watermarks.length === 1 ? '' : 's'}.</p>
       <button type="submit" disabled={!canSubmit}>
         Embed watermark{watermarks.length === 1 ? '' : 's'}
       </button>
@@ -498,10 +617,10 @@ export default function WatermarkEmbedUploader() {
       {status !== 'idle' && <p>Status: {status}</p>}
       {status === 'uploading' && <p>Upload progress: {Math.round(progress * 100)}%</p>}
 
-      {downloadUrl && (
-        <a href={downloadUrl} download>
-          Download watermarked image
-        </a>
+      {status === 'complete' && (
+        <button type="button" onClick={download}>
+          Download {watermarks.length === 1 ? 'watermarked file' : 'ZIP'}
+        </button>
       )}
       {error && <p role="alert">Failed: {error}{orderId && ` (orderId: ${orderId})`}</p>}
     </form>
@@ -510,36 +629,56 @@ export default function WatermarkEmbedUploader() {
 ```
 
 <Note>
-  `import.meta.env.VITE_MORI_API_TOKEN` is Vite's syntax. Use `process.env.NEXT_PUBLIC_MORI_API_TOKEN` on Next.js, or whatever your bundler exposes to client code. `crypto.randomUUID()` needs a secure context: HTTPS and `localhost` are fine, a plain-HTTP LAN address is not.
-</Note>
-
-<Note>
-  Test orders do not produce a result file: their `downloadUrl` is `null`, and the download endpoint can return `PROCESSED_FILE_NOT_FOUND`.
+  `import.meta.env.VITE_MORI_API_KEY` is Vite's syntax. Use `process.env.NEXT_PUBLIC_MORI_API_KEY` on Next.js, or whatever your bundler exposes to client code. `crypto.randomUUID()` needs a secure context: HTTPS and `localhost` are fine, a plain-HTTP LAN address is not.
 </Note>
 
 ## Error handling
 
 | HTTP Status | Meaning | Action |
 |-------------|---------|--------|
-| `400` | Invalid request | Check parameters and file format |
+| `400` | Invalid request, or `ORDER_EXPIRED` after the retention period | Check parameters and file extensions. Expired orders cannot be downloaded |
 | `401` | Authentication failed | Verify your API key |
+| `409` | `WATERMARK_V2_CONFLICT`: the `idempotencyKey` was already used with a different request body | Use a new `idempotencyKey` for a new order |
 | `429` | Rate limit, or `PLAN_LIMIT_EXCEEDED` when the plan quota is spent | Check the `code` field. A rate limit clears on retry; `PLAN_LIMIT_EXCEEDED` does not — upgrade the plan |
+| `503` | `WATERMARK_V2_UNAVAILABLE`: watermark processing is temporarily unavailable | Retry later with the same `idempotencyKey` |
 
 For the complete error code reference, see [Error Codes](/errors).
+
+## Migrating from v2 to v3
+
+The v3 request body has the same shape as v2, so most integrations only change the endpoint paths and how they read results.
+
+| | v2 | v3 |
+|---|---|---|
+| Create an order | `POST /api/v2/orders/wtr-embed` | `POST /api/v3/orders/wtr-embed` |
+| Request body | `files[].fileName`, `originalFileUrl`, `watermarks` | Same fields |
+| Credits | — | 1 credit per watermark text, for images and PDFs alike |
+| Results | One download for the whole order | One output file per watermark text, listed in `outputs[]`; download all at once or one at a time |
+| Get the order | `GET /api/v2/orders/{orderId}` | [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) |
+| Download | `GET /api/v2/orders/{orderId}/download` (URL valid for 7 days) | [Whole order](/api-reference/orders/download-order-v3) or [one output file](/api-reference/orders/download-file-v3) (URL valid for 300 seconds) |
+| Upload URL | Valid for 1 hour; refresh with `refresh-urls` | Valid for 900 seconds; call `GET /api/v3/orders/{orderId}` for a fresh one |
+| Confirm step | None | None |
+| Webhooks | `order.watermarkEmbed.completed` / `failed` | Same event names and `data` fields |
+
+Things that stay the same: images and PDFs can be mixed in one order, `originalFileUrl` still skips the upload for hosted files, and processing still starts without a confirm call.
+
+<Warning>
+  Use the v3 endpoints for orders you create with v3. `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `outputs`, and `GET /api/v3/orders/{orderId}` returns `404 ORDER_NOT_FOUND` for a v2 order.
+</Warning>
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Anti-AI" icon="shield" href="/quickstart/anti-ai">
-    Protect images from AI training and generation.
-  </Card>
   <Card title="Watermark Extract" icon="magnifying-glass" href="/quickstart/watermark-extract">
-    Detect and extract watermarks from images.
+    Check a file for a watermark and create a report.
   </Card>
-  <Card title="AI Detection" icon="robot" href="/quickstart/ai-detection">
-    Detect AI-generated images with probability scores.
+  <Card title="Test API keys" icon="flask" href="/test-api-keys">
+    Exercise the v3 flow without consuming credits.
   </Card>
   <Card title="Webhooks" icon="bell" href="/webhooks">
-    Set up webhooks to get notified when processing completes.
+    Get notified when processing completes.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/watermark-embed/create-order-v3">
+    See every field of the v3 watermark embed endpoint.
   </Card>
 </CardGroup>
