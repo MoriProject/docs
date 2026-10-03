@@ -208,7 +208,8 @@ components:
           description: Order ID
         orderName:
           type: string
-          description: Order name
+          description: 'Order name. For Anti-AI orders, the name stored when the order was created. For all other orders, the file name (with extension) of the first file in the order: the original file for watermark embed and AI detection, and the file submitted for inspection for watermark extract. If the file name is unavailable, the stored order name is returned.'
+          example: sample_photo.png
         type:
           type: string
           enum:
@@ -292,7 +293,8 @@ components:
           description: Order ID
         orderName:
           type: string
-          description: Order name
+          description: 'Order name. For Anti-AI orders, the name stored when the order was created. For all other orders, the file name (with extension) of the first file in the order: the original file for watermark embed and AI detection, and the file submitted for inspection for watermark extract. If the file name is unavailable, the stored order name is returned.'
+          example: sample_photo.png
         type:
           type: string
           enum:
@@ -1813,6 +1815,8 @@ paths:
 
         - Sorted by most recent
 
+        - `orderName` is the file name of the first file in each order (the stored name for Anti-AI orders)
+
         '
       tags:
       - Orders
@@ -1838,7 +1842,7 @@ paths:
         name: keyword
         schema:
           type: string
-        description: Search keyword
+        description: Search keyword. Matches the order ID, the stored order name, and, except for Anti-AI orders, the file name of the first file in the order.
       - in: query
         name: status
         schema:
@@ -1952,6 +1956,7 @@ paths:
     get:
       summary: Get order details
       operationId: getOrder
+      description: Retrieve an order by ID. The orderName is the file name of the first file in the order (the stored name for Anti-AI orders).
       tags:
       - Orders
       security:
@@ -1997,7 +2002,7 @@ paths:
                       channel: api
                       thumbnailImageUrl: https://s3.amazonaws.com/...
                       status: complete
-                      orderName: wtr_embed_2026-03-12
+                      orderName: brand_logo.png
                       fileCount: 2
                       createdAt: '2026-03-12T10:00:00.000Z'
                       updatedAt: '2026-03-12T10:03:00.000Z'
@@ -2014,7 +2019,7 @@ paths:
                       channel: api
                       thumbnailImageUrl: https://s3.amazonaws.com/...
                       status: complete
-                      orderName: wtr_extract_2026-03-12
+                      orderName: suspect_image.jpg
                       fileCount: 1
                       createdAt: '2026-03-12T10:00:00.000Z'
                       updatedAt: '2026-03-12T10:02:00.000Z'
@@ -2031,7 +2036,7 @@ paths:
                       thumbnailImageUrl: https://s3.amazonaws.com/...
                       originalImageUrl: https://s3.amazonaws.com/...
                       status: complete
-                      orderName: ai_detection_2026-03-12
+                      orderName: portrait.jpg
                       fileCount: 1
                       createdAt: '2026-03-12T10:00:00.000Z'
                       updatedAt: '2026-03-12T10:01:00.000Z'
