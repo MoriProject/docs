@@ -1316,7 +1316,25 @@ paths:
     post:
       summary: watermark 埋め込み注文を作成
       operationId: createWatermarkEmbedOrder
-      description: 'watermark 埋め込み注文を作成します。
+      deprecated: true
+      description: '**非推奨。** このエンドポイントは 2026 年 10 月 9 日 09:00 KST（00:00 UTC）にサポートを終了する予定です。`POST /api/v3/orders/wtr-embed` を使用してください。
+
+
+        このエンドポイントのすべてのレスポンス（認証エラーと `410` レスポンスを含む）には、`Deprecation: true`、`Sunset: Fri, 09 Oct 2026 00:00:00 GMT`、`Link: </api/v3/orders/wtr-embed>; rel="successor-version"` ヘッダーが含まれます。
+
+
+        2026 年 10 月 9 日 09:00 KST（00:00 UTC）から:
+
+        - 認証・権限の確認はこれまでどおり先に行われるため、`401`・`403` エラーは従来と同じです。
+
+        - 認証を通過した v2 の watermark 埋め込み・抽出リクエストには、本番キーと `sk_test_` キーのどちらでも `410 Gone` と `{ "code": "WATERMARK_V2_API_SUNSET" }` が返されます。`Link` ヘッダーが v3 エンドポイントを示すので、v3 で新しくリクエストしてください。
+
+        - その時点までに処理が始まっていない v2 注文は、処理されずに失敗として確定します。注文の詳細（`errors.errorCode`）と失敗 Webhook には `WATERMARK_V2_API_SUNSET` と v3 への案内メッセージが含まれ、課金されずクレジットは戻ります。
+
+        - 終了時点ですでに処理中の注文は、結果の記録まで完了します。その後に改めて実行されることはありません。
+
+
+        watermark 埋め込み注文を作成します。
 
         - 画像1枚あたり最大10個の watermark テキスト
 
@@ -1443,6 +1461,22 @@ paths:
       responses:
         '200':
           description: 注文が正常に作成されました
+          headers:
+            Deprecation:
+              description: 非推奨（deprecated）の API であることを示します
+              schema:
+                type: string
+                example: 'true'
+            Sunset:
+              description: サポート終了日時（RFC 8594 HTTP-date、2026 年 10 月 9 日 09:00 KST）
+              schema:
+                type: string
+                example: 'Fri, 09 Oct 2026 00:00:00 GMT'
+            Link:
+              description: 後継の v3 API のパス
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-embed>; rel="successor-version"'
           content:
             application/json:
               schema:
@@ -1562,6 +1596,22 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '410':
+          description: v2 watermark のサポート終了（2026 年 10 月 9 日 09:00 KST から）。認証・権限の確認を通過したリクエストにのみ返されます。`Link` ヘッダーの v3 パスに新しくリクエストしてください。
+          headers:
+            Link:
+              description: 後継の v3 API のパス
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-embed>; rel="successor-version"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_API_SUNSET
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
       x-codeSamples:
@@ -1589,7 +1639,25 @@ paths:
     post:
       summary: watermark 抽出注文を作成
       operationId: createWatermarkExtractOrder
-      description: 'watermark 抽出注文を作成します。
+      deprecated: true
+      description: '**非推奨。** このエンドポイントは 2026 年 10 月 9 日 09:00 KST（00:00 UTC）にサポートを終了する予定です。`POST /api/v3/orders/wtr-extract` を使用してください。
+
+
+        このエンドポイントのすべてのレスポンス（認証エラーと `410` レスポンスを含む）には、`Deprecation: true`、`Sunset: Fri, 09 Oct 2026 00:00:00 GMT`、`Link: </api/v3/orders/wtr-extract>; rel="successor-version"` ヘッダーが含まれます。
+
+
+        2026 年 10 月 9 日 09:00 KST（00:00 UTC）から:
+
+        - 認証・権限の確認はこれまでどおり先に行われるため、`401`・`403` エラーは従来と同じです。
+
+        - 認証を通過した v2 の watermark 埋め込み・抽出リクエストには、本番キーと `sk_test_` キーのどちらでも `410 Gone` と `{ "code": "WATERMARK_V2_API_SUNSET" }` が返されます。`Link` ヘッダーが v3 エンドポイントを示すので、v3 で新しくリクエストしてください。
+
+        - その時点までに処理が始まっていない v2 注文は、処理されずに失敗として確定します。注文の詳細（`errors.errorCode`）と失敗 Webhook には `WATERMARK_V2_API_SUNSET` と v3 への案内メッセージが含まれ、課金されずクレジットは戻ります。
+
+        - 終了時点ですでに処理中の注文は、結果の記録まで完了します。その後に改めて実行されることはありません。
+
+
+        watermark 抽出注文を作成します。
 
         - 注文あたりファイル1つのみ
 
@@ -1667,6 +1735,22 @@ paths:
       responses:
         '200':
           description: 注文が正常に作成されました
+          headers:
+            Deprecation:
+              description: 非推奨（deprecated）の API であることを示します
+              schema:
+                type: string
+                example: 'true'
+            Sunset:
+              description: サポート終了日時（RFC 8594 HTTP-date、2026 年 10 月 9 日 09:00 KST）
+              schema:
+                type: string
+                example: 'Fri, 09 Oct 2026 00:00:00 GMT'
+            Link:
+              description: 後継の v3 API のパス
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-extract>; rel="successor-version"'
           content:
             application/json:
               schema:
@@ -1727,6 +1811,22 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '410':
+          description: v2 watermark のサポート終了（2026 年 10 月 9 日 09:00 KST から）。認証・権限の確認を通過したリクエストにのみ返されます。`Link` ヘッダーの v3 パスに新しくリクエストしてください。
+          headers:
+            Link:
+              description: 後継の v3 API のパス
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-extract>; rel="successor-version"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_API_SUNSET
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
       x-codeSamples:

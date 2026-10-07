@@ -124,6 +124,7 @@ Webhookは、注文処理が完了または失敗した際にサーバーへ HTT
 | watermark 埋め込み / 抽出 | `WATERMARK_ENGINE_UNAVAILABLE` | watermark エンジンの一時的なエラー。同じファイルで再試行してください |
 | watermark 埋め込み / 抽出 | `ORDER_TIMEOUT` | 処理がタイムアウトしました。再試行してください |
 | watermark 埋め込み / 抽出 | `UPLOAD_EXPIRED` | アップロード待機時間内にファイルがアップロードされませんでした。新しい注文を作成してください |
+| watermark 埋め込み / 抽出 | `WATERMARK_V2_API_SUNSET` | v2 のサポート終了（2026 年 10 月 9 日 09:00 KST）までに処理が始まっていなかった v2 注文。課金されず、クレジットは戻ります。v3 で新しい注文を作成してください |
 | watermark 埋め込み / 抽出 | `PROCESSING_ERROR` | その他の処理失敗 |
 | AI Detection | `AI_DETECTION_INVALID_IMAGE` | 画像を読み取れません |
 | AI Detection | `AI_DETECTION_TIMEOUT` | 判定がタイムアウトしました。再試行してください |

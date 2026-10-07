@@ -48,6 +48,7 @@ The HTTP status code conveys the error category. Use the `code` field for progra
 | `ORDER_TYPE_CANT_DOWNLOAD` | 400 | This order type cannot be downloaded |
 | `PROCESSED_FILE_NOT_FOUND` | 404 | No processed result file exists for this order |
 | `ORDER_TIMEOUT` | 408 | Order processing timed out |
+| `WATERMARK_V2_API_SUNSET` | 410 | v2 watermark embed and extract support has ended. Returned from 09:00 KST on October 9, 2026 (00:00 UTC). Create a new order with the v3 endpoint in the `Link` header |
 
 ### Failed order codes
 

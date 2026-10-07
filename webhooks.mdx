@@ -145,6 +145,7 @@ All webhook payloads follow this structure:
 | Watermark embed / extract | `WATERMARK_ENGINE_UNAVAILABLE` | Temporary watermark engine error. Try again with the same file |
 | Watermark embed / extract | `ORDER_TIMEOUT` | Processing timed out. Try again |
 | Watermark embed / extract | `UPLOAD_EXPIRED` | The file was not uploaded before the upload window expired. Create a new order |
+| Watermark embed / extract | `WATERMARK_V2_API_SUNSET` | A v2 order that had not started processing when v2 support ended (09:00 KST on October 9, 2026). It was not charged and its credits were restored. Create a new order with v3 |
 | Watermark embed / extract | `PROCESSING_ERROR` | Any other processing failure |
 | AI detection | `AI_DETECTION_INVALID_IMAGE` | The image cannot be read |
 | AI detection | `AI_DETECTION_TIMEOUT` | Detection timed out. Try again |
