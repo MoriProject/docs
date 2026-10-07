@@ -1,37 +1,48 @@
 ---
 title: "비가시성 워터마크 삽입"
-description: "이미지에 비가시성 워터마크 삽입하기"
+description: "v3 API로 이미지와 PDF에 비가시성 워터마크 삽입하기"
 ---
 
-이 가이드는 이미지에 비가시성 워터마크를 삽입하는 과정을 안내합니다 — 주문 생성부터 워터마크가 삽입된 결과물 다운로드까지.
+이 가이드는 v3 API로 비가시성 워터마크를 삽입하는 과정을 주문 생성부터 워터마크가 삽입된 파일 다운로드까지 안내합니다.
 
-이 API의 모든 엔드포인트는 순수 HTTPS와 JSON으로 동작하므로, 서버에서든 브라우저에서든 동일하게 호출할 수 있습니다. 각 단계에는 **React** 탭이 포함되어 있으며, 그대로 복사해 사용할 수 있는 [전체 컴포넌트](#전체-react-예제)는 페이지 하단에 있습니다.
+이 API의 모든 엔드포인트는 순수 HTTPS와 JSON으로 동작하므로, 서버에서든 브라우저에서든 똑같이 호출할 수 있습니다. 각 단계에는 **React** 탭이 있고, 그대로 복사해 쓸 수 있는 [전체 컴포넌트](#전체-react-예제)는 페이지 하단에 있습니다.
+
+<Warning>
+  v2 워터마크 삽입 엔드포인트(`POST /api/v2/orders/wtr-embed`)는 2026년 10월 7일에 지원이 종료됩니다. 이 가이드는 v3 API를 기준으로 설명합니다. 이미 v2를 사용하고 있다면 [v2에서 v3로 마이그레이션](#v2에서-v3로-마이그레이션)을 참고하세요.
+</Warning>
 
 ## 사전 준비
 
 - BIZ MORI API 키 ([여기서 발급](https://app.bizmori.com/keys))
-- 비가시성 워터마크를 삽입할 파일 (`jpeg`, `jpg`, `png`, `webp`, `tiff`, `bmp`, 또는 `pdf`)
+- 워터마크를 삽입할 이미지 또는 PDF 파일 (`jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, `pdf`)
 
 <Info>
-  자동 발급된 [`sk_test_` 키](/ko/test-api-keys)로 실제 워터마크 처리를 실행하거나 크레딧을 사용하지 않고 주문 흐름을 검증할 수 있습니다. 테스트 업로드는 파일 내용을 폐기하며 다운로드 가능한 결과를 만들지 않습니다. 실제 워터마크 파일을 얻으려면 일반 API 키를 사용하세요.
+  자동 발급된 [`sk_test_` 키](/ko/test-api-keys)를 사용하면 실제 워터마크 처리나 크레딧 사용 없이 v3 흐름 전체를 검증할 수 있습니다. 테스트 주문은 업로드 후 약 5초 뒤에 완료되며, 다운로드 URL은 실제 결과 대신 고정된 샘플 파일을 반환합니다. 실제로 워터마크가 삽입된 파일이 필요하면 일반 API 키를 사용하세요.
 </Info>
+
+## 동작 방식
+
+1. 파일 이름과 파일별 워터마크 문구로 **주문을 생성**합니다.
+2. 응답의 프리사인드 `uploadUrl`로 **각 파일을 `PUT` 업로드**합니다. 모든 파일이 업로드되면 처리가 자동으로 시작되며, confirm 단계는 없습니다.
+3. `GET /api/v3/orders/{orderId}`를 폴링하거나 [웹훅](/ko/webhooks)을 받아 **주문 완료를 기다립니다**.
+4. **결과를 다운로드**합니다. 한 번에 모두 받거나 결과 파일을 하나씩 받을 수 있습니다.
 
 ## 1단계: 주문 생성
 
-워터마크 텍스트와 함께 비가시성 워터마크 삽입 주문을 생성합니다.
+워터마크 삽입 주문을 생성합니다. 파일마다 워터마크 문구를 1~10개 지정할 수 있으며, **문구 하나마다 결과 파일이 하나씩 만들어지고 1크레딧이 사용됩니다**. 아래 요청은 이미지 하나에 문구 두 개를 삽입하므로 결과 파일 2개가 만들어지고 2크레딧이 사용됩니다.
 
 <CodeGroup>
 ```bash cURL
 ORDER_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
-curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \
-  -H "Authorization: Bearer YOUR_API_TOKEN" \
+curl -X POST https://api.bizmori.com/api/v3/orders/wtr-embed \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "idempotencyKey": "'$ORDER_IDEMPOTENCY_KEY'",
     "files": [
       {
         "fileName": "photo.jpg",
-        "watermarks": [{ "text": "MORI_WATERMARK" }]
+        "watermarks": [{ "text": "PARTNER-A" }, { "text": "PARTNER-B" }]
       }
     ]
   }'
@@ -40,37 +51,36 @@ curl -X POST https://api.bizmori.com/api/v2/orders/wtr-embed \
 ```javascript Node.js
 import { randomUUID } from 'node:crypto';
 
-const orderIdempotencyKey = randomUUID();
-const response = await fetch('https://api.bizmori.com/api/v2/orders/wtr-embed', {
+const API_BASE = 'https://api.bizmori.com/api/v3';
+const headers = { Authorization: 'Bearer YOUR_API_KEY' };
+
+const response = await fetch(`${API_BASE}/orders/wtr-embed`, {
   method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_TOKEN',
-    'Content-Type': 'application/json',
-  },
+  headers: { ...headers, 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    idempotencyKey: orderIdempotencyKey,
+    idempotencyKey: randomUUID(),
     files: [
       {
         fileName: 'photo.jpg',
-        watermarks: [{ text: 'MORI_WATERMARK' }],
+        watermarks: [{ text: 'PARTNER-A' }, { text: 'PARTNER-B' }],
       },
     ],
   }),
 });
-const { data } = await response.json();
+const { data: order } = await response.json();
 ```
 
 ```jsx React
 // JSON을 사용하는 모든 호출에 쓰는 헬퍼 함수 하나입니다. API는 실패 시
 // `{ code: "ERROR_CODE" }`를 반환하므로, 단순 상태 코드 대신 이 code를 노출합니다.
-const API_BASE = 'https://api.bizmori.com/api/v2';
-const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
+const API_BASE = 'https://api.bizmori.com/api/v3';
+const API_KEY = import.meta.env.VITE_MORI_API_KEY;
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     method,
     headers: {
-      Authorization: `Bearer ${API_TOKEN}`,
+      Authorization: `Bearer ${API_KEY}`,
       ...(body && { 'Content-Type': 'application/json' }),
     },
     body: body && JSON.stringify({ idempotencyKey, ...body }),
@@ -83,7 +93,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   return (await res.json()).data;
 }
 
-// `file`은 사용자가 선택한 단일 File, `watermarkTexts`는 string[]입니다
+// `file`은 사용자가 선택한 File, `watermarkTexts`는 string[]입니다
 const order = await api('/orders/wtr-embed', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
@@ -102,21 +112,23 @@ const order = await api('/orders/wtr-embed', {
 import uuid
 import requests
 
-order_idempotency_key = str(uuid.uuid4())
+API_BASE = 'https://api.bizmori.com/api/v3'
+HEADERS = {'Authorization': 'Bearer YOUR_API_KEY'}
+
 res = requests.post(
-    'https://api.bizmori.com/api/v2/orders/wtr-embed',
-    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
+    f'{API_BASE}/orders/wtr-embed',
+    headers=HEADERS,
     json={
-        'idempotencyKey': order_idempotency_key,
+        'idempotencyKey': str(uuid.uuid4()),
         'files': [
             {
                 'fileName': 'photo.jpg',
-                'watermarks': [{'text': 'MORI_WATERMARK'}],
+                'watermarks': [{'text': 'PARTNER-A'}, {'text': 'PARTNER-B'}],
             }
         ],
     },
 )
-data = res.json()['data']
+order = res.json()['data']
 ```
 </CodeGroup>
 
@@ -124,41 +136,100 @@ data = res.json()['data']
 ```json
 {
   "data": {
-    "orderName": "wtr_embed_2026-03-18",
-    "orderId": "123456789",
+    "orderId": "1234567890",
     "status": "pending",
+    "processingDelayed": false,
+    "expiresAt": "2026-10-10T03:00:00.000Z",
     "files": [
       {
-        "fileId": 1,
-        "fileName": "photo.jpg",
-        "uploadUrl": "https://s3.amazonaws.com/...",
-        "fileKey": "wtr-embed/123456789/images/1/photo.jpg",
-        "fileFormat": "JPG",
-        "fileType": "IMG"
+        "fileId": "501",
+        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/..."
       }
-    ]
+    ],
+    "outputs": [
+      {
+        "fileId": "501-1",
+        "inputFileId": "501",
+        "outputIndex": 0,
+        "watermarkText": "PARTNER-A",
+        "status": "pending",
+        "mediaKind": "image"
+      },
+      {
+        "fileId": "501-2",
+        "inputFileId": "501",
+        "outputIndex": 1,
+        "watermarkText": "PARTNER-B",
+        "status": "pending",
+        "mediaKind": "image"
+      }
+    ],
+    "result": null,
+    "reports": []
   }
 }
 ```
 
+- `files[]`는 요청한 `files`와 같은 순서로 반환됩니다. 요청의 `files[i]` 파일은 `files[i].uploadUrl`로 업로드하세요.
+- `outputs[]`에는 워터마크 문구마다 항목이 하나씩 있습니다. 결과 파일을 하나씩 다운로드하려면 `outputs[].fileId`를 보관해 두세요.
+- `expiresAt`은 주문 파일이 삭제되는 시각입니다. 그 전에 결과를 다운로드하세요.
+
+<Tip>
+  주문 하나에 파일을 최대 100개까지 넣을 수 있고, 이미지와 PDF를 섞어도 됩니다. 이미 공개된 파일이라면 업로드하는 대신 `originalFileUrl`에 HTTPS URL을 지정하세요. BIZ MORI가 파일을 직접 내려받으며(최대 32 MiB, 리다이렉트는 따라가지 않음), 이 파일의 `uploadUrl`은 `null`입니다.
+</Tip>
+
+<Note>
+  같은 `idempotencyKey`는 같은 요청을 재시도할 때만 다시 사용하세요. 이 경우 새 주문을 만들지 않고 기존 주문을 반환합니다. 같은 키로 요청 본문이 다른 요청을 보내면 `409 WATERMARK_V2_CONFLICT`를 반환합니다.
+</Note>
+
 ## 2단계: 파일 업로드
 
-1단계 응답의 `uploadUrl`로 파일을 PUT 업로드합니다. **Authorization 헤더는 필요 없습니다** — S3 직접 업로드입니다.
+각 파일을 프리사인드 `uploadUrl`로 PUT 업로드합니다. 스토리지로 직접 올리는 업로드이므로 **Authorization 헤더는 필요 없습니다**.
+
+`Content-Type` 헤더는 파일 확장자에 맞는 값으로 보내야 합니다. 프리사인드 URL이 이 타입으로 서명되어 있어 다른 값을 보내면 업로드가 거부됩니다.
+
+| 확장자 | `Content-Type` |
+|--------|----------------|
+| `jpg`, `jpeg` | `image/jpeg` |
+| `png` | `image/png` |
+| `webp` | `image/webp` |
+| `bmp` | `image/bmp` |
+| `tif`, `tiff` | `image/tiff` |
+| `pdf` | `application/pdf` |
 
 <CodeGroup>
 ```bash cURL
-curl -X PUT "https://s3.amazonaws.com/..." \
+curl -X PUT "https://s3.ap-northeast-2.amazonaws.com/..." \
   -H "Content-Type: image/jpeg" \
   --data-binary @photo.jpg
 ```
 
+```javascript Node.js
+import { readFile } from 'node:fs/promises';
+
+const upload = await fetch(order.files[0].uploadUrl, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'image/jpeg' },
+  body: await readFile('photo.jpg'),
+});
+if (!upload.ok) throw new Error(`UPLOAD_FAILED_${upload.status}`);
+```
+
 ```jsx React
+// 프리사인드 URL은 파일 확장자에 맞는 타입으로 서명되어 있으므로,
+// `file.type` 대신 파일 이름에서 Content-Type을 정합니다.
+const CONTENT_TYPES = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+  bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', pdf: 'application/pdf',
+};
+const contentTypeOf = (name) => CONTENT_TYPES[name.split('.').pop().toLowerCase()];
+
 // fetch()는 업로드 진행률을 알려줄 수 없으므로, PUT에는 XMLHttpRequest를 사용합니다.
 function putFile(file, uploadUrl, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', file.type);
+    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -171,35 +242,52 @@ function putFile(file, uploadUrl, onProgress) {
   });
 }
 
-// 파일이 정확히 하나이므로, 업로드 진행률은 숫자 하나로 표현됩니다.
 await putFile(file, order.files[0].uploadUrl, (ratio) => setProgress(ratio));
+```
+
+```python Python
+with open('photo.jpg', 'rb') as f:
+    upload = requests.put(
+        order['files'][0]['uploadUrl'],
+        headers={'Content-Type': 'image/jpeg'},
+        data=f,
+    )
+upload.raise_for_status()
 ```
 </CodeGroup>
 
 <Info>
-  **별도의 확인(confirm) 단계가 필요 없습니다.** Anti-AI 및 AI Detection 서비스와 달리, 비가시성 워터마크 삽입은 파일 업로드가 완료되면 처리가 자동으로 시작됩니다. 업로드 후 바로 주문 상태를 확인하시면 됩니다.
+  **confirm 단계는 필요 없습니다.** 주문의 모든 파일이 업로드되면 처리가 자동으로 시작됩니다.
 </Info>
 
 <Note>
-  live 키는 S3 presigned URL을 받고, 테스트 키는 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`을 받습니다. 두 URL 모두 **1시간** 후 만료되며 같은 방식으로 Authorization 헤더 없이 PUT합니다. 테스트 업로드는 스트림으로만 소비되고 저장·처리되지 않습니다. 만료되면 [URL 갱신](/ko/api-reference/orders/refresh-urls)을 사용하세요.
+  일반 키의 `uploadUrl`은 **900초** 뒤에 만료됩니다. 만료되었다면 [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)를 호출해 아직 업로드되지 않은 파일의 새 `uploadUrl`을 받으세요. 주문 생성 후 **12시간** 안에 모든 파일을 업로드하지 않으면 주문이 `failed`가 됩니다. 테스트 키는 1시간 동안 유효한 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL을 받습니다. 인증 없이 같은 방식으로 PUT하면 되며, 업로드한 파일 내용은 폐기됩니다.
 </Note>
 
-## 3단계: 주문 상태 확인 & 결과 다운로드
+## 3단계: 주문 완료 대기
 
-주문 상태를 폴링하거나 [웹훅](/ko/webhooks)을 설정하여 처리 완료 알림을 받습니다.
+`status`가 `complete`가 될 때까지 주문을 폴링하세요. 폴링 대신 [웹훅](/ko/webhooks)을 설정하면 `order.watermarkEmbed.completed` 또는 `order.watermarkEmbed.failed` 이벤트를 받을 수 있습니다.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789 \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
+curl https://api.bizmori.com/api/v3/orders/1234567890 \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
-  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
-});
-const { data } = await res.json();
-// data.status: 'pending' | 'inProgress' | 'complete' | 'failed'
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForOrder(orderId) {
+  for (let delay = 2000; ; delay = Math.min(delay * 1.5, 15000)) {
+    const res = await fetch(`${API_BASE}/orders/${orderId}`, { headers });
+    const { data } = await res.json();
+    if (['complete', 'failed', 'expired'].includes(data.status)) return data;
+    await sleep(delay);
+  }
+}
+
+const finished = await waitForOrder(order.orderId);
+// 처리가 끝난 결과 파일은 finished.outputs[].status가 'completed'입니다
 ```
 
 ```jsx React
@@ -224,68 +312,59 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
 ```
 
 ```python Python
-res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789',
-    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
-)
-status = res.json()['data']['status']
+import time
+
+def wait_for_order(order_id):
+    delay = 2
+    while True:
+        res = requests.get(f'{API_BASE}/orders/{order_id}', headers=HEADERS)
+        data = res.json()['data']
+        if data['status'] in ('complete', 'failed', 'expired'):
+            return data
+        time.sleep(delay)
+        delay = min(delay * 1.5, 15)
+
+finished = wait_for_order(order['orderId'])
 ```
 </CodeGroup>
 
-**응답:**
-```json
-{
-  "data": {
-    "type": "watermarkEmbed",
-    "orderId": "123456789",
-    "channel": "api",
-    "thumbnailImageUrl": "https://s3.amazonaws.com/...",
-    "status": "complete",
-    "orderName": "wtr_embed_2026-03-18",
-    "fileCount": 1,
-    "createdAt": "2026-03-18T12:00:00.000Z",
-    "updatedAt": "2026-03-18T12:01:30.000Z",
-    "errors": null,
-    "watermarks": ["MORI_WATERMARK"]
-  }
-}
-```
-
-| 상태 | 의미 |
-|------|------|
+| `status` | 의미 |
+|----------|------|
 | `pending` | 파일 업로드 대기 중 |
 | `inProgress` | 처리 중 |
-| `complete` | 완료 (다운로드 가능) |
-| `failed` | 처리 실패 |
+| `complete` | 다운로드 가능 |
+| `failed` | 처리 실패. 사용한 크레딧은 복구됩니다 |
+| `expired` | 보관 기간이 끝나 파일이 삭제됨 |
 
-상태가 `complete`이면 다운로드 URL을 받습니다:
+`processingDelayed`가 `true`이면 자동 재시도가 모두 소진되어 수동 복구를 기다리는 중입니다. 주문은 `inProgress` 상태로 유지되므로 계속 폴링하거나 웹훅을 기다리세요.
+
+`order.watermarkEmbed.failed` 웹훅에는 실패 원인을 알려주는 `errorCode`가 포함됩니다. 이벤트 페이로드와 에러 코드는 [웹훅](/ko/webhooks)을 참고하세요.
+
+## 4단계: 결과 다운로드
+
+`status`가 `complete`가 되면 주문 전체의 다운로드 URL을 요청합니다. 결과 파일이 하나면 그 파일을, 여러 개면 ZIP 파일을 가리키는 URL을 반환합니다.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789/download \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
+curl https://api.bizmori.com/api/v3/orders/1234567890/download \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789/download', {
-  headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
-});
+const res = await fetch(`${API_BASE}/orders/${order.orderId}/download`, { headers });
 const { data } = await res.json();
-// data.url — 7일 유효
+// data.downloadUrl은 data.expiresInSeconds(300)초 동안 유효합니다
 ```
 
 ```jsx React
-const { url } = await api(`/orders/${order.orderId}/download`);
-// <a href={url} download>에 전달하세요 — 이 URL은 7일 동안 유효합니다
-setDownloadUrl(url);
+// URL은 300초 뒤 만료되므로 사용자가 다운로드를 누르는 시점에 요청하세요.
+const { downloadUrl } = await api(`/orders/${order.orderId}/download`);
+window.location.assign(downloadUrl);
 ```
 
 ```python Python
-res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789/download',
-    headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
-)
-download_url = res.json()['data']['url']
+res = requests.get(f'{API_BASE}/orders/{order["orderId"]}/download', headers=HEADERS)
+download_url = res.json()['data']['downloadUrl']
 ```
 </CodeGroup>
 
@@ -293,44 +372,55 @@ download_url = res.json()['data']['url']
 ```json
 {
   "data": {
-    "url": "https://s3.amazonaws.com/..."
+    "downloadUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
+    "expiresInSeconds": 300
   }
 }
 ```
 
-`url`은 **7일** 유효한 Presigned S3 URL입니다.
+결과 파일을 하나만 받으려면 개별 다운로드 엔드포인트에 `outputs[].fileId`를 넘기세요.
+
+```bash
+curl https://api.bizmori.com/api/v3/orders/1234567890/files/501-2/download \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+응답 형식은 같습니다. 두 URL 모두 **300초** 뒤 만료되므로 저장해 두지 말고 다운로드할 때마다 새로 요청하세요. `expiresAt`이 지나면 두 엔드포인트 모두 `400 ORDER_EXPIRED`를 반환합니다.
 
 <Note>
-  테스트 주문은 결과 파일을 만들지 않습니다. `downloadUrl`은 `null`이고 다운로드 엔드포인트는 `PROCESSED_FILE_NOT_FOUND`를 반환할 수 있습니다.
+  테스트 주문에서는 이 엔드포인트들이 고정된 샘플 파일의 URL을 반환합니다(결과가 여러 개면 ZIP). 실제로 워터마크가 삽입된 파일이 아닙니다.
 </Note>
-
-비가시성 워터마크 삽입 API에서 지원하는 옵션과 상세한 설명은 [API 레퍼런스](/ko/api-reference/watermark-embed/create-order)를 참고하세요.
 
 ## 전체 React 예제
 
-위 내용을 모두 하나의 컴포넌트로 연결했습니다: 진행률을 보여주는 단일 파일 업로드, 추가/삭제와 중복 검사가 가능한 워터마크 텍스트 목록, 백오프 폴링, 다운로드 링크까지. React 외에 별도의 의존성은 없습니다.
+위 내용을 모두 하나의 컴포넌트로 연결했습니다: 진행률을 보여주는 단일 파일 업로드, 추가/삭제와 중복 검사가 가능한 워터마크 문구 목록, 백오프 폴링, 누를 때마다 새 URL을 받는 다운로드 버튼까지. React 외에 별도의 의존성은 없습니다.
 
 ```jsx WatermarkEmbedUploader.jsx
 import { useMemo, useRef, useState } from 'react';
 
-const API_BASE = 'https://api.bizmori.com/api/v2';
-const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
+const API_BASE = 'https://api.bizmori.com/api/v3';
+const API_KEY = import.meta.env.VITE_MORI_API_KEY;
 
-const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp,.pdf';
+const CONTENT_TYPES = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
+  bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', pdf: 'application/pdf',
+};
+const ACCEPT_FORMATS = Object.keys(CONTENT_TYPES).map((ext) => `.${ext}`).join(',');
 const MAX_WATERMARKS = 10;
 const MAX_TEXT_LENGTH = 1000;
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const contentTypeOf = (name) => CONTENT_TYPES[name.split('.').pop().toLowerCase()];
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   // 재시도는 호출자의 idempotency key를 그대로 재사용하므로, 재시도된 생성 요청이
   // 두 번째 주문을 만들어내는 일은 없습니다. 인증 실패는 `AUTH_*` 코드로 나타나며,
-  // 재시도해도 소용없으므로 아래의 throw로 그대로 전달됩니다.
+  // 재시도해도 소용없으므로 아래 throw로 넘어갑니다.
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(`${API_BASE}${path}`, {
       method,
       headers: {
-        Authorization: `Bearer ${API_TOKEN}`,
+        Authorization: `Bearer ${API_KEY}`,
         ...(body && { 'Content-Type': 'application/json' }),
       },
       body: body && JSON.stringify({ idempotencyKey, ...body }),
@@ -338,8 +428,8 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
 
     if (!res.ok) {
       const { code } = await res.json().catch(() => ({}));
-      // 429는 두 가지를 뜻합니다: 일시적인 레이트 리밋, 그리고 재시도해도
-      // 절대 풀리지 않는 요금제 사용량 소진(PLAN_LIMIT_EXCEEDED).
+      // 429는 두 경우를 포함합니다: 일시적인 레이트 리밋, 그리고 요금제 사용량이 소진되어
+      // 재시도해도 풀리지 않는 PLAN_LIMIT_EXCEEDED.
       if (res.status === 429 && code !== 'PLAN_LIMIT_EXCEEDED' && attempt < 3) {
         await sleep(2 ** attempt * 1000);
         continue;
@@ -354,7 +444,7 @@ function putFile(file, uploadUrl, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', file.type);
+    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -366,7 +456,6 @@ function putFile(file, uploadUrl, onProgress) {
     xhr.send(file);
   });
 }
-
 
 async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {}) {
   const deadline = Date.now() + timeoutMs;
@@ -385,19 +474,18 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
 
 export default function WatermarkEmbedUploader() {
   const [file, setFile] = useState(null);
-  // 지연 초기화: 이렇게 하지 않으면 crypto.randomUUID()가 렌더링마다 실행됩니다.
+  // 지연 초기화: 이렇게 하지 않으면 렌더링할 때마다 crypto.randomUUID()가 실행됩니다.
   const [watermarks, setWatermarks] = useState(() => [{ id: crypto.randomUUID(), text: '' }]);
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState('idle');
-  const [downloadUrl, setDownloadUrl] = useState(null);
   const [error, setError] = useState(null);
   const [orderId, setOrderId] = useState(null);
   const inFlight = useRef(false);
 
   const busy = status !== 'idle' && status !== 'complete';
 
-  // 처음 등장한 이후의 동일한 텍스트를 모두 중복으로 표시합니다. 빈 값은
-  // 예외입니다 — 아래의 '빈 텍스트 금지' 규칙에서 이미 걸러지기 때문입니다.
+  // 처음 나온 문구 이후의 같은 문구를 모두 중복으로 표시합니다. 빈 행은
+  // 아래의 "빈 문구 금지" 규칙에서 이미 걸러지므로 제외합니다.
   const duplicateIds = useMemo(() => {
     const seen = new Map();
     const duplicates = new Set();
@@ -412,6 +500,7 @@ export default function WatermarkEmbedUploader() {
 
   const canSubmit =
     file !== null &&
+    contentTypeOf(file.name) !== undefined &&
     watermarks.length > 0 &&
     watermarks.every((watermark) => watermark.text.trim() !== '') &&
     duplicateIds.size === 0 &&
@@ -422,7 +511,6 @@ export default function WatermarkEmbedUploader() {
   }
 
   function addWatermark() {
-    if (watermarks.length >= MAX_WATERMARKS) return;
     setWatermarks((prev) => [...prev, { id: crypto.randomUUID(), text: '' }]);
   }
 
@@ -435,13 +523,12 @@ export default function WatermarkEmbedUploader() {
     if (inFlight.current || !canSubmit) return;
     inFlight.current = true;
 
-    // 선택 값을 스냅샷으로 저장합니다. 요청이 진행되는 동안에도 사용자는 폼을
-    // 수정할 수 있으므로, 업로드에는 제출 시점의 값을 그대로 사용해야 합니다.
+    // 선택 값을 고정해 둡니다. 요청이 진행되는 동안 사용자가 폼을 수정할 수 있지만,
+    // 업로드에는 제출 시점의 값을 사용해야 합니다.
     const selectedFile = file;
     const selectedWatermarks = watermarks;
     setError(null);
     setOrderId(null);
-    setDownloadUrl(null);
     setProgress(0);
 
     try {
@@ -463,20 +550,26 @@ export default function WatermarkEmbedUploader() {
       setStatus('uploading');
       await putFile(selectedFile, order.files[0].uploadUrl, setProgress);
 
-      // 별도의 확인(confirm) 단계는 없습니다 — 업로드가 완료되면 처리가 자동으로 시작됩니다.
+      // confirm 단계 없음 — 업로드가 끝나면 처리가 자동으로 시작됩니다.
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired`도 종료 상태입니다. 정리 작업이 7일 후 파일을 삭제합니다.
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
-      setStatus('fetching download URL');
-      const { url } = await api(`/orders/${order.orderId}/download`);
-      setDownloadUrl(url);
       setStatus('complete');
     } catch (caught) {
       setError(caught.message);
       setStatus('idle');
     } finally {
       inFlight.current = false;
+    }
+  }
+
+  // 다운로드 URL은 300초 뒤 만료되므로 누를 때마다 새로 받습니다.
+  async function download() {
+    try {
+      const { downloadUrl } = await api(`/orders/${orderId}/download`);
+      window.location.assign(downloadUrl);
+    } catch (caught) {
+      setError(caught.message);
     }
   }
 
@@ -490,7 +583,7 @@ export default function WatermarkEmbedUploader() {
           setFile(event.target.files[0] ?? null);
           setError(null);
           setProgress(0);
-          setDownloadUrl(null);
+          setStatus('idle');
         }}
       />
 
@@ -502,65 +595,90 @@ export default function WatermarkEmbedUploader() {
               value={watermark.text}
               maxLength={MAX_TEXT_LENGTH}
               disabled={busy}
-              placeholder={`워터마크 텍스트 #${index + 1}`}
+              placeholder={`Watermark text #${index + 1}`}
               onChange={(event) => updateWatermark(watermark.id, event.target.value)}
               style={{ borderColor: duplicateIds.has(watermark.id) ? 'red' : undefined }}
             />
             <button type="button" disabled={busy || watermarks.length === 1} onClick={() => removeWatermark(watermark.id)}>
-              삭제
+              Remove
             </button>
           </li>
         ))}
       </ul>
       <button type="button" disabled={busy || watermarks.length >= MAX_WATERMARKS} onClick={addWatermark}>
-        워터마크 텍스트 추가 ({watermarks.length}/{MAX_WATERMARKS})
+        Add watermark text ({watermarks.length}/{MAX_WATERMARKS})
       </button>
 
+      <p>This order uses {watermarks.length} credit{watermarks.length === 1 ? '' : 's'}.</p>
       <button type="submit" disabled={!canSubmit}>
-        워터마크 삽입
+        Embed watermark{watermarks.length === 1 ? '' : 's'}
       </button>
 
-      {status !== 'idle' && <p>상태: {status}</p>}
-      {status === 'uploading' && <p>업로드 진행률: {Math.round(progress * 100)}%</p>}
+      {status !== 'idle' && <p>Status: {status}</p>}
+      {status === 'uploading' && <p>Upload progress: {Math.round(progress * 100)}%</p>}
 
-      {downloadUrl && (
-        <a href={downloadUrl} download>
-          워터마크 삽입 이미지 다운로드
-        </a>
+      {status === 'complete' && (
+        <button type="button" onClick={download}>
+          Download {watermarks.length === 1 ? 'watermarked file' : 'ZIP'}
+        </button>
       )}
-      {error && <p role="alert">실패: {error}{orderId && ` (orderId: ${orderId})`}</p>}
+      {error && <p role="alert">Failed: {error}{orderId && ` (orderId: ${orderId})`}</p>}
     </form>
   );
 }
 ```
 
 <Note>
-  `import.meta.env.VITE_MORI_API_TOKEN`은 Vite의 문법입니다. Next.js에서는 `process.env.NEXT_PUBLIC_MORI_API_TOKEN`을 사용하거나, 사용 중인 번들러가 클라이언트 코드에 노출하는 방식을 따르세요. `crypto.randomUUID()`는 보안 컨텍스트에서만 동작합니다. HTTPS와 `localhost`에서는 문제없지만, 일반 HTTP LAN 주소에서는 사용할 수 없습니다.
+  `import.meta.env.VITE_MORI_API_KEY`는 Vite 문법입니다. Next.js에서는 `process.env.NEXT_PUBLIC_MORI_API_KEY`를, 그 밖의 번들러에서는 클라이언트 코드에 노출하는 방식을 사용하세요. `crypto.randomUUID()`는 보안 컨텍스트가 필요합니다. HTTPS와 `localhost`에서는 동작하지만 일반 HTTP로 접속한 LAN 주소에서는 동작하지 않습니다.
 </Note>
 
 ## 에러 처리
 
 | HTTP 상태 코드 | 의미 | 조치 |
 |----------------|------|------|
-| `400` | 잘못된 요청 | 파라미터 및 파일 형식 확인 |
+| `400` | 잘못된 요청, 또는 보관 기간이 지난 `ORDER_EXPIRED` | 파라미터와 파일 확장자를 확인하세요. 만료된 주문은 다운로드할 수 없습니다 |
 | `401` | 인증 실패 | API 키 확인 |
+| `409` | `WATERMARK_V2_CONFLICT`: 이미 사용한 `idempotencyKey`로 본문이 다른 요청을 보냄 | 새 주문에는 새 `idempotencyKey`를 사용하세요 |
 | `429` | 레이트 리밋, 또는 요금제 사용량 소진 시 `PLAN_LIMIT_EXCEEDED` | `code` 값을 확인하세요. 레이트 리밋은 재시도로 풀리지만 `PLAN_LIMIT_EXCEEDED`는 풀리지 않으므로 요금제를 업그레이드해야 합니다 |
+| `503` | `WATERMARK_V2_UNAVAILABLE`: 워터마크 처리를 일시적으로 사용할 수 없음 | 같은 `idempotencyKey`로 잠시 후 다시 시도하세요 |
 
 전체 에러 코드는 [에러 코드](/ko/errors) 페이지를 참고하세요.
+
+## v2에서 v3로 마이그레이션
+
+v3의 요청 본문은 v2와 형태가 같습니다. 대부분은 엔드포인트 경로와 결과를 읽는 방식만 바꾸면 됩니다.
+
+| | v2 | v3 |
+|---|---|---|
+| 주문 생성 | `POST /api/v2/orders/wtr-embed` | `POST /api/v3/orders/wtr-embed` |
+| 요청 본문 | `files[].fileName`, `originalFileUrl`, `watermarks` | 동일 |
+| 크레딧 | — | 이미지·PDF 구분 없이 워터마크 문구당 1크레딧 |
+| 결과 | 주문 전체를 한 번에 다운로드 | 워터마크 문구마다 결과 파일이 하나씩 `outputs[]`에 생기며, 한 번에 받거나 하나씩 받을 수 있음 |
+| 주문 조회 | `GET /api/v2/orders/{orderId}` | [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3) |
+| 다운로드 | `GET /api/v2/orders/{orderId}/download` (URL 7일 유효) | [주문 전체](/ko/api-reference/orders/download-order-v3) 또는 [결과 파일 하나](/ko/api-reference/orders/download-file-v3) (URL 300초 유효) |
+| 업로드 URL | 1시간 유효, `refresh-urls`로 갱신 | 900초 유효, `GET /api/v3/orders/{orderId}`를 다시 호출해 새 URL 받기 |
+| confirm 단계 | 없음 | 없음 |
+| 웹훅 | `order.watermarkEmbed.completed` / `failed` | 이벤트 이름과 `data` 필드 동일 |
+
+달라지지 않는 점: 한 주문에 이미지와 PDF를 섞을 수 있고, `originalFileUrl`을 지정하면 업로드를 건너뛸 수 있으며, confirm 호출 없이 처리가 시작됩니다.
+
+<Warning>
+  v3로 만든 주문은 v3 엔드포인트로 다루세요. `GET /api/v2/orders/{orderId}`는 v3 주문의 공통 필드만 반환하며 `outputs`는 포함하지 않습니다. 반대로 `GET /api/v3/orders/{orderId}`는 v2 주문에 대해 `404 ORDER_NOT_FOUND`를 반환합니다.
+</Warning>
 
 ## 다음 단계
 
 <CardGroup cols={2}>
-  <Card title="Anti-AI" icon="shield" href="/ko/quickstart/anti-ai">
-    이미지를 AI 학습 및 생성으로부터 보호합니다.
-  </Card>
   <Card title="워터마크 검출" icon="magnifying-glass" href="/ko/quickstart/watermark-extract">
-    이미지에서 비가시성 워터마크를 검출하고 추출합니다.
+    파일에서 워터마크를 검출하고 보고서를 만듭니다.
   </Card>
-  <Card title="AI Detection" icon="robot" href="/ko/quickstart/ai-detection">
-    AI 생성 이미지를 확률 점수로 탐지합니다.
+  <Card title="테스트 API 키" icon="flask" href="/ko/test-api-keys">
+    크레딧 사용 없이 v3 흐름을 검증합니다.
   </Card>
   <Card title="웹훅" icon="bell" href="/ko/webhooks">
-    처리 완료 시 알림을 받기 위해 웹훅을 설정합니다.
+    처리가 끝나면 알림을 받습니다.
+  </Card>
+  <Card title="API 레퍼런스" icon="code" href="/ko/api-reference/watermark-embed/create-order-v3">
+    v3 워터마크 삽입 엔드포인트의 모든 필드를 확인합니다.
   </Card>
 </CardGroup>
