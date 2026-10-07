@@ -1384,7 +1384,25 @@ paths:
     post:
       summary: 워터마크 삽입 주문 생성
       operationId: createWatermarkEmbedOrder
-      description: '워터마크 삽입 주문을 생성합니다.
+      deprecated: true
+      description: '**지원 종료 예정.** 이 엔드포인트는 2026년 10월 9일 09:00 KST(00:00 UTC)에 지원 종료 예정입니다. `POST /api/v3/orders/wtr-embed`를 사용하세요.
+
+
+        이 엔드포인트의 모든 응답(인증 오류와 `410` 응답 포함)에는 `Deprecation: true`, `Sunset: Fri, 09 Oct 2026 00:00:00 GMT`, `Link: </api/v3/orders/wtr-embed>; rel="successor-version"` 헤더가 포함됩니다.
+
+
+        2026년 10월 9일 09:00 KST(00:00 UTC)부터:
+
+        - 인증·권한 검사는 지금처럼 먼저 수행하므로 `401`, `403` 오류는 기존과 같습니다.
+
+        - 인증을 통과한 v2 워터마크 삽입·검출 요청은 live 키와 `sk_test_` 키 모두 `410 Gone`과 `{ "code": "WATERMARK_V2_API_SUNSET" }`을 받습니다. `Link` 헤더가 v3 엔드포인트를 가리키니 v3로 새로 요청하세요.
+
+        - 그때까지 처리를 시작하지 않은 v2 주문은 처리되지 않고 실패로 확정됩니다. 주문 상세(`errors.errorCode`)와 실패 웹훅에 `WATERMARK_V2_API_SUNSET`과 v3 안내 메시지가 담기며, 과금되지 않고 크레딧은 복원됩니다.
+
+        - 종료 시각에 이미 처리 중인 주문은 결과 기록까지 마칩니다. 이후 새로 다시 실행하지는 않습니다.
+
+
+        워터마크 삽입 주문을 생성합니다.
 
         - 이미지당 최대 10개의 워터마크 텍스트
 
@@ -1516,6 +1534,22 @@ paths:
       responses:
         '200':
           description: 주문 생성 성공
+          headers:
+            Deprecation:
+              description: 지원 중단(deprecated) API임을 나타냅니다
+              schema:
+                type: string
+                example: 'true'
+            Sunset:
+              description: 지원 종료 시점 (RFC 8594 HTTP-date, 2026년 10월 9일 09:00 KST)
+              schema:
+                type: string
+                example: 'Fri, 09 Oct 2026 00:00:00 GMT'
+            Link:
+              description: 후속 v3 API 경로
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-embed>; rel="successor-version"'
           content:
             application/json:
               schema:
@@ -1638,6 +1672,22 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '410':
+          description: v2 워터마크 지원 종료(2026년 10월 9일 09:00 KST부터). 인증·권한 검사를 통과한 요청에만 반환합니다. `Link` 헤더의 v3 경로로 새로 요청하세요.
+          headers:
+            Link:
+              description: 후속 v3 API 경로
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-embed>; rel="successor-version"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_API_SUNSET
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
       x-codeSamples:
@@ -1667,9 +1717,27 @@ paths:
     post:
       summary: 워터마크 추출 주문 생성
       operationId: createWatermarkExtractOrder
+      deprecated: true
       x-mint:
         href: /ko/api-reference/watermark-extract/create-order
-      description: '워터마크 추출 주문을 생성합니다.
+      description: '**지원 종료 예정.** 이 엔드포인트는 2026년 10월 9일 09:00 KST(00:00 UTC)에 지원 종료 예정입니다. `POST /api/v3/orders/wtr-extract`를 사용하세요.
+
+
+        이 엔드포인트의 모든 응답(인증 오류와 `410` 응답 포함)에는 `Deprecation: true`, `Sunset: Fri, 09 Oct 2026 00:00:00 GMT`, `Link: </api/v3/orders/wtr-extract>; rel="successor-version"` 헤더가 포함됩니다.
+
+
+        2026년 10월 9일 09:00 KST(00:00 UTC)부터:
+
+        - 인증·권한 검사는 지금처럼 먼저 수행하므로 `401`, `403` 오류는 기존과 같습니다.
+
+        - 인증을 통과한 v2 워터마크 삽입·검출 요청은 live 키와 `sk_test_` 키 모두 `410 Gone`과 `{ "code": "WATERMARK_V2_API_SUNSET" }`을 받습니다. `Link` 헤더가 v3 엔드포인트를 가리키니 v3로 새로 요청하세요.
+
+        - 그때까지 처리를 시작하지 않은 v2 주문은 처리되지 않고 실패로 확정됩니다. 주문 상세(`errors.errorCode`)와 실패 웹훅에 `WATERMARK_V2_API_SUNSET`과 v3 안내 메시지가 담기며, 과금되지 않고 크레딧은 복원됩니다.
+
+        - 종료 시각에 이미 처리 중인 주문은 결과 기록까지 마칩니다. 이후 새로 다시 실행하지는 않습니다.
+
+
+        워터마크 추출 주문을 생성합니다.
 
         - 주문당 파일 1개
 
@@ -1751,6 +1819,22 @@ paths:
       responses:
         '200':
           description: 주문 생성 성공
+          headers:
+            Deprecation:
+              description: 지원 중단(deprecated) API임을 나타냅니다
+              schema:
+                type: string
+                example: 'true'
+            Sunset:
+              description: 지원 종료 시점 (RFC 8594 HTTP-date, 2026년 10월 9일 09:00 KST)
+              schema:
+                type: string
+                example: 'Fri, 09 Oct 2026 00:00:00 GMT'
+            Link:
+              description: 후속 v3 API 경로
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-extract>; rel="successor-version"'
           content:
             application/json:
               schema:
@@ -1811,6 +1895,22 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '410':
+          description: v2 워터마크 지원 종료(2026년 10월 9일 09:00 KST부터). 인증·권한 검사를 통과한 요청에만 반환합니다. `Link` 헤더의 v3 경로로 새로 요청하세요.
+          headers:
+            Link:
+              description: 후속 v3 API 경로
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-extract>; rel="successor-version"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_API_SUNSET
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
       x-codeSamples:

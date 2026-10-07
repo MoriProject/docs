@@ -7,16 +7,36 @@ openapi: "/api-reference/openapi.yaml POST /api/v2/orders/wtr-embed"
 <Warning>
   **Deprecated.** This v2 endpoint is scheduled to end support at 09:00 KST on October 9, 2026 (00:00 UTC). Use [`POST /api/v3/orders/wtr-embed`](/api-reference/watermark-embed/create-order-v3) for new integrations, and see the [watermark embed quickstart](/quickstart/watermark-embed#migrating-from-v2-to-v3) to migrate.
 
-  **After v2 support ends** (scheduled for 09:00 KST on October 9, 2026, which is 00:00 UTC):
+  **After v2 support ends** (from 09:00 KST on October 9, 2026, which is 00:00 UTC):
 
-  - New v2 watermark embed and extract requests will be rejected. Create new orders with v3.
-  - v2 orders that were accepted before the end but have not started processing will fail. Their credits will be restored, and subscribed webhooks will receive the failure event.
+  - Authentication and permission checks still run first, so `401` and `403` errors are returned as before.
+  - Authenticated requests to the v2 watermark embed and extract endpoints return `410 Gone` with `{ "code": "WATERMARK_V2_API_SUNSET" }`, for both live and `sk_test_` keys. The `Link` header points to the v3 endpoint. Create new orders with v3.
+  - v2 orders that have not started processing by then fail without being processed. The order details (`errors.errorCode`) and the failed webhook carry `WATERMARK_V2_API_SUNSET` with a message pointing to v3. The order is not charged, and its credits are restored.
+  - Orders already processing at that time finish and record their result. No new run starts for them afterwards.
   - You can still get existing v2 orders and download results and reports that were already created, within the existing retention period. New v2 reports cannot be created or regenerated.
+
+  Until then, the request and response behavior is unchanged, except that every response from these endpoints includes the `Deprecation: true`, `Sunset: Fri, 09 Oct 2026 00:00:00 GMT`, and `Link` headers.
 </Warning>
 
 <Warning>
   **v3 watermark extract cannot detect watermarks embedded with v2.** Switching to the v3 endpoint does not make existing v2-watermarked images detectable, and there will be no exception for v2 detection after v2 support ends.
 </Warning>
+
+## Response after support ends
+
+From 09:00 KST on October 9, 2026 (00:00 UTC), an authenticated request to this endpoint returns:
+
+```http
+HTTP/1.1 410 Gone
+Content-Type: application/json; charset=utf-8
+Deprecation: true
+Sunset: Fri, 09 Oct 2026 00:00:00 GMT
+Link: </api/v3/orders/wtr-embed>; rel="successor-version"
+
+{ "code": "WATERMARK_V2_API_SUNSET" }
+```
+
+Send a new request to the v3 endpoint in the `Link` header.
 
 <Note>
   With an `sk_test_` key, upload to the returned BIZ MORI test upload URL. The order moves to processing after its uploads finish, without a confirm call. Test processing does not create a downloadable result file.

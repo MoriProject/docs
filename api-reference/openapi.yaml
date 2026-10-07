@@ -1406,7 +1406,25 @@ paths:
     post:
       summary: Create watermark embed order
       operationId: createWatermarkEmbedOrder
-      description: 'Create a watermark embedding order.
+      deprecated: true
+      description: '**Deprecated.** This endpoint is scheduled to end support at 09:00 KST on October 9, 2026 (00:00 UTC). Use `POST /api/v3/orders/wtr-embed` instead.
+
+
+        Every response from this endpoint, including authentication errors and the `410` response, includes the `Deprecation: true`, `Sunset: Fri, 09 Oct 2026 00:00:00 GMT`, and `Link: </api/v3/orders/wtr-embed>; rel="successor-version"` headers.
+
+
+        From 09:00 KST on October 9, 2026 (00:00 UTC):
+
+        - Authentication and permission checks still run first, so `401` and `403` errors are returned as before.
+
+        - Authenticated requests to the v2 watermark embed and extract endpoints return `410 Gone` with `{ "code": "WATERMARK_V2_API_SUNSET" }`, for both live and `sk_test_` keys. The `Link` header points to the v3 endpoint. Create new orders with v3.
+
+        - v2 orders that have not started processing by then fail without being processed. The order details (`errors.errorCode`) and the failed webhook carry `WATERMARK_V2_API_SUNSET` with a message pointing to v3. The order is not charged, and its credits are restored.
+
+        - Orders already processing at that time finish and record their result. No new run starts for them afterwards.
+
+
+        Create a watermark embedding order.
 
         - Up to 10 watermark texts per image
 
@@ -1539,6 +1557,22 @@ paths:
       responses:
         '200':
           description: Order created successfully
+          headers:
+            Deprecation:
+              description: Indicates that this API is deprecated
+              schema:
+                type: string
+                example: 'true'
+            Sunset:
+              description: When support ends (RFC 8594 HTTP-date, 09:00 KST on October 9, 2026)
+              schema:
+                type: string
+                example: 'Fri, 09 Oct 2026 00:00:00 GMT'
+            Link:
+              description: Path of the successor v3 API
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-embed>; rel="successor-version"'
           content:
             application/json:
               schema:
@@ -1662,6 +1696,22 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '410':
+          description: v2 watermark support has ended (from 09:00 KST on October 9, 2026). Returned only after authentication and permission checks pass. Send a new request to the v3 path in the `Link` header.
+          headers:
+            Link:
+              description: Path of the successor v3 API
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-embed>; rel="successor-version"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_API_SUNSET
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
       x-codeSamples:
@@ -1691,7 +1741,25 @@ paths:
     post:
       summary: Create watermark extract order
       operationId: createWatermarkExtractOrder
-      description: 'Create a watermark extraction order.
+      deprecated: true
+      description: '**Deprecated.** This endpoint is scheduled to end support at 09:00 KST on October 9, 2026 (00:00 UTC). Use `POST /api/v3/orders/wtr-extract` instead.
+
+
+        Every response from this endpoint, including authentication errors and the `410` response, includes the `Deprecation: true`, `Sunset: Fri, 09 Oct 2026 00:00:00 GMT`, and `Link: </api/v3/orders/wtr-extract>; rel="successor-version"` headers.
+
+
+        From 09:00 KST on October 9, 2026 (00:00 UTC):
+
+        - Authentication and permission checks still run first, so `401` and `403` errors are returned as before.
+
+        - Authenticated requests to the v2 watermark embed and extract endpoints return `410 Gone` with `{ "code": "WATERMARK_V2_API_SUNSET" }`, for both live and `sk_test_` keys. The `Link` header points to the v3 endpoint. Create new orders with v3.
+
+        - v2 orders that have not started processing by then fail without being processed. The order details (`errors.errorCode`) and the failed webhook carry `WATERMARK_V2_API_SUNSET` with a message pointing to v3. The order is not charged, and its credits are restored.
+
+        - Orders already processing at that time finish and record their result. No new run starts for them afterwards.
+
+
+        Create a watermark extraction order.
 
         - Only 1 file per order
 
@@ -1773,6 +1841,22 @@ paths:
       responses:
         '200':
           description: Order created successfully
+          headers:
+            Deprecation:
+              description: Indicates that this API is deprecated
+              schema:
+                type: string
+                example: 'true'
+            Sunset:
+              description: When support ends (RFC 8594 HTTP-date, 09:00 KST on October 9, 2026)
+              schema:
+                type: string
+                example: 'Fri, 09 Oct 2026 00:00:00 GMT'
+            Link:
+              description: Path of the successor v3 API
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-extract>; rel="successor-version"'
           content:
             application/json:
               schema:
@@ -1833,6 +1917,22 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '410':
+          description: v2 watermark support has ended (from 09:00 KST on October 9, 2026). Returned only after authentication and permission checks pass. Send a new request to the v3 path in the `Link` header.
+          headers:
+            Link:
+              description: Path of the successor v3 API
+              schema:
+                type: string
+                example: '</api/v3/orders/wtr-extract>; rel="successor-version"'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_API_SUNSET
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
       x-codeSamples:

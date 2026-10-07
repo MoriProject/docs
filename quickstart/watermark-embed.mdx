@@ -670,11 +670,15 @@ Things that stay the same: images and PDFs can be mixed in one order, `originalF
   Use the v3 endpoints for orders you create with v3. `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `outputs`, and `GET /api/v3/orders/{orderId}` returns `404 ORDER_NOT_FOUND` for a v2 order.
 </Warning>
 
-**After v2 support ends** (scheduled for 09:00 KST on October 9, 2026, which is 00:00 UTC):
+**After v2 support ends** (from 09:00 KST on October 9, 2026, which is 00:00 UTC):
 
-- New v2 watermark embed and extract requests will be rejected. Create new orders with v3.
-- v2 orders that were accepted before the end but have not started processing will fail. Their credits will be restored, and subscribed webhooks will receive the failure event.
+- Authentication and permission checks still run first, so `401` and `403` errors are returned as before.
+- Authenticated requests to the v2 watermark embed and extract endpoints return `410 Gone` with `{ "code": "WATERMARK_V2_API_SUNSET" }`, for both live and `sk_test_` keys. The `Link` header points to the v3 endpoint. Create new orders with v3.
+- v2 orders that have not started processing by then fail without being processed. The order details (`errors.errorCode`) and the failed webhook carry `WATERMARK_V2_API_SUNSET` with a message pointing to v3. The order is not charged, and its credits are restored.
+- Orders already processing at that time finish and record their result. No new run starts for them afterwards.
 - You can still get existing v2 orders and download results and reports that were already created, within the existing retention period. New v2 reports cannot be created or regenerated.
+
+Until then, the request and response behavior is unchanged, except that every response from these endpoints includes the `Deprecation: true`, `Sunset: Fri, 09 Oct 2026 00:00:00 GMT`, and `Link` headers.
 
 ## Next steps
 

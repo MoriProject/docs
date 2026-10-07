@@ -145,6 +145,7 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 | 워터마크 삽입 / 추출 | `WATERMARK_ENGINE_UNAVAILABLE` | 워터마크 엔진 일시 오류. 같은 파일로 다시 시도하세요 |
 | 워터마크 삽입 / 추출 | `ORDER_TIMEOUT` | 처리 시간 초과. 다시 시도하세요 |
 | 워터마크 삽입 / 추출 | `UPLOAD_EXPIRED` | 업로드 대기 시간 안에 파일이 업로드되지 않음. 새 주문을 만드세요 |
+| 워터마크 삽입 / 추출 | `WATERMARK_V2_API_SUNSET` | v2 지원 종료(2026년 10월 9일 09:00 KST) 시점까지 처리를 시작하지 않은 v2 주문. 과금되지 않고 크레딧은 복원됨. v3로 새 주문을 만드세요 |
 | 워터마크 삽입 / 추출 | `PROCESSING_ERROR` | 그 밖의 처리 실패 |
 | AI Detection | `AI_DETECTION_INVALID_IMAGE` | 이미지를 읽을 수 없음 |
 | AI Detection | `AI_DETECTION_TIMEOUT` | 판별 시간 초과. 다시 시도하세요 |
