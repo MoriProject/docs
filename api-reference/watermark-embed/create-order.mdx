@@ -5,7 +5,17 @@ openapi: "/api-reference/openapi.yaml POST /api/v2/orders/wtr-embed"
 ---
 
 <Warning>
-  **Deprecated.** This v2 endpoint ends support on October 7, 2026. Use [`POST /api/v3/orders/wtr-embed`](/api-reference/watermark-embed/create-order-v3) for new integrations, and see the [watermark embed quickstart](/quickstart/watermark-embed#migrating-from-v2-to-v3) to migrate.
+  **Deprecated.** This v2 endpoint is scheduled to end support at 09:00 KST on October 9, 2026 (00:00 UTC). Use [`POST /api/v3/orders/wtr-embed`](/api-reference/watermark-embed/create-order-v3) for new integrations, and see the [watermark embed quickstart](/quickstart/watermark-embed#migrating-from-v2-to-v3) to migrate.
+
+  **After v2 support ends** (scheduled for 09:00 KST on October 9, 2026, which is 00:00 UTC):
+
+  - New v2 watermark embed and extract requests will be rejected. Create new orders with v3.
+  - v2 orders that were accepted before the end but have not started processing will fail. Their credits will be restored, and subscribed webhooks will receive the failure event.
+  - You can still get existing v2 orders and download results and reports that were already created, within the existing retention period. New v2 reports cannot be created or regenerated.
+</Warning>
+
+<Warning>
+  **v3 watermark extract cannot detect watermarks embedded with v2.** Switching to the v3 endpoint does not make existing v2-watermarked images detectable, and there will be no exception for v2 detection after v2 support ends.
 </Warning>
 
 <Note>

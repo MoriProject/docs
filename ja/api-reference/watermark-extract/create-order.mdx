@@ -5,5 +5,15 @@ openapi: "/ja/api-reference/openapi.yaml POST /api/v2/orders/wtr-extract"
 ---
 
 <Warning>
-  **非推奨。** この v2 エンドポイントは 2026 年 10 月 7 日にサポートを終了します。新しく連携する場合は [`POST /api/v3/orders/wtr-extract`](/ja/api-reference/watermark-extract/create-order-v3) を使用し、移行方法は [watermark 抽出のクイックスタート](/ja/quickstart/watermark-extract#v2-から-v3-への移行)を参照してください。
+  **非推奨。** この v2 エンドポイントは 2026 年 10 月 9 日 09:00 KST（00:00 UTC）にサポートを終了する予定です。新しく連携する場合は [`POST /api/v3/orders/wtr-extract`](/ja/api-reference/watermark-extract/create-order-v3) を使用し、移行方法は [watermark 抽出のクイックスタート](/ja/quickstart/watermark-extract#v2-から-v3-への移行)を参照してください。
+
+  **v2 のサポート終了後の動作**（終了予定: 2026 年 10 月 9 日 09:00 KST、00:00 UTC）:
+
+  - v2 の watermark 埋め込み・抽出の新しいリクエストは拒否されます。v3 で新しくリクエストしてください。
+  - 終了前に受け付けられ、まだ処理が始まっていない v2 注文は失敗として処理されます。クレジットは戻り、購読中の Webhook に失敗通知が送信されます。
+  - 既存の v2 注文の取得と、作成済みの結果・レポートのダウンロードは、既存の保管期間内であれば引き続き利用できます。v2 レポートの新規作成・再作成はできません。
+</Warning>
+
+<Warning>
+  **v3 の watermark 抽出では、v2 で埋め込んだ watermark を検出できません。** エンドポイントを v3 に切り替えるだけでは既存の v2 watermark 画像は検出されず、v2 のサポート終了後に v2 の検出を例外的に受け付けることもありません。
 </Warning>
