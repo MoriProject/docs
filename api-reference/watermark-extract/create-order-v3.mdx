@@ -3,3 +3,7 @@ tag: "v3"
 title: "Create watermark extract order"
 openapi: "/api-reference/openapi.yaml POST /api/v3/orders/wtr-extract"
 ---
+
+<Warning>
+  v3 watermark extract cannot detect watermarks embedded with v2. Switching from the v2 endpoint does not make existing v2-watermarked images detectable.
+</Warning>

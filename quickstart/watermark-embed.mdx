@@ -8,7 +8,7 @@ This guide walks you through embedding invisible watermarks with the v3 API — 
 Every endpoint here is plain HTTPS and JSON, so the same calls work from a server or straight from the browser. Each step includes a **React** tab, and a [full copy-paste component](#full-react-example) is at the bottom of the page.
 
 <Warning>
-  The v2 watermark embed endpoint (`POST /api/v2/orders/wtr-embed`) ends support on October 7, 2026. This guide uses the v3 API. If you already call v2, see [Migrating from v2 to v3](#migrating-from-v2-to-v3).
+  The v2 watermark embed endpoint (`POST /api/v2/orders/wtr-embed`) is scheduled to end support at 09:00 KST on October 9, 2026 (00:00 UTC). This guide uses the v3 API. If you already call v2, see [Migrating from v2 to v3](#migrating-from-v2-to-v3).
 </Warning>
 
 ## Prerequisites
@@ -648,6 +648,10 @@ For the complete error code reference, see [Error Codes](/errors).
 
 The v3 request body has the same shape as v2, so most integrations only change the endpoint paths and how they read results.
 
+<Warning>
+  **v3 watermark extract cannot detect watermarks embedded with v2.** Switching to the v3 endpoint does not make existing v2-watermarked images detectable, and there will be no exception for v2 detection after v2 support ends.
+</Warning>
+
 | | v2 | v3 |
 |---|---|---|
 | Create an order | `POST /api/v2/orders/wtr-embed` | `POST /api/v3/orders/wtr-embed` |
@@ -665,6 +669,12 @@ Things that stay the same: images and PDFs can be mixed in one order, `originalF
 <Warning>
   Use the v3 endpoints for orders you create with v3. `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `outputs`, and `GET /api/v3/orders/{orderId}` returns `404 ORDER_NOT_FOUND` for a v2 order.
 </Warning>
+
+**After v2 support ends** (scheduled for 09:00 KST on October 9, 2026, which is 00:00 UTC):
+
+- New v2 watermark embed and extract requests will be rejected. Create new orders with v3.
+- v2 orders that were accepted before the end but have not started processing will fail. Their credits will be restored, and subscribed webhooks will receive the failure event.
+- You can still get existing v2 orders and download results and reports that were already created, within the existing retention period. New v2 reports cannot be created or regenerated.
 
 ## Next steps
 

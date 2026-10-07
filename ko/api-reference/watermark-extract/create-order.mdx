@@ -5,5 +5,15 @@ openapi: "/ko/api-reference/openapi.yaml POST /api/v2/orders/wtr-extract"
 ---
 
 <Warning>
-  **지원 종료 예정.** 이 v2 엔드포인트는 2026년 10월 7일에 지원이 종료됩니다. 새로 연동한다면 [`POST /api/v3/orders/wtr-extract`](/ko/api-reference/watermark-extract/create-order-v3)를 사용하고, 마이그레이션 방법은 [워터마크 검출 빠른 시작](/ko/quickstart/watermark-extract#v2에서-v3로-마이그레이션)을 참고하세요.
+  **지원 종료 예정.** 이 v2 엔드포인트는 2026년 10월 9일 09:00 KST(00:00 UTC)에 지원 종료 예정입니다. 새로 연동한다면 [`POST /api/v3/orders/wtr-extract`](/ko/api-reference/watermark-extract/create-order-v3)를 사용하고, 마이그레이션 방법은 [워터마크 검출 빠른 시작](/ko/quickstart/watermark-extract#v2에서-v3로-마이그레이션)을 참고하세요.
+
+  **v2 지원 종료 후 동작** (종료 예정: 2026년 10월 9일 09:00 KST, 00:00 UTC):
+
+  - v2 워터마크 삽입·검출 신규 요청은 거절됩니다. v3로 새로 요청하세요.
+  - 종료 전에 접수됐지만 처리를 시작하지 않은 v2 주문은 실패 처리됩니다. 크레딧은 복원되고, 구독한 웹훅으로 실패 알림이 전송됩니다.
+  - 기존 v2 주문 조회와 이미 생성된 결과·보고서 다운로드는 기존 보존 기간 안에서 계속 이용할 수 있습니다. v2 보고서를 새로 생성하거나 재생성할 수는 없습니다.
+</Warning>
+
+<Warning>
+  **v3 워터마크 검출은 v2로 삽입한 워터마크를 검출할 수 없습니다.** 엔드포인트만 v3로 바꿔도 기존 v2 워터마크 이미지는 검출되지 않으며, v2 지원이 종료된 뒤 v2 검출을 위한 예외도 제공하지 않습니다.
 </Warning>
