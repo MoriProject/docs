@@ -160,6 +160,8 @@ Webhookは、注文処理が完了または失敗した際にサーバーへ HTT
 | `heatmapUrl` | string \| null | AI判定ヒートマップ画像のダウンロードURL（`generateHeatmap` オプション使用時のみ返却） |
 | `overlayUrl` | string \| null | 元画像上にヒートマップを重ねたオーバーレイ画像のダウンロードURL（`generateOverlay` オプション使用時のみ返却） |
 
+`heatmapUrl` と `overlayUrl` は、長辺を1600px以内に縮小したWebP画像を指します。注文が完了した時点でリサイズ画像が用意できていない場合は、元のサイズのPNGファイルを指します。Webhookのペイロードは注文完了時に確定するため、注文詳細では後からリサイズ画像が返されることがあります。
+
 ## 署名検証
 
 `X-MoriBiz-Signature` ヘッダーを確認してWebhookの真正性を検証します。イベントを処理する**前に**必ず検証してください。

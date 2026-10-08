@@ -324,12 +324,17 @@ components:
           type: string
           format: uri
           nullable: true
-          description: サムネイル画像URL（プリサインドURL、有効期限1時間）。aiDetection注文では、generateThumbnailオプション使用時のみ返却されます。期限切れの場合はnull。
+          description: |
+            サムネイル画像URL（プリサインドURL、有効期限1時間）。期限切れの場合はnullです。
+            Anti-AI注文は、縦横比を保った幅740×高さ400以内のWebP詳細サムネイルを返します。この変更より前に作成された注文や、詳細サムネイルを作成できなかった注文は200×200のサムネイルを返します。
+            AI Detection注文は、処理完了後に `generateThumbnail` オプションに関係なく詳細サムネイル（WebP、740×400以内）を返します。リサイズ画像が用意できていない場合は、元の入力画像のURLを返します。
         originalImageUrl:
           type: string
           format: uri
           nullable: true
-          description: 元の入力画像のダウンロードURL（プリサインドURL、有効期限1時間）。aiDetection注文専用。期限切れの場合はnull。
+          description: |
+            元の入力画像のダウンロードURL（プリサインドURL、有効期限1時間）。aiDetection注文専用。期限切れの場合はnullです。
+            処理完了後は、通常、長辺を1600px以内に縮小したコピー（WebP）を返します。リサイズしたコピーが用意できていない場合は、元の入力画像を返します。
         createdAt:
           type: string
           format: date-time
@@ -398,12 +403,16 @@ components:
           type: string
           format: uri
           nullable: true
-          description: AI検知ヒートマップ画像のダウンロードURL（aiDetection注文専用、generateHeatmapオプション使用時に返却）
+          description: |
+            AI検知ヒートマップ画像のダウンロードURL（aiDetection注文専用、generateHeatmapオプション使用時に返却）。
+            通常、長辺を1600px以内に縮小したWebPです。リサイズ画像が用意できていない場合は、元のサイズのPNGを返します。
         overlayUrl:
           type: string
           format: uri
           nullable: true
-          description: 元画像にヒートマップを重ねたオーバーレイ画像のダウンロードURL（aiDetection注文専用、generateOverlayオプション使用時に返却）
+          description: |
+            元画像にヒートマップを重ねたオーバーレイ画像のダウンロードURL（aiDetection注文専用、generateOverlayオプション使用時に返却）。
+            通常、長辺を1600px以内に縮小したWebPです。リサイズ画像が用意できていない場合は、元のサイズのPNGを返します。
     UsageStats:
       type: object
       properties:

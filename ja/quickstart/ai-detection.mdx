@@ -269,7 +269,8 @@ status_code = data['statusCode']
 ```
 
 <Note>
-  `heatmapUrl`、`overlayUrl`、`thumbnailImageUrl` は、注文作成時にそれぞれ `options.generateHeatmap`、`options.generateOverlay`、`options.generateThumbnail` をリクエストした場合にのみレスポンスに含まれます。
+  `heatmapUrl`、`overlayUrl` は、注文作成時にそれぞれ `options.generateHeatmap`、`options.generateOverlay` をリクエストした場合にのみレスポンスに含まれます。
+  結果画像は、通常、長辺を1600px以内に縮小したWebPです。`originalImageUrl` も同じ方法で縮小した入力画像のコピーで、`thumbnailImageUrl` は740×400以内のサムネイルであり、`options.generateThumbnail` に関係なく返されます。リサイズ画像が用意できていない場合は、元のファイルを返します。
 </Note>
 
 ### 結果の解釈
