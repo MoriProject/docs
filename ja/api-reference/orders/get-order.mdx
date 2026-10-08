@@ -3,3 +3,5 @@ tag: "v2"
 title: "注文詳細を取得"
 openapi: "/ja/api-reference/openapi.yaml GET /api/v2/orders/{orderId}"
 ---
+
+[`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) でも、v3 API で作成した watermark 注文を含むすべての注文を取得できます。Anti-AI、AI Detection、v2 の watermark 注文はこのエンドポイントと同じ形式で、v3 の watermark 注文は結果ファイルと検出結果を含めて返されます。

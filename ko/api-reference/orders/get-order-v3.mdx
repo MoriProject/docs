@@ -1,5 +1,19 @@
 ---
 tag: "v3"
-title: "워터마크 주문 상세 조회"
+title: "주문 상세 조회"
 openapi: "/ko/api-reference/openapi.yaml GET /api/v3/orders/{orderId}"
 ---
+
+## 응답 형식 구분하기
+
+`GET /api/v3/orders/{orderId}`는 모든 주문 종류를 두 형식 중 하나로 반환합니다. `processingDelayed` 필드가 있는지 확인하세요. 이 필드는 v3 워터마크 형식에만 있습니다.
+
+```javascript
+const { data } = await response.json();
+
+if ('processingDelayed' in data) {
+  // v3 API로 만든 워터마크 주문: outputs, result, reports를 읽습니다
+} else {
+  // Anti-AI, AI Detection, v2 워터마크 주문: GET /api/v2/orders/{orderId}와 같은 형식
+}
+```

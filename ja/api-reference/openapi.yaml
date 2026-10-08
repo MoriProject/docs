@@ -585,6 +585,34 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/WatermarkV1Order'
+    WatermarkV1OrderDetail:
+      description: 注文詳細の取得で返される v3 の watermark 注文。`WatermarkV1Order` のフィールドに `type` が加わります
+      allOf:
+      - $ref: '#/components/schemas/WatermarkV1Order'
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - watermarkEmbed
+            - watermarkExtract
+            description: 注文タイプ（エンジンのバージョン接尾辞なし）
+    PublicOrderDetailV3Response:
+      type: object
+      required:
+      - data
+      description: 注文詳細。v3 watermark 注文は `WatermarkV1OrderDetail`、Anti-AI・AI Detection・v2 watermark 注文は `OrderDetail`。`processingDelayed` があれば `WatermarkV1OrderDetail`
+      properties:
+        data:
+          oneOf:
+          - $ref: '#/components/schemas/WatermarkV1OrderDetail'
+          - allOf:
+            - $ref: '#/components/schemas/OrderDetail'
+            - not:
+                required:
+                - processingDelayed
     WatermarkV1Order:
       type: object
       description: v3 API で作成した不可視 watermark 注文
@@ -3471,16 +3499,24 @@ paths:
           data = response.json()['data']
   /api/v3/orders/{orderId}:
     get:
-      summary: watermark 注文詳細を取得
+      summary: 注文詳細を取得
       operationId: getWatermarkV1Order
       description: |
-        v3 API で作成した watermark 注文のステータス、アップロード URL、埋め込み結果、抽出結果、レポートのステータスを取得します。注文のステータスに関係なく、いつでも呼び出せます。
+        呼び出し元のアカウントが所有する注文の詳細を、注文の種類やステータスに関係なく取得します。Anti-AI、AI Detection、watermark の埋め込み・抽出のどの注文も取得できます。
 
-        `POST /api/v3/orders/wtr-embed`・`wtr-extract` で作成した watermark 注文だけを取得します。Anti-AI、AI Detection などそれ以外の注文は `404 ORDER_NOT_FOUND` を返すため、[`GET /api/v2/orders/{orderId}`](/ja/api-reference/orders/get-order) を使用してください。
+        レスポンスの形式は、注文の作成方法によって異なります。注文の種類は `type` で確認します。
+
+        **v3 API で作成した watermark 注文**（`POST /api/v3/orders/wtr-embed`、`wtr-extract`）は v3 watermark 形式で返されます。注文作成レスポンスと同じフィールドに `type`（`watermarkEmbed` または `watermarkExtract`）が加わります。
 
         - `files[].uploadUrl` は、注文の `status` が `pending` で保管期限前、かつアップロード待ちのファイルにだけ発行します。それ以外は `null` です
         - `result` には `detectionStatus`、`reportSupported`、`watermarkText` だけが含まれます。埋め込み注文と、抽出結果が出る前は `null` です
         - `result.watermarkText` は、検出された watermark を呼び出し元のアカウントが埋め込み、発行記録がちょうど 1 件のときだけ埋め込みテキストを返します。それ以外は `null` です
+
+        **それ以外の注文**（Anti-AI、AI Detection、v2 API で作成した watermark 注文）は [`GET /api/v2/orders/{orderId}`](/ja/api-reference/orders/get-order) と同じレスポンスを返します。
+
+        `watermarkEmbed` と `watermarkExtract` は両方の形式で使われます。レスポンスに `processingDelayed` フィールドがあれば v3 watermark 形式、なければ v2 の注文詳細形式です。
+
+        ほかのアカウントの注文は `404 ORDER_NOT_FOUND` を返します。本番注文とテスト注文は分かれており、本番の API キーではテスト注文を取得できず、`sk_test_` キーでは同じキーで作成したテスト注文だけを取得できます。v3 watermark のテスト注文は v3 形式、それ以外のテスト注文は v2 形式で返されます。
       tags:
       - Orders
       security:
@@ -3494,36 +3530,54 @@ paths:
         description: 注文 ID
       responses:
         '200':
-          description: 注文詳細
+          description: 注文詳細。v3 watermark 注文は v3 watermark 形式、それ以外の注文は v2 の注文詳細形式
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WatermarkV1OrderResponse'
-              example:
-                data:
-                  orderId: '1234567891'
-                  status: complete
-                  processingDelayed: false
-                  expiresAt: '2026-10-08T03:00:00.000Z'
-                  files:
-                  - fileId: '601'
-                    uploadUrl: null
-                  - fileId: '602'
-                    uploadUrl: null
-                  outputs: []
-                  result:
-                    detectionStatus: detected
-                    reportSupported: true
-                    watermarkText: MORI-2026-001
-                  reports:
-                  - locale: en-US
-                    status: completed
+                $ref: '#/components/schemas/PublicOrderDetailV3Response'
+              examples:
+                watermarkExtractV3:
+                  summary: v3 API で作成した watermark 抽出注文
+                  value:
+                    data:
+                      type: watermarkExtract
+                      orderId: '1234567891'
+                      status: complete
+                      processingDelayed: false
+                      expiresAt: '2026-10-08T03:00:00.000Z'
+                      files:
+                      - fileId: '601'
+                        uploadUrl: null
+                      - fileId: '602'
+                        uploadUrl: null
+                      outputs: []
+                      result:
+                        detectionStatus: detected
+                        reportSupported: true
+                        watermarkText: MORI-2026-001
+                      reports:
+                      - locale: en-US
+                        status: completed
+                antiAi:
+                  summary: Anti-AI 注文（v2 の注文詳細と同じ形式）
+                  value:
+                    data:
+                      type: antiAi
+                      orderId: '1234567890123456790'
+                      orderName: anti_ai_20261001
+                      channel: api
+                      thumbnailImageUrl: null
+                      status: complete
+                      fileCount: 1
+                      createdAt: '2026-10-01T00:00:00.000Z'
+                      updatedAt: '2026-10-01T00:01:00.000Z'
+                      errors: null
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          description: 注文が存在しないか、別のアカウントの注文
+          description: 注文が存在しない、ほかのアカウントの注文である、またはテストキーで本番注文を取得した（逆も同様）
           content:
             application/json:
               schema:

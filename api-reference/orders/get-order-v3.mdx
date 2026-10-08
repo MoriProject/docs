@@ -1,5 +1,19 @@
 ---
 tag: "v3"
-title: "Get watermark order details"
+title: "Get order details"
 openapi: "/api-reference/openapi.yaml GET /api/v3/orders/{orderId}"
 ---
+
+## Tell the response formats apart
+
+`GET /api/v3/orders/{orderId}` returns every order type, in one of two formats. Check for the `processingDelayed` field: it exists only in the v3 watermark format.
+
+```javascript
+const { data } = await response.json();
+
+if ('processingDelayed' in data) {
+  // Watermark order created with the v3 API: read outputs, result, and reports
+} else {
+  // Anti-AI, AI Detection, or v2 watermark order: same as GET /api/v2/orders/{orderId}
+}
+```

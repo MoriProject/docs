@@ -632,6 +632,34 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/WatermarkV1Order'
+    WatermarkV1OrderDetail:
+      description: Watermark order created with the v3 API, as returned by the order detail endpoint. The fields of `WatermarkV1Order` plus `type`
+      allOf:
+      - $ref: '#/components/schemas/WatermarkV1Order'
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - watermarkEmbed
+            - watermarkExtract
+            description: Order type, without an engine version suffix
+    PublicOrderDetailV3Response:
+      type: object
+      required:
+      - data
+      description: Order detail. v3 watermark orders use `WatermarkV1OrderDetail`; Anti-AI, AI Detection, and v2 watermark orders use `OrderDetail`. A response with `processingDelayed` is `WatermarkV1OrderDetail`
+      properties:
+        data:
+          oneOf:
+          - $ref: '#/components/schemas/WatermarkV1OrderDetail'
+          - allOf:
+            - $ref: '#/components/schemas/OrderDetail'
+            - not:
+                required:
+                - processingDelayed
     WatermarkV1Order:
       type: object
       description: Invisible watermark order created with the v3 API
@@ -3681,16 +3709,24 @@ paths:
           data = response.json()['data']
   /api/v3/orders/{orderId}:
     get:
-      summary: Get watermark order details
+      summary: Get order details
       operationId: getWatermarkV1Order
       description: |
-        Get the status, upload URLs, embed outputs, extract result, and report status of a watermark order created with the v3 API. You can always call this endpoint, whatever the order status.
+        Get the details of any order your account owns, whatever its type or status: Anti-AI, AI Detection, watermark embed, and watermark extract.
 
-        This endpoint returns only watermark orders created with `POST /api/v3/orders/wtr-embed` or `wtr-extract`. Other orders, including Anti-AI and AI Detection orders, return `404 ORDER_NOT_FOUND`; use [`GET /api/v2/orders/{orderId}`](/api-reference/orders/get-order) for them.
+        The response format depends on how the order was created. Check `type` for the order type.
+
+        **Watermark orders created with the v3 API** (`POST /api/v3/orders/wtr-embed` or `wtr-extract`) return the v3 watermark format: the same fields as the create response, plus `type` (`watermarkEmbed` or `watermarkExtract`).
 
         - `files[].uploadUrl` is issued only while the order `status` is `pending`, the retention period has not ended, and the file is still waiting for upload. Otherwise it is `null`
         - `result` contains only `detectionStatus`, `reportSupported`, and `watermarkText`. It is `null` for embed orders and before an extract result is ready
         - `result.watermarkText` returns the embedded text only when your account embedded the detected watermark and exactly one issuance record matches. Otherwise it is `null`
+
+        **All other orders** (Anti-AI, AI Detection, and watermark orders created with the v2 API) return the same response as [`GET /api/v2/orders/{orderId}`](/api-reference/orders/get-order).
+
+        `watermarkEmbed` and `watermarkExtract` appear in both formats. If the response has a `processingDelayed` field, it is the v3 watermark format; otherwise it is the v2 order detail format.
+
+        An order owned by another account returns `404 ORDER_NOT_FOUND`. Live and test orders are separate: a live API key cannot get test orders, and an `sk_test_` key can get only the test orders created with the same key. v3 watermark test orders use the v3 format, and other test orders use the v2 format.
       tags:
       - Orders
       security:
@@ -3704,36 +3740,54 @@ paths:
         description: Order ID
       responses:
         '200':
-          description: Order details
+          description: Order details. v3 watermark orders use the v3 watermark format; all other orders use the v2 order detail format
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WatermarkV1OrderResponse'
-              example:
-                data:
-                  orderId: '1234567891'
-                  status: complete
-                  processingDelayed: false
-                  expiresAt: '2026-10-08T03:00:00.000Z'
-                  files:
-                  - fileId: '601'
-                    uploadUrl: null
-                  - fileId: '602'
-                    uploadUrl: null
-                  outputs: []
-                  result:
-                    detectionStatus: detected
-                    reportSupported: true
-                    watermarkText: MORI-2026-001
-                  reports:
-                  - locale: en-US
-                    status: completed
+                $ref: '#/components/schemas/PublicOrderDetailV3Response'
+              examples:
+                watermarkExtractV3:
+                  summary: Watermark extract order created with the v3 API
+                  value:
+                    data:
+                      type: watermarkExtract
+                      orderId: '1234567891'
+                      status: complete
+                      processingDelayed: false
+                      expiresAt: '2026-10-08T03:00:00.000Z'
+                      files:
+                      - fileId: '601'
+                        uploadUrl: null
+                      - fileId: '602'
+                        uploadUrl: null
+                      outputs: []
+                      result:
+                        detectionStatus: detected
+                        reportSupported: true
+                        watermarkText: MORI-2026-001
+                      reports:
+                      - locale: en-US
+                        status: completed
+                antiAi:
+                  summary: Anti-AI order (same format as the v2 order detail)
+                  value:
+                    data:
+                      type: antiAi
+                      orderId: '1234567890123456790'
+                      orderName: anti_ai_20261001
+                      channel: api
+                      thumbnailImageUrl: null
+                      status: complete
+                      fileCount: 1
+                      createdAt: '2026-10-01T00:00:00.000Z'
+                      updatedAt: '2026-10-01T00:01:00.000Z'
+                      errors: null
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          description: The order does not exist or belongs to another account
+          description: The order does not exist, belongs to another account, or is a live order requested with a test key (or the reverse)
           content:
             application/json:
               schema:

@@ -1,5 +1,19 @@
 ---
 tag: "v3"
-title: "watermark 注文詳細を取得"
+title: "注文詳細を取得"
 openapi: "/ja/api-reference/openapi.yaml GET /api/v3/orders/{orderId}"
 ---
+
+## レスポンス形式を見分ける
+
+`GET /api/v3/orders/{orderId}` はすべての種類の注文を 2 つの形式のどちらかで返します。`processingDelayed` フィールドの有無を確認してください。このフィールドは v3 watermark 形式にだけ含まれます。
+
+```javascript
+const { data } = await response.json();
+
+if ('processingDelayed' in data) {
+  // v3 API で作成した watermark 注文: outputs、result、reports を読み取ります
+} else {
+  // Anti-AI、AI Detection、v2 の watermark 注文: GET /api/v2/orders/{orderId} と同じ形式
+}
+```

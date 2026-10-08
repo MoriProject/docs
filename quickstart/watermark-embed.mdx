@@ -667,7 +667,7 @@ The v3 request body has the same shape as v2, so most integrations only change t
 Things that stay the same: images and PDFs can be mixed in one order, `originalFileUrl` still skips the upload for hosted files, and processing still starts without a confirm call.
 
 <Warning>
-  Use the v3 endpoints for orders you create with v3. `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `outputs`, and `GET /api/v3/orders/{orderId}` returns `404 ORDER_NOT_FOUND` for a v2 order.
+  Use the v3 endpoints for orders you create with v3. `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `outputs`. `GET /api/v3/orders/{orderId}` works for every order, including v2 orders, which it returns in the v2 order detail format.
 </Warning>
 
 **After v2 support ends** (from 09:00 KST on October 9, 2026, which is 00:00 UTC):

@@ -727,7 +727,7 @@ v3 では検査するファイルを常に元のファイルと比較するた�
 | Webhook | `order.watermarkExtract.completed` / `failed` | イベント名と `data` フィールドは同じ。`statusCode` に `inconclusive`、`unsupported`、`error` が追加 |
 
 <Warning>
-  v3 で作成した注文は v3 のエンドポイントで扱ってください。`GET /api/v2/orders/{orderId}` は v3 注文の共通フィールドだけを返し、`result` は含みません。逆に `GET /api/v3/orders/{orderId}` は v2 の注文に対して `404 ORDER_NOT_FOUND` を返します。
+  v3 で作成した注文は v3 のエンドポイントで扱ってください。`GET /api/v2/orders/{orderId}` は v3 注文の共通フィールドだけを返し、`result` は含みません。`GET /api/v3/orders/{orderId}` は v2 の注文を含むすべての注文を取得でき、v2 の注文は v2 の注文詳細形式で返されます。
 </Warning>
 
 **v2 のサポート終了後の動作**（2026 年 10 月 9 日 09:00 KST、00:00 UTC から）:

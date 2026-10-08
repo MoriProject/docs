@@ -727,7 +727,7 @@ v3 always compares the file to check against its original, so the request now na
 | Webhooks | `order.watermarkExtract.completed` / `failed` | Same event names and `data` fields. `statusCode` can also be `inconclusive`, `unsupported`, or `error` |
 
 <Warning>
-  Use the v3 endpoints for orders you create with v3. `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `result`, and `GET /api/v3/orders/{orderId}` returns `404 ORDER_NOT_FOUND` for a v2 order.
+  Use the v3 endpoints for orders you create with v3. `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `result`. `GET /api/v3/orders/{orderId}` works for every order, including v2 orders, which it returns in the v2 order detail format.
 </Warning>
 
 **After v2 support ends** (from 09:00 KST on October 9, 2026, which is 00:00 UTC):

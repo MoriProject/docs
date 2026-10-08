@@ -667,7 +667,7 @@ v3의 요청 본문은 v2와 형태가 같습니다. 대부분은 엔드포인�
 달라지지 않는 점: 한 주문에 이미지와 PDF를 섞을 수 있고, `originalFileUrl`을 지정하면 업로드를 건너뛸 수 있으며, confirm 호출 없이 처리가 시작됩니다.
 
 <Warning>
-  v3로 만든 주문은 v3 엔드포인트로 다루세요. `GET /api/v2/orders/{orderId}`는 v3 주문의 공통 필드만 반환하며 `outputs`는 포함하지 않습니다. 반대로 `GET /api/v3/orders/{orderId}`는 v2 주문에 대해 `404 ORDER_NOT_FOUND`를 반환합니다.
+  v3로 만든 주문은 v3 엔드포인트로 다루세요. `GET /api/v2/orders/{orderId}`는 v3 주문의 공통 필드만 반환하며 `outputs`는 포함하지 않습니다. `GET /api/v3/orders/{orderId}`는 v2 주문을 포함한 모든 주문을 조회할 수 있으며, v2 주문은 v2 주문 상세 형식으로 반환합니다.
 </Warning>
 
 **v2 지원 종료 후 동작** (2026년 10월 9일 09:00 KST, 00:00 UTC부터):

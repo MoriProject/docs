@@ -5,3 +5,5 @@ openapi: "/api-reference/openapi.yaml GET /api/v2/orders/{orderId}"
 ---
 
 With an `sk_test_` key, this endpoint returns only test orders owned by the key's account. Test orders use the same `pending`, `inProgress`, `complete`, and `failed` status values as live orders.
+
+You can also get every order type, including watermark orders created with the v3 API, with [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3). It returns Anti-AI, AI Detection, and v2 watermark orders in the same format as this endpoint, and v3 watermark orders with their outputs and results.

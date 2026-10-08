@@ -617,6 +617,34 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/WatermarkV1Order'
+    WatermarkV1OrderDetail:
+      description: 주문 상세 조회가 반환하는 v3 워터마크 주문. `WatermarkV1Order` 필드에 `type`이 더해짐
+      allOf:
+      - $ref: '#/components/schemas/WatermarkV1Order'
+      - type: object
+        required:
+        - type
+        properties:
+          type:
+            type: string
+            enum:
+            - watermarkEmbed
+            - watermarkExtract
+            description: 주문 타입 (엔진 버전 접미사 없음)
+    PublicOrderDetailV3Response:
+      type: object
+      required:
+      - data
+      description: 주문 상세. v3 워터마크 주문은 `WatermarkV1OrderDetail`, Anti-AI·AI Detection·v2 워터마크 주문은 `OrderDetail`. `processingDelayed`가 있으면 `WatermarkV1OrderDetail`
+      properties:
+        data:
+          oneOf:
+          - $ref: '#/components/schemas/WatermarkV1OrderDetail'
+          - allOf:
+            - $ref: '#/components/schemas/OrderDetail'
+            - not:
+                required:
+                - processingDelayed
     WatermarkV1Order:
       type: object
       description: v3 API로 생성한 비가시성 워터마크 주문
@@ -3650,16 +3678,24 @@ paths:
           data = response.json()['data']
   /api/v3/orders/{orderId}:
     get:
-      summary: 워터마크 주문 상세 조회
+      summary: 주문 상세 조회
       operationId: getWatermarkV1Order
       description: |
-        v3 API로 생성한 워터마크 주문의 상태, 업로드 URL, 삽입 결과, 추출 결과, 보고서 상태를 조회합니다. 주문 상태와 관계없이 항상 호출할 수 있습니다.
+        호출 계정이 소유한 주문의 상세를 주문 종류와 상태에 관계없이 조회합니다. Anti-AI, AI Detection, 워터마크 삽입·검출 주문을 모두 조회할 수 있습니다.
 
-        `POST /api/v3/orders/wtr-embed`·`wtr-extract`로 만든 워터마크 주문만 조회합니다. Anti-AI, AI Detection 등 그 외 주문은 `404 ORDER_NOT_FOUND`를 반환하므로 [`GET /api/v2/orders/{orderId}`](/ko/api-reference/orders/get-order)를 사용하세요.
+        응답 형식은 주문을 만든 방식에 따라 다릅니다. 주문 종류는 `type`으로 확인합니다.
+
+        **v3 API로 만든 워터마크 주문**(`POST /api/v3/orders/wtr-embed`, `wtr-extract`)은 v3 워터마크 형식으로 반환합니다. 주문 생성 응답과 같은 필드에 `type`(`watermarkEmbed` 또는 `watermarkExtract`)이 더해집니다.
 
         - `files[].uploadUrl`은 주문 `status`가 `pending`이고 보관 기한 전이며 업로드 대기 중인 파일에만 발급합니다. 그 외에는 `null`입니다
         - `result`는 `detectionStatus`, `reportSupported`, `watermarkText`만 포함합니다. 삽입 주문과 추출 결과가 나오기 전에는 `null`입니다
         - `result.watermarkText`는 검출된 워터마크를 호출 계정이 직접 삽입했고 발급 기록이 정확히 1건일 때만 삽입 문구를 반환하며, 그 외에는 `null`입니다
+
+        **그 외 주문**(Anti-AI, AI Detection, v2 API로 만든 워터마크 주문)은 [`GET /api/v2/orders/{orderId}`](/ko/api-reference/orders/get-order)와 같은 응답을 반환합니다.
+
+        `watermarkEmbed`와 `watermarkExtract`는 두 형식에 모두 쓰입니다. 응답에 `processingDelayed` 필드가 있으면 v3 워터마크 형식, 없으면 v2 주문 상세 형식입니다.
+
+        다른 계정의 주문은 `404 ORDER_NOT_FOUND`를 반환합니다. live 주문과 테스트 주문은 분리되어 있어, live API 키로는 테스트 주문을 조회할 수 없고 `sk_test_` 키로는 같은 키로 만든 테스트 주문만 조회할 수 있습니다. v3 워터마크 테스트 주문은 v3 형식, 그 외 테스트 주문은 v2 형식으로 반환합니다.
       tags:
       - Orders
       security:
@@ -3673,36 +3709,54 @@ paths:
         description: 주문 ID
       responses:
         '200':
-          description: 주문 상세
+          description: 주문 상세. v3 워터마크 주문은 v3 워터마크 형식, 그 외 주문은 v2 주문 상세 형식
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WatermarkV1OrderResponse'
-              example:
-                data:
-                  orderId: '1234567891'
-                  status: complete
-                  processingDelayed: false
-                  expiresAt: '2026-10-08T03:00:00.000Z'
-                  files:
-                  - fileId: '601'
-                    uploadUrl: null
-                  - fileId: '602'
-                    uploadUrl: null
-                  outputs: []
-                  result:
-                    detectionStatus: detected
-                    reportSupported: true
-                    watermarkText: MORI-2026-001
-                  reports:
-                  - locale: en-US
-                    status: completed
+                $ref: '#/components/schemas/PublicOrderDetailV3Response'
+              examples:
+                watermarkExtractV3:
+                  summary: v3 API로 만든 워터마크 검출 주문
+                  value:
+                    data:
+                      type: watermarkExtract
+                      orderId: '1234567891'
+                      status: complete
+                      processingDelayed: false
+                      expiresAt: '2026-10-08T03:00:00.000Z'
+                      files:
+                      - fileId: '601'
+                        uploadUrl: null
+                      - fileId: '602'
+                        uploadUrl: null
+                      outputs: []
+                      result:
+                        detectionStatus: detected
+                        reportSupported: true
+                        watermarkText: MORI-2026-001
+                      reports:
+                      - locale: en-US
+                        status: completed
+                antiAi:
+                  summary: Anti-AI 주문 (v2 주문 상세와 같은 형식)
+                  value:
+                    data:
+                      type: antiAi
+                      orderId: '1234567890123456790'
+                      orderName: anti_ai_20261001
+                      channel: api
+                      thumbnailImageUrl: null
+                      status: complete
+                      fileCount: 1
+                      createdAt: '2026-10-01T00:00:00.000Z'
+                      updatedAt: '2026-10-01T00:01:00.000Z'
+                      errors: null
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          description: 주문이 없거나 다른 계정의 주문
+          description: 주문이 없거나, 다른 계정의 주문이거나, 테스트 키로 live 주문을 조회함(반대도 같음)
           content:
             application/json:
               schema:
