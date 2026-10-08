@@ -181,6 +181,8 @@ The payload exposes text only: it never includes MID, `midDecimal`, or `midHex`.
 | `heatmapUrl` | string \| null | AI detection heatmap image download URL (only when `generateHeatmap` option was used) |
 | `overlayUrl` | string \| null | Heatmap overlay on original image download URL (only when `generateOverlay` option was used) |
 
+`heatmapUrl` and `overlayUrl` point to WebP images resized so that the longer side is at most 1600 px. If the resized images were not ready when the order completed, they point to the full-size PNG files instead. The webhook payload is fixed when the order completes, so the order details can return the resized images later.
+
 ## Signature verification
 
 Verify webhook authenticity by checking the `X-MoriBiz-Signature` header. Always verify **before** processing the event.

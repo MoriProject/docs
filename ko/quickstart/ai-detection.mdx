@@ -282,7 +282,8 @@ status_code = data['statusCode']
 ```
 
 <Note>
-  `heatmapUrl`, `overlayUrl`, `thumbnailImageUrl`은 주문 생성 시 각각 `options.generateHeatmap`, `options.generateOverlay`, `options.generateThumbnail`을 요청한 경우에만 응답에 포함됩니다.
+  `heatmapUrl`, `overlayUrl`은 주문 생성 시 각각 `options.generateHeatmap`, `options.generateOverlay`를 요청한 경우에만 응답에 포함됩니다.
+  결과 이미지는 보통 긴 변을 1600px 이내로 줄인 WebP입니다. `originalImageUrl`도 같은 방식으로 줄인 입력 이미지 사본이고, `thumbnailImageUrl`은 740×400 이내 썸네일이며 `options.generateThumbnail`과 관계없이 반환됩니다. 리사이즈 이미지가 준비되지 않았으면 원본 파일을 반환합니다.
 </Note>
 
 ### 결과 해석

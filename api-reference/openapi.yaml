@@ -338,14 +338,17 @@ components:
           type: string
           format: uri
           nullable: true
-          description: Thumbnail image URL (presigned URL, 1-hour expiry). For aiDetection orders, only
-            returned when generateThumbnail option is used. null when expired.
+          description: |
+            Thumbnail image URL (presigned URL, 1-hour expiry). null when expired.
+            Anti-AI orders return a detail thumbnail: a WebP up to 740×400 that keeps the aspect ratio. Orders created before this change, or orders where the detail thumbnail could not be created, return the 200×200 thumbnail instead.
+            AI Detection orders return a detail thumbnail (WebP, up to 740×400) after processing completes, whether or not you set `generateThumbnail`. If the resized images are not ready, the original input image URL is returned.
         originalImageUrl:
           type: string
           format: uri
           nullable: true
-          description: Original input image download URL (presigned URL, 1-hour expiry). aiDetection orders
-            only. null when expired.
+          description: |
+            Original input image download URL (presigned URL, 1-hour expiry). aiDetection orders only. null when expired.
+            After processing completes, this is usually a copy resized so that the longer side is at most 1600 px (WebP). If the resized copy is not ready, the original input image is returned.
         createdAt:
           type: string
           format: date-time
@@ -426,14 +429,16 @@ components:
           type: string
           format: uri
           nullable: true
-          description: AI detection heatmap image download URL (aiDetection orders only, when generateHeatmap
-            option is used)
+          description: |
+            AI detection heatmap image download URL (aiDetection orders only, when generateHeatmap option is used).
+            Usually a WebP resized so that the longer side is at most 1600 px. If the resized image is not ready, the full-size PNG is returned.
         overlayUrl:
           type: string
           format: uri
           nullable: true
-          description: Heatmap overlay on original image download URL (aiDetection orders only, when generateOverlay
-            option is used)
+          description: |
+            Heatmap overlay on original image download URL (aiDetection orders only, when generateOverlay option is used).
+            Usually a WebP resized so that the longer side is at most 1600 px. If the resized image is not ready, the full-size PNG is returned.
     UsageStats:
       type: object
       properties:

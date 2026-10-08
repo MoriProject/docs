@@ -283,6 +283,7 @@ The `probability` field (0–1) indicates how likely the image is AI-generated. 
 
 <Note>
   `heatmapUrl` and `overlayUrl` are only present if you requested them via `options.generateHeatmap` and `options.generateOverlay` in Step 1.
+  The result images are usually WebP files resized so that the longer side is at most 1600 px. `originalImageUrl` is a resized copy of your input in the same way, and `thumbnailImageUrl` is a thumbnail up to 740×400. If the resized images are not ready, you get the original files instead.
 </Note>
 
 ## Full React example

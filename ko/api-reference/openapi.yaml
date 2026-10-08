@@ -336,13 +336,17 @@ components:
           type: string
           format: uri
           nullable: true
-          description: 썸네일 이미지 URL (프리사인드 URL, 1시간 유효). aiDetection 주문에서 generateThumbnail 옵션 사용 시에만 반환됩니다.
-            만료 상태 시 null.
+          description: |
+            썸네일 이미지 URL(프리사인드 URL, 1시간 유효). 만료 상태 시 null입니다.
+            Anti-AI 주문은 비율을 유지한 가로 740·세로 400 이내 WebP 상세 썸네일을 반환합니다. 이 변경 이전에 만든 주문이나 상세 썸네일을 만들지 못한 주문은 200×200 썸네일을 반환합니다.
+            AI Detection 주문은 처리 완료 후 `generateThumbnail` 옵션과 관계없이 상세 썸네일(WebP, 740×400 이내)을 반환합니다. 리사이즈 이미지가 준비되지 않았으면 원본 입력 이미지 URL을 반환합니다.
         originalImageUrl:
           type: string
           format: uri
           nullable: true
-          description: 원본 입력 이미지 다운로드 URL (프리사인드 URL, 1시간 유효). aiDetection 주문 전용. 만료 상태 시 null.
+          description: |
+            원본 입력 이미지 다운로드 URL(프리사인드 URL, 1시간 유효). aiDetection 주문 전용. 만료 상태 시 null입니다.
+            처리 완료 후에는 보통 긴 변을 1600px 이내로 줄인 사본(WebP)을 반환합니다. 리사이즈 사본이 준비되지 않았으면 원본 입력 이미지를 반환합니다.
         createdAt:
           type: string
           format: date-time
@@ -413,12 +417,16 @@ components:
           type: string
           format: uri
           nullable: true
-          description: AI 판별 히트맵 이미지 다운로드 URL (aiDetection 주문 전용, generateHeatmap 옵션 사용 시 반환)
+          description: |
+            AI 판별 히트맵 이미지 다운로드 URL (aiDetection 주문 전용, generateHeatmap 옵션 사용 시 반환).
+            보통 긴 변을 1600px 이내로 줄인 WebP입니다. 리사이즈 이미지가 준비되지 않았으면 원본 크기 PNG를 반환합니다.
         overlayUrl:
           type: string
           format: uri
           nullable: true
-          description: 원본 위 히트맵 오버레이 이미지 다운로드 URL (aiDetection 주문 전용, generateOverlay 옵션 사용 시 반환)
+          description: |
+            원본 위 히트맵 오버레이 이미지 다운로드 URL (aiDetection 주문 전용, generateOverlay 옵션 사용 시 반환).
+            보통 긴 변을 1600px 이내로 줄인 WebP입니다. 리사이즈 이미지가 준비되지 않았으면 원본 크기 PNG를 반환합니다.
     UsageStats:
       type: object
       properties:
