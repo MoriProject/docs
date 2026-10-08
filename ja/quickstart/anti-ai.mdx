@@ -208,6 +208,10 @@ requests.post(
 
 ## ステップ4: 注文ステータスの確認
 
+<Note>
+  ステップ 4 と 5 では、非推奨ですが動作は変わらない `GET /api/v2/orders/{orderId}` と `GET /api/v2/orders/{orderId}/download` を使用します。新しく連携する場合は、[注文詳細を取得（v3）](/ja/api-reference/orders/get-order-v3)と[注文結果のダウンロード URL を発行（v3）](/ja/api-reference/orders/download-order-v3)を使用してください。すべての注文の種類を 1 つの形式で返し、v3 のダウンロードは結果ファイルごとの URL と結果全体の ZIP をまとめて返します。
+</Note>
+
 注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して処理完了の通知を受け取ります。
 
 <CodeGroup>

@@ -47,10 +47,10 @@ Test API keys use the same Bearer authentication as live keys, but they do not r
 
     `pending → inProgress → complete` or `failed`
 
-    The simulated processing delay is about five seconds. Poll [Get order](/api-reference/orders/get-order), or use a test webhook endpoint when webhooks are enabled in your environment.
+    The simulated processing delay is about five seconds. Poll [Get order details](/api-reference/orders/get-order-v3), or use a test webhook endpoint when webhooks are enabled in your environment.
   </Step>
   <Step title="Inspect the test order">
-    Use [List orders](/api-reference/orders/list-orders), [Recent usage statistics](/api-reference/orders/recent-stats), and [Get order details](/api-reference/orders/get-order) with the same test key. You see only test orders owned by the account associated with that key.
+    Use [List orders](/api-reference/orders/list-orders), [Recent usage statistics](/api-reference/orders/recent-stats), and [Get order details](/api-reference/orders/get-order-v3) with the same test key. You see only test orders owned by the account associated with that key.
   </Step>
 </Steps>
 
@@ -78,13 +78,13 @@ Use the input file name to exercise success and failure states without depending
 | --- | --- |
 | `*_fail.<ext>` | The order fails |
 | `*_detected.<ext>` | Watermark Extract reports a detected watermark (`detectionStatus` is `detected`) |
-| `*_undetected.<ext>` | Watermark Extract reports no watermark (`detectionStatus` is `not_detected`) |
+| `*_undetected.<ext>` | Watermark Extract reports no watermark (`detectionStatus` is `undetected`) |
 | `*_ai.<ext>` | AI Detection returns probability `0.98` |
 | `*_human.<ext>` | AI Detection returns probability `0.02` |
 
 Without a suffix, Anti-AI and Watermark Embed complete successfully, Watermark Extract reports no watermark, and AI Detection returns probability `0.02`. If any file in a multi-file order uses `_fail`, the order fails.
 
-For Watermark Extract, only the name of the inspected file (`file.fileName`) selects `detected` or `not_detected`. A `_detected` suffix on the original file has no effect, but `_fail` on either file fails the order.
+For Watermark Extract, only the name of the inspected file (`file.fileName`) selects `detected` or `undetected`. A `_detected` suffix on the original file has no effect, but `_fail` on either file fails the order.
 
 ## Test webhooks
 
@@ -109,25 +109,25 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 
 See [Webhooks](/webhooks) for owner and mode isolation, signature verification, event payloads, and retry rules.
 
-## Watermark results, downloads, and reports
+## Order details, downloads, and reports
 
-After the uploads finish, a Watermark order moves to `inProgress` and then to `complete` or `failed` about five seconds later. Get order returns `outputs` and `result` in the same shape as a live order.
+After the uploads finish, a test order moves to `inProgress` and then to `complete` or `failed` about five seconds later. [Get order details (v3)](/api-reference/orders/get-order-v3) returns every test order, whether you created it with v2 or v3, in the same shape as a live order.
 
 | Operation | Test API key behavior |
 | --- | --- |
-| `GET /api/v3/orders/{orderId}` | Returns the test order. A Watermark Embed order has one item in `outputs` for each watermark text. |
-| `GET /api/v3/orders/{orderId}/download`, `GET /api/v3/orders/{orderId}/files/{fileId}/download` | Watermark Embed only. Returns a download URL for a fixed sample file that is valid for 300 seconds. |
+| `GET /api/v3/orders/{orderId}` | Returns the test order. While it is `pending`, `inputFiles[].uploadUrl` is a test upload URL. A Watermark Embed order has one item in `result.outputFiles` for each watermark text. `expiresAt` is seven days after the order was created. |
+| `GET /api/v3/orders/{orderId}/download` | Completed Anti-AI and Watermark Embed test orders only. Returns `archiveUrl` and `files[]` that point to fixed sample files. `expiresInSeconds` follows the same rule as live orders (up to 3600 seconds). |
 | `POST /api/v3/orders/{orderId}/reports`, `GET /api/v3/orders/{orderId}/reports/{locale}` | Watermark Extract orders with a `detected` result only. Returns `completed` and a sample report PDF URL that is valid for 300 seconds. |
 
-- The download URL returns a fixed sample file that matches the input format: PNG, JPG, WEBP, or PDF. A multi-output order returns a sample ZIP file. The file is not your watermarked output.
-- A detected result returns `watermarkText` as `MORI TEST WATERMARK` and `reportSupported` as `true`.
+- Download URLs point to fixed sample files, not to your output. `archiveUrl` is the sample file itself for a Watermark Embed order created with v3 that has one output, and a sample ZIP file otherwise. An Anti-AI test order without output files returns `files: []`.
+- A detected result returns `watermarkText` as `MORI TEST WATERMARK`. `reportSupported` is `true` only for a Watermark Extract order created with v3 whose result is `detected`.
 - The report is a one-page sample PDF. It does not contain your detection result, and the content does not change with `locale`.
-- Report requests fail with `REPORT_NOT_AVAILABLE` for a `not_detected` order, `ORDER_NOT_COMPLETED` for an order that is not complete or failed, and `ORDER_TYPE_NOT_MATCH` for a Watermark Embed order. Other owners' orders and live orders return `ORDER_NOT_FOUND`.
+- Report requests fail with `REPORT_NOT_AVAILABLE` for an `undetected` order, `ORDER_NOT_COMPLETED` for an order that is not complete or failed, and `ORDER_TYPE_NOT_MATCH` for a Watermark Embed order. Other owners' orders and live orders return `ORDER_NOT_FOUND`.
 
 Differences from live Watermark orders:
 
 - A test report request returns `200 completed` immediately. It never returns `202 queued` or `processing`, and it does not consume credits.
-- The `reports` array in Get order is always empty because test reports are not stored.
+- `result.reports` in Get order details is always empty because test reports are not stored.
 - Reusing an `idempotencyKey` returns the existing order without comparing the request body, so it never returns `409`.
 
 ## API behavior and limitations
@@ -136,9 +136,9 @@ Differences from live Watermark orders:
 | --- | --- |
 | `GET /api/v2/orders` | Returns the account's persistent test orders |
 | `GET /api/v2/orders/stats/recent` | Returns statistics for the account's test orders |
-| `GET /api/v2/orders/{orderId}` | Returns a test order owned by the key's account |
+| `GET /api/v2/orders/{orderId}` | Deprecated. Returns a test order owned by the key's account |
 | `POST /api/v2/orders/{orderId}/refresh-urls` | Refreshes an upload URL that has not been used yet |
-| `GET /api/v2/orders/{orderId}/download` | Returns `404 PROCESSED_FILE_NOT_FOUND` |
+| `GET /api/v2/orders/{orderId}/download` | Deprecated. Returns `404 PROCESSED_FILE_NOT_FOUND` |
 | Webhook management and retries | Manage only test endpoints owned by the same owner; live-mode and other-owner IDs return `404`, while `isTest: false` returns `403 AUTH_FORBIDDEN` |
 
 Test orders remain separate from live orders. A test key cannot read or modify live orders, and a live key cannot read or modify test orders.

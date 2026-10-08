@@ -1,5 +1,351 @@
 ---
 tag: "v3"
-title: "워터마크 주문 상세 조회"
+title: "주문 상세 조회"
 openapi: "/ko/api-reference/openapi.yaml GET /api/v3/orders/{orderId}"
 ---
+
+주문 상태를 확인하고 결과를 읽을 때 이 엔드포인트를 사용합니다. Anti-AI, AI Detection, 워터마크 삽입, 워터마크 검출 등 모든 주문 종류를 v2·v3 어느 쪽으로 만들었든 조회할 수 있습니다. 최상위 필드는 모든 주문이 같고, `type`에 따라 `result`만 달라집니다.
+
+<Warning>
+  2026년 10월 8일에 응답 형식이 바뀌었습니다. 이 엔드포인트에서 `files`, `outputs`, 최상위 `reports`, `fileCount`, `statusCode`를 읽고 있다면 [이전 응답과의 차이](#이전-응답과의-차이)를 확인하세요.
+</Warning>
+
+## 공통 필드
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `type` | string | `antiAi`, `aiDetection`, `watermarkEmbed`, `watermarkExtract` 중 하나 |
+| `orderId` | string | 주문 ID |
+| `orderName` | string \| null | 주문 이름 |
+| `channel` | string | `api` 또는 `web` |
+| `status` | string | [상태](#상태)의 5가지 값 중 하나 |
+| `createdAt`, `updatedAt` | string | ISO 8601 일시 |
+| `expiresAt` | string \| null | 주문 파일이 삭제되는 시각 |
+| `retentionDays` | integer \| null | 파일 보관 기간(일, 7 또는 30) |
+| `thumbnailImageUrl` | string \| null | 썸네일 이미지 URL |
+| `processingDelayed` | boolean | v3로 만든 워터마크 주문이 수동 복구를 기다리면 `true`. 그 외 주문은 항상 `false` |
+| `errors` | object \| null | 실패한 주문의 `{ errorCode, errorMessage }`. 그 외에는 `null` |
+| `inputFiles` | array | 입력 파일. [입력 파일](#입력-파일) 참고 |
+| `result` | object \| null | 주문 종류별 결과. [주문 종류별 결과](#주문-종류별-결과) 참고 |
+
+## 상태
+
+| `status` | 의미 | `result` |
+|----------|------|----------|
+| `pending` | 파일 업로드 대기. `inputFiles[].uploadUrl`이 있음 | `null` |
+| `inProgress` | 처리 중 | `null` |
+| `complete` | 완료 | 객체 |
+| `failed` | 처리 실패. 사유는 `errors`에 있음 | `null` |
+| `expired` | 보관 기한이 지나 파일이 삭제됨. URL을 발급하지 않음 | `null` |
+
+v2로 만든 워터마크 검출 주문 중 저장 status가 `detected` 또는 `undetected`인 주문은 `complete`로 반환합니다. 판정 결과는 `result.detectionStatus`에서 읽으세요.
+
+## 입력 파일
+
+`inputFiles[]`의 각 항목에는 `fileId`와 `fileName`이 있으며 주문 생성 요청의 순서를 따릅니다. 아래 두 키는 해당할 때만 나옵니다. 해당하지 않으면 `null`이 아니라 키 자체가 없습니다.
+
+- `role`은 `watermarkExtract` 주문에만 나옵니다. `original`은 워터마크를 넣은 원본 파일, `query`는 검사할 파일입니다.
+- `uploadUrl`은 `status`가 `pending`이고 해당 파일이 아직 업로드 대기 중일 때만 나옵니다. 이 URL로 파일을 PUT하세요. 업로드 URL이 만료되면 이 엔드포인트를 다시 호출해 새 URL을 받으세요.
+
+이 응답과 [다운로드 응답](/ko/api-reference/orders/download-order-v3)의 모든 `fileId`는 `"11"`처럼 숫자로만 된 문자열입니다. `-` 같은 구분자는 들어가지 않습니다.
+
+## 주문 종류별 결과
+
+`result`는 `status`가 `complete`일 때만 객체입니다. 키는 항상 있으며 그 외 상태에서는 `null`입니다.
+
+<Tabs>
+  <Tab title="Anti-AI">
+    `result.outputFiles[]`에는 입력 파일마다 결과 파일이 하나씩 있습니다.
+
+    | 필드 | 타입 | 설명 |
+    |------|------|------|
+    | `fileId` | string | 결과 파일 ID. [다운로드 응답](/ko/api-reference/orders/download-order-v3)의 `files[].fileId`와 값·순서가 같음 |
+    | `fileName` | string \| null | 결과 파일명 |
+    | `inputFileId` | string | 원본 입력 파일의 `inputFiles[].fileId` |
+  </Tab>
+  <Tab title="워터마크 삽입">
+    `result.outputFiles[]`에는 삽입한 워터마크 문구마다 결과 파일이 하나씩 있습니다. v3 주문에서 입력 파일 하나에 문구를 여러 개 넣으면 그 결과 파일들은 같은 `inputFileId`를 가집니다.
+
+    | 필드 | 타입 | 설명 |
+    |------|------|------|
+    | `fileId` | string | 결과 파일 ID. [다운로드 응답](/ko/api-reference/orders/download-order-v3)의 `files[].fileId`와 값·순서가 같음 |
+    | `fileName` | string \| null | 결과 파일명 |
+    | `inputFileId` | string | 원본 입력 파일의 `inputFiles[].fileId` |
+    | `watermarkText` | string | 이 결과 파일에 삽입한 문구 |
+  </Tab>
+  <Tab title="워터마크 검출">
+    | 필드 | 타입 | 설명 |
+    |------|------|------|
+    | `detectionStatus` | string | 판정 결과. 아래 표 참고 |
+    | `watermarkText` | string \| null | 검출된 워터마크의 삽입 문구. `detectionStatus`가 `detected`가 아니면 `null`. v3 주문은 호출 계정이 직접 삽입했고 발급 기록이 정확히 1건일 때만 반환 |
+    | `reportSupported` | boolean | 이 결과로 [보고서를 생성](/ko/api-reference/reports/create-report)할 수 있는지 여부. v2 주문과 PDF에서 캡처한 이미지는 `false` |
+    | `reports` | array | 이 주문에 요청한 보고서별 `{ locale, status }`. v2 주문은 항상 빈 배열 |
+
+    | `detectionStatus` | 의미 |
+    |-------------------|------|
+    | `detected` | 워터마크를 찾음 |
+    | `undetected` | 끝까지 검사했으나 워터마크가 없음 |
+    | `inconclusive` | 후보는 있으나 확신 기준에 못 미침 |
+    | `unsupported` | 처리할 수 없는 입력. 크레딧 환불 |
+    | `error` | 검출 처리 실패. 워터마크 없음과 다름 |
+  </Tab>
+  <Tab title="AI Detection">
+    | 필드 | 타입 | 설명 |
+    |------|------|------|
+    | `verdict` | string \| null | `probability` 기준 판정. 아래 표 참고. `probability`가 `null`이면 `null` |
+    | `probability` | number \| null | 이미지가 AI로 생성되었을 확률(0~1) |
+    | `options` | object \| null | 주문 생성 시 설정한 `generateHeatmap`, `generateOverlay`, `generateThumbnail` |
+    | `originalImageUrl` | string \| null | 원본 이미지 URL(1시간 유효) |
+    | `heatmapUrl` | string \| null | 히트맵 이미지 URL(1시간 유효). `generateHeatmap`을 쓰지 않은 주문은 `null` |
+    | `overlayUrl` | string \| null | 히트맵 오버레이 URL(1시간 유효). `generateOverlay`를 쓰지 않은 주문은 `null` |
+
+    | `verdict` | 확률 구간 | 의미 |
+    |-----------|-----------|------|
+    | `likely_real` | < 0.25 | AI 생성이 아닐 가능성이 높음 |
+    | `uncertain_real` | 0.25 – 0.5 | AI 생성이 아닐 가능성이 있음 |
+    | `uncertain_ai` | 0.5 – 0.75 | AI 생성일 가능성이 있음 |
+    | `likely_ai` | ≥ 0.75 | AI 생성일 가능성이 높음 |
+  </Tab>
+</Tabs>
+
+## 예시
+
+주문 종류별 완료 주문:
+
+<CodeGroup>
+```json Anti-AI
+{
+  "data": {
+    "type": "antiAi",
+    "orderId": "1001",
+    "orderName": "cat.png",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "11", "fileName": "cat.png" },
+      { "fileId": "12", "fileName": "dog.png" }
+    ],
+    "result": {
+      "outputFiles": [
+        { "fileId": "21", "fileName": "cat.png", "inputFileId": "11" },
+        { "fileId": "22", "fileName": "dog.png", "inputFileId": "12" }
+      ]
+    }
+  }
+}
+```
+
+```json AI Detection
+{
+  "data": {
+    "type": "aiDetection",
+    "orderId": "4001",
+    "orderName": "photo.jpg",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/ai/photo.jpg",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "71", "fileName": "photo.jpg" }
+    ],
+    "result": {
+      "verdict": "uncertain_real",
+      "probability": 0.31,
+      "options": {
+        "generateHeatmap": true,
+        "generateOverlay": true,
+        "generateThumbnail": true
+      },
+      "originalImageUrl": "https://cdn.bizmori.com/ai/photo.jpg",
+      "heatmapUrl": "https://cdn.bizmori.com/ai/heatmap.png",
+      "overlayUrl": "https://cdn.bizmori.com/ai/overlay.png"
+    }
+  }
+}
+```
+
+```json 워터마크 삽입
+{
+  "data": {
+    "type": "watermarkEmbed",
+    "orderId": "2001",
+    "orderName": "logo.png",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "31", "fileName": "logo.png" }
+    ],
+    "result": {
+      "outputFiles": [
+        { "fileId": "201", "fileName": "logo.png", "inputFileId": "31", "watermarkText": "MORI" },
+        { "fileId": "202", "fileName": "logo.png", "inputFileId": "31", "watermarkText": "MORI-2" }
+      ]
+    }
+  }
+}
+```
+
+```json 워터마크 검출
+{
+  "data": {
+    "type": "watermarkExtract",
+    "orderId": "3001",
+    "orderName": "suspect.png",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "51", "fileName": "original.png", "role": "original" },
+      { "fileId": "52", "fileName": "suspect.png", "role": "query" }
+    ],
+    "result": {
+      "detectionStatus": "detected",
+      "watermarkText": "MORI",
+      "reportSupported": true,
+      "reports": [
+        { "locale": "ko-KR", "status": "completed" }
+      ]
+    }
+  }
+}
+```
+</CodeGroup>
+
+완료되지 않은 주문은 `result: null`을 반환합니다.
+
+<CodeGroup>
+```json Pending
+{
+  "data": {
+    "type": "watermarkExtract",
+    "orderId": "3201",
+    "orderName": "suspect.png",
+    "channel": "api",
+    "status": "pending",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": null,
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      {
+        "fileId": "81",
+        "fileName": "original.png",
+        "role": "original",
+        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/81?X-Amz-..."
+      },
+      {
+        "fileId": "82",
+        "fileName": "suspect.png",
+        "role": "query",
+        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/82?X-Amz-..."
+      }
+    ],
+    "result": null
+  }
+}
+```
+
+```json Failed
+{
+  "data": {
+    "type": "watermarkEmbed",
+    "orderId": "2002",
+    "orderName": "logo.png",
+    "channel": "api",
+    "status": "failed",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": {
+      "errorCode": "WATERMARK_FILE_CORRUPTED",
+      "errorMessage": "파일이 손상되어 처리할 수 없습니다."
+    },
+    "inputFiles": [
+      { "fileId": "33", "fileName": "logo.png" }
+    ],
+    "result": null
+  }
+}
+```
+
+```json Expired
+{
+  "data": {
+    "type": "antiAi",
+    "orderId": "1003",
+    "orderName": "cat.png",
+    "channel": "api",
+    "status": "expired",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-10-01T00:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "14", "fileName": "cat.png" }
+    ],
+    "result": null
+  }
+}
+```
+</CodeGroup>
+
+- **Pending**: 아직 업로드 대기 중인 파일에만 `uploadUrl`이 있습니다. 워터마크 삽입, Anti-AI, AI Detection 주문에는 `role`이 없습니다.
+- **Failed**: `errors`에 사유가 있고 `result`는 `null`입니다. `errorMessage`는 오류 코드별 고정 한국어 안내 문구입니다.
+- **Expired**: 보관 기한이 지난 주문도 조회할 수 있지만 `result`는 `null`이고 URL을 발급하지 않습니다. [다운로드](/ko/api-reference/orders/download-order-v3)는 `400 ORDER_EXPIRED`를 반환합니다.
+
+## 이전 응답과의 차이
+
+2026년 10월 8일부터 이 엔드포인트는 위 형식으로 응답합니다. 하위 호환되지 않는 변경입니다.
+
+| 이전 응답 | 현재 |
+|-----------|------|
+| `files[]` (v3 워터마크 주문) | `inputFiles[]`. `uploadUrl`은 `pending` 주문에만 있음 |
+| `outputs[]` (v3 워터마크 주문) | `result.outputFiles[]`. `outputIndex`, `status`, `mediaKind`는 더 이상 반환하지 않음 |
+| `"601-1"` 형식의 결과 `fileId` | `"201"` 같은 숫자 문자열 |
+| 최상위 `reports[]` | `result.reports[]` |
+| `detectionStatus: "not_detected"` | `"undetected"` |
+| `fileCount` | `inputFiles.length` |
+| `statusCode` (AI Detection) | `result.verdict` |
+| `statusCode`와 `status: "detected"` / `"undetected"` (v2 워터마크 검출) | `status: "complete"`와 `result.detectionStatus` |
+| `watermarks[]` (v2 워터마크 삽입) | `result.outputFiles[].watermarkText` |
+| 최상위 `watermarkText`, `probability`, `options`, `originalImageUrl`, `heatmapUrl`, `overlayUrl` | `result` 안으로 이동 |
+
+deprecated된 [`GET /api/v2/orders/{orderId}`](/ko/api-reference/orders/get-order)는 기존 응답을 그대로 반환합니다.
+
+## 테스트 키
+
+`sk_test_` 키로 호출하면 같은 키로 만든 테스트 주문만 위 형식으로 반환합니다. 테스트 주문의 상태 변화는 [테스트 API 키](/ko/test-api-keys)를 참고하세요.

@@ -627,7 +627,7 @@ components:
           $ref: '#/components/schemas/WatermarkV1Order'
     WatermarkV1Order:
       type: object
-      description: v3 API로 생성한 비가시성 워터마크 주문
+      description: 'v3 API로 생성한 비가시성 워터마크 주문(주문 생성 응답). 주문 상세는 형식이 다른 `GET /api/v3/orders/{orderId}`로 조회하세요'
       required:
       - orderId
       - status
@@ -726,7 +726,7 @@ components:
       properties:
         fileId:
           type: string
-          description: '`{inputFileId}-{순번}` 형식의 결과 파일 ID(`outputs[].fileId`)'
+          description: '주문 안에서 결과를 구분하는 `{inputFileId}-{순번}` 형식의 식별자(주문 생성 응답 전용). 주문 상세 `result.outputFiles[].fileId`와 다운로드 응답 `files[].fileId`는 숫자 문자열이며 이 값과 다릅니다'
         inputFileId:
           type: string
           description: 이 결과를 만든 입력 파일 ID
@@ -785,24 +785,496 @@ components:
           description: |
             검출된 워터마크의 삽입 문구. `detectionStatus`가 `detected`이고, 호출 계정이 직접 삽입했으며 발급 기록이 정확히 1건일 때만 반환합니다.
             다른 계정이 삽입한 워터마크 등 그 외에는 `null`입니다.
-    DownloadLinkResponse:
+    PublicInputFile:
+      type: object
+      description: '`watermarkExtract` 외 주문의 입력 파일(요청 순서). `role` 키는 없습니다. `uploadUrl` 키는 주문 `status`가 `pending`이고 해당 파일이 업로드 대기 중일 때만 나오며, 그 외에는 키 자체가 없습니다(`null`로 채우지 않음)'
+      required:
+      - fileId
+      - fileName
+      additionalProperties: false
+      properties:
+        fileId:
+          type: string
+          pattern: ^[0-9]+$
+          description: 입력 파일 ID. 숫자로만 된 문자열입니다
+          example: '11'
+        fileName:
+          type: string
+          nullable: true
+          description: 입력 파일명(확장자 포함). 알 수 없으면 `null`입니다
+          example: cat.png
+        uploadUrl:
+          type: string
+          format: uri
+          description: 파일 업로드용 presigned `PUT` URL. 주문 `status`가 `pending`이고 보관 기한 전이며 해당 파일이 업로드 대기 중일 때만 나옵니다. 업로드가 끝난 파일, `originalFileUrl`로 지정한 파일, `pending`이 아닌 주문에서는 키가 없습니다
+    PublicExtractInputFile:
+      type: object
+      description: '`watermarkExtract` 주문의 입력 파일. 원본과 검사 대상을 구분하는 `role`이 더해집니다. `uploadUrl` 규칙은 `PublicInputFile`과 같습니다'
+      required:
+      - fileId
+      - fileName
+      - role
+      additionalProperties: false
+      properties:
+        fileId:
+          type: string
+          pattern: ^[0-9]+$
+          description: 입력 파일 ID. 숫자로만 된 문자열입니다
+          example: '51'
+        fileName:
+          type: string
+          nullable: true
+          description: 입력 파일명(확장자 포함). 알 수 없으면 `null`입니다
+          example: suspect.png
+        role:
+          type: string
+          enum:
+          - original
+          - query
+          description: |-
+            * `original` - 워터마크를 넣은 원본 파일
+            * `query` - 워터마크가 있는지 검사할 파일. v2 주문의 `watermarked` 역할도 `query`로 반환합니다
+        uploadUrl:
+          type: string
+          format: uri
+          description: 파일 업로드용 presigned `PUT` URL. `status`가 `pending`이고 해당 파일이 업로드 대기 중일 때만 나옵니다
+    PublicOutputFile:
+      type: object
+      description: Anti-AI 주문의 결과 파일 1개. `fileId`는 다운로드 응답 `files[].fileId`와 값·순서가 같습니다
+      required:
+      - fileId
+      - fileName
+      - inputFileId
+      additionalProperties: false
+      properties:
+        fileId:
+          type: string
+          pattern: ^[0-9]+$
+          description: 결과 파일 ID. 숫자로만 된 문자열이며 주문 안에서 유일합니다
+          example: '21'
+        fileName:
+          type: string
+          nullable: true
+          description: 결과 파일명(확장자 포함). 알 수 없으면 `null`입니다
+          example: cat.png
+        inputFileId:
+          type: string
+          pattern: ^[0-9]+$
+          description: 이 결과를 만든 입력 파일의 `inputFiles[].fileId`
+          example: '11'
+    PublicWatermarkEmbedOutputFile:
+      type: object
+      description: 워터마크 삽입 주문의 결과 파일 1개. `PublicOutputFile`에 삽입 문구 `watermarkText`가 더해집니다. v3 주문에서 입력 파일 하나에 문구를 여러 개 넣으면 같은 `inputFileId`를 가진 결과 파일이 여러 개 나옵니다
+      required:
+      - fileId
+      - fileName
+      - inputFileId
+      - watermarkText
+      additionalProperties: false
+      properties:
+        fileId:
+          type: string
+          pattern: ^[0-9]+$
+          description: 결과 파일 ID. 숫자로만 된 문자열이며 주문 안에서 유일합니다
+          example: '201'
+        fileName:
+          type: string
+          nullable: true
+          description: 결과 파일명(확장자 포함). 알 수 없으면 `null`입니다
+          example: logo.png
+        inputFileId:
+          type: string
+          pattern: ^[0-9]+$
+          description: 이 결과를 만든 입력 파일의 `inputFiles[].fileId`
+          example: '31'
+        watermarkText:
+          type: string
+          description: 이 결과 파일에 삽입한 워터마크 문구
+          example: MORI
+    PublicAntiAiResult:
+      type: object
+      nullable: true
+      description: Anti-AI 주문 결과. `status`가 `complete`일 때만 객체이고 그 외에는 `null`입니다
+      required:
+      - outputFiles
+      additionalProperties: false
+      properties:
+        outputFiles:
+          type: array
+          description: 결과 파일 목록. 입력 파일마다 결과 1개입니다
+          items:
+            $ref: '#/components/schemas/PublicOutputFile'
+    PublicWatermarkEmbedResult:
+      type: object
+      nullable: true
+      description: 워터마크 삽입 주문 결과. `status`가 `complete`일 때만 객체이고 그 외에는 `null`입니다. 이전 v3 응답의 `outputs[]`와 v2 상세의 `watermarks[]`를 대체합니다
+      required:
+      - outputFiles
+      additionalProperties: false
+      properties:
+        outputFiles:
+          type: array
+          description: 결과 파일 목록. 입력 파일 순서, 같은 입력 안에서는 결과 순서로 정렬합니다
+          items:
+            $ref: '#/components/schemas/PublicWatermarkEmbedOutputFile'
+    PublicWatermarkExtractResult:
+      type: object
+      nullable: true
+      description: 워터마크 검출 주문 결과. `status`가 `complete`일 때만 객체이고 그 외에는 `null`입니다. 워터마크 ID, 엔진 사유 코드 같은 내부 값은 포함하지 않습니다
+      required:
+      - detectionStatus
+      - watermarkText
+      - reportSupported
+      - reports
+      additionalProperties: false
+      properties:
+        detectionStatus:
+          type: string
+          nullable: true
+          enum:
+          - detected
+          - undetected
+          - inconclusive
+          - unsupported
+          - error
+          - null
+          description: |-
+            판정 값. 검출 기록이 없는 v2 주문(데이터 이상)만 `null`입니다.
+            * `detected` - 워터마크를 찾음
+            * `undetected` - 끝까지 검사했으나 워터마크 없음. v3 엔진의 `not_detected`와 저장 status가 `undetected`인 v2 주문을 포함합니다
+            * `inconclusive` - 후보는 있으나 확신 기준에 못 미쳐 판단할 수 없음
+            * `unsupported` - 처리할 수 없는 입력(크레딧 환불)
+            * `error` - 검출 처리 실패. 워터마크 없음과 다릅니다. 검출 처리에 실패한 v2 주문을 포함합니다
+        watermarkText:
+          type: string
+          nullable: true
+          description: 검출된 워터마크의 삽입 문구. `detectionStatus`가 `detected`가 아니면 `null`입니다. v3 주문은 호출 계정이 직접 삽입했고 발급 기록이 정확히 1건일 때만 반환하며, 그 외에는 `null`입니다
+        reportSupported:
+          type: boolean
+          description: 이 검출 결과로 분석 보고서를 만들 수 있는지 여부. v2 주문과 PDF에서 캡처한 이미지는 `false`입니다
+        reports:
+          type: array
+          description: 이 주문의 locale별 보고서 상태. v2 주문은 항상 빈 배열입니다
+          items:
+            type: object
+            required:
+            - locale
+            - status
+            additionalProperties: false
+            properties:
+              locale:
+                type: string
+                enum:
+                - ko-KR
+                - en-US
+                - ja-JP
+              status:
+                type: string
+                enum:
+                - queued
+                - processing
+                - completed
+                - failed
+    PublicAiDetectionResult:
+      type: object
+      nullable: true
+      description: AI Detection 주문 결과. `status`가 `complete`일 때만 객체이고 그 외에는 `null`입니다. 이전 응답의 `statusCode`는 `verdict`로 대체되었습니다
+      required:
+      - verdict
+      - probability
+      - options
+      - originalImageUrl
+      - heatmapUrl
+      - overlayUrl
+      additionalProperties: false
+      properties:
+        verdict:
+          type: string
+          nullable: true
+          enum:
+          - likely_real
+          - uncertain_real
+          - uncertain_ai
+          - likely_ai
+          - null
+          description: |-
+            `probability` 기준 판정. `probability`가 `null`이면 `null`입니다.
+            * `likely_real` - AI 생성 아님(높은 확률), probability < 0.25
+            * `uncertain_real` - AI 생성 아님(낮은 확률), 0.25 <= probability < 0.5
+            * `uncertain_ai` - AI 생성(낮은 확률), 0.5 <= probability < 0.75
+            * `likely_ai` - AI 생성(높은 확률), probability >= 0.75
+        probability:
+          type: number
+          format: float
+          nullable: true
+          minimum: 0
+          maximum: 1
+          description: AI 생성 확률(0~1). 값이 없으면 `null`입니다
+          example: 0.31
+        options:
+          type: object
+          nullable: true
+          description: 주문 생성 시 설정한 옵션. 저장된 옵션이 없으면 `null`입니다
+          properties:
+            generateHeatmap:
+              type: boolean
+            generateOverlay:
+              type: boolean
+            generateThumbnail:
+              type: boolean
+        originalImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 원본 입력 이미지 URL(presigned, 1시간 유효). 리사이즈 이미지가 모두 준비된 주문은 긴 변 1600px 이내 WebP입니다
+        heatmapUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 히트맵 이미지 URL(presigned, 1시간 유효). `generateHeatmap` 옵션을 쓴 주문만 반환하고 그 외에는 `null`입니다
+        overlayUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 원본 위 히트맵 오버레이 이미지 URL(presigned, 1시간 유효). `generateOverlay` 옵션을 쓴 주문만 반환하고 그 외에는 `null`입니다
+    PublicOrderV3DetailCommon:
+      type: object
+      description: v3 주문 상세의 공통 필드. 모든 주문 종류·워터마크 엔진에서 최상위 키 집합이 같으며 종류별 차이는 `result` 안에만 있습니다. 이전 응답의 최상위 `fileCount`, `statusCode`, `files`, `outputs`, `reports`, `watermarks` 필드는 반환하지 않습니다
+      required:
+      - type
+      - orderId
+      - orderName
+      - channel
+      - status
+      - createdAt
+      - updatedAt
+      - expiresAt
+      - retentionDays
+      - thumbnailImageUrl
+      - processingDelayed
+      - errors
+      - inputFiles
+      - result
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum:
+          - antiAi
+          - watermarkEmbed
+          - watermarkExtract
+          - aiDetection
+          description: 주문 종류. 워터마크 주문은 v2·v3 어느 쪽으로 만들었든 `watermarkEmbed`/`watermarkExtract`로 반환합니다
+        orderId:
+          type: string
+          description: 주문 ID
+          example: '1001'
+        orderName:
+          type: string
+          nullable: true
+          description: 주문 이름. v3로 만든 워터마크 주문은 표시 파일명을, 없으면 저장된 이름을 반환합니다
+        channel:
+          type: string
+          enum:
+          - api
+          - web
+          description: 주문 채널
+        status:
+          type: string
+          enum:
+          - pending
+          - inProgress
+          - complete
+          - failed
+          - expired
+          description: |-
+            * `pending` - 업로드 대기
+            * `inProgress` - 처리 중
+            * `complete` - 완료. 이때만 `result`가 객체입니다
+            * `failed` - 실패. 사유는 `errors`에 있습니다
+            * `expired` - 파일 보관 기한 경과. 조회는 가능하지만 `result`와 모든 URL은 `null`입니다
+
+            저장 status가 `detected`/`undetected`인 v2 워터마크 검출 주문은 `complete`로 반환하고 판정 값은 `result.detectionStatus`에 담습니다
+        createdAt:
+          type: string
+          format: date-time
+          description: 생성 일시
+        updatedAt:
+          type: string
+          format: date-time
+          description: 수정 일시
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 파일 보관 기한(UTC, ISO 8601). 무결성 예외에서만 `null`입니다
+        retentionDays:
+          type: integer
+          nullable: true
+          description: 주문 생성 시 고정된 파일 보관 기간(일, 7 또는 30). 무결성 예외에서만 `null`입니다
+          example: 30
+        thumbnailImageUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: 썸네일 이미지 URL. 출처는 주문 종류별 규칙을 따릅니다. Anti-AI 주문과 v2 워터마크 주문은 미완료·실패 상태에서 고정 상태 이미지를, AI Detection 주문은 상세 썸네일 또는 원본 이미지를, v3 워터마크 주문은 상세 썸네일을 반환하며 처리 전에는 `null`일 수 있습니다
+        processingDelayed:
+          type: boolean
+          description: v3로 만든 워터마크 주문이 자동 재시도를 모두 소진해 수동 복구를 기다리면 `true`입니다. 주문은 `inProgress`를 유지합니다. 그 외 주문은 항상 `false`입니다
+        errors:
+          type: object
+          nullable: true
+          description: 실패한 주문의 오류 정보이며 그 외에는 `null`입니다. v3로 만든 워터마크 주문은 공개 `errorCode`와 고정 안내 문구 `errorMessage`를 반환합니다. 그 외 주문은 저장된 오류 정보를 그대로 반환하며 `errorCode`가 없을 수 있습니다
+          properties:
+            errorCode:
+              type: string
+              description: '오류 코드. 예: `WATERMARK_FILE_CORRUPTED`, `ORDER_TIMEOUT`, `PROCESSING_ERROR`'
+              example: WATERMARK_FILE_CORRUPTED
+            errorMessage:
+              type: string
+              description: 오류 코드별 고정 안내 문구(한국어). 처리기 원문 출력은 포함하지 않습니다
+        inputFiles:
+          type: array
+          description: 입력 파일 목록(요청 순서). 파일 수는 `inputFiles.length`입니다. `watermarkExtract` 주문은 `PublicExtractInputFile`(`role` 포함), 그 외 주문은 `PublicInputFile`입니다
+          items:
+            anyOf:
+            - $ref: '#/components/schemas/PublicInputFile'
+            - $ref: '#/components/schemas/PublicExtractInputFile'
+        result:
+          type: object
+          nullable: true
+          description: 주문 종류별 결과. 키는 항상 있으며 `status`가 `complete`일 때만 객체이고 그 외에는 `null`입니다
+    PublicAntiAiOrderV3Detail:
+      title: Anti-AI
+      description: Anti-AI 주문 상세
+      allOf:
+      - $ref: '#/components/schemas/PublicOrderV3DetailCommon'
+      - type: object
+        properties:
+          type:
+            type: string
+            enum:
+            - antiAi
+          inputFiles:
+            type: array
+            items:
+              $ref: '#/components/schemas/PublicInputFile'
+          result:
+            $ref: '#/components/schemas/PublicAntiAiResult'
+    PublicWatermarkEmbedOrderV3Detail:
+      title: 워터마크 삽입
+      description: 워터마크 삽입 주문 상세(v2·v3)
+      allOf:
+      - $ref: '#/components/schemas/PublicOrderV3DetailCommon'
+      - type: object
+        properties:
+          type:
+            type: string
+            enum:
+            - watermarkEmbed
+          inputFiles:
+            type: array
+            items:
+              $ref: '#/components/schemas/PublicInputFile'
+          result:
+            $ref: '#/components/schemas/PublicWatermarkEmbedResult'
+    PublicWatermarkExtractOrderV3Detail:
+      title: 워터마크 검출
+      description: 워터마크 검출 주문 상세(v2·v3). 이 주문 종류만 `inputFiles[].role`이 있습니다
+      allOf:
+      - $ref: '#/components/schemas/PublicOrderV3DetailCommon'
+      - type: object
+        properties:
+          type:
+            type: string
+            enum:
+            - watermarkExtract
+          inputFiles:
+            type: array
+            items:
+              $ref: '#/components/schemas/PublicExtractInputFile'
+          result:
+            $ref: '#/components/schemas/PublicWatermarkExtractResult'
+    PublicAiDetectionOrderV3Detail:
+      title: AI Detection
+      description: AI Detection 주문 상세
+      allOf:
+      - $ref: '#/components/schemas/PublicOrderV3DetailCommon'
+      - type: object
+        properties:
+          type:
+            type: string
+            enum:
+            - aiDetection
+          inputFiles:
+            type: array
+            items:
+              $ref: '#/components/schemas/PublicInputFile'
+          result:
+            $ref: '#/components/schemas/PublicAiDetectionResult'
+    PublicOrderV3Detail:
+      description: v3 주문 상세. 최상위 필드는 모든 주문 종류가 같고(`PublicOrderV3DetailCommon`), `type`에 따라 `result`와 검출 주문의 `inputFiles[].role`만 다릅니다
+      oneOf:
+      - $ref: '#/components/schemas/PublicAntiAiOrderV3Detail'
+      - $ref: '#/components/schemas/PublicWatermarkEmbedOrderV3Detail'
+      - $ref: '#/components/schemas/PublicWatermarkExtractOrderV3Detail'
+      - $ref: '#/components/schemas/PublicAiDetectionOrderV3Detail'
+      discriminator:
+        propertyName: type
+        mapping:
+          antiAi: '#/components/schemas/PublicAntiAiOrderV3Detail'
+          watermarkEmbed: '#/components/schemas/PublicWatermarkEmbedOrderV3Detail'
+          watermarkExtract: '#/components/schemas/PublicWatermarkExtractOrderV3Detail'
+          aiDetection: '#/components/schemas/PublicAiDetectionOrderV3Detail'
+    PublicOrderV3DetailResponse:
       type: object
       required:
       - data
+      additionalProperties: false
+      properties:
+        data:
+          $ref: '#/components/schemas/PublicOrderV3Detail'
+    PublicOrderV3DownloadResponse:
+      type: object
+      required:
+      - data
+      additionalProperties: false
       properties:
         data:
           type: object
           required:
-          - downloadUrl
+          - archiveUrl
+          - files
           - expiresInSeconds
+          additionalProperties: false
           properties:
-            downloadUrl:
+            archiveUrl:
               type: string
               format: uri
-              description: 300초 동안 유효한 서명 다운로드 URL
+              description: 결과 전체를 한 번에 받는 URL. Anti-AI 주문과 v2 워터마크 삽입 주문은 결과 ZIP입니다. v3 워터마크 삽입 주문은 결과 파일이 2개 이상이면 ZIP, 1개면 그 결과 파일 URL(`files[0].downloadUrl`과 같은 파일)입니다
+            files:
+              type: array
+              description: 결과 파일별 다운로드 URL. 주문 상세 `result.outputFiles`와 같은 파일을 같은 순서로 담습니다
+              items:
+                type: object
+                required:
+                - fileId
+                - downloadUrl
+                additionalProperties: false
+                properties:
+                  fileId:
+                    type: string
+                    pattern: ^[0-9]+$
+                    description: 주문 상세 `result.outputFiles[].fileId`와 같은 값
+                  downloadUrl:
+                    type: string
+                    format: uri
+                    description: 결과 파일의 presigned 다운로드 URL
             expiresInSeconds:
               type: integer
-              example: 300
+              maximum: 3600
+              description: URL 유효 시간(초). 기본 3600초이며 `expiresAt`까지 남은 시간이 더 짧으면 그 시간으로 줄입니다
+              example: 3600
     OrderReportResponse:
       type: object
       required:
@@ -2328,6 +2800,8 @@ paths:
     get:
       summary: 주문 상세 조회
       operationId: getOrder
+      deprecated: true
+      description: '**Deprecated**: 모든 주문 종류를 한 가지 형식으로 반환하는 [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)를 사용하세요. 이 API의 응답과 동작은 바뀌지 않습니다.'
       x-mint:
         href: /ko/api-reference/orders/get-order
       tags:
@@ -2439,9 +2913,12 @@ paths:
     get:
       summary: 다운로드 URL 발급
       operationId: downloadOrderFiles
+      deprecated: true
       x-mint:
         href: /ko/api-reference/orders/download-order
-      description: '완료된 주문 파일의 다운로드 URL을 발급합니다.
+      description: '**Deprecated**: 결과 파일별 URL과 결과 전체 URL을 함께 반환하는 [`GET /api/v3/orders/{orderId}/download`](/ko/api-reference/orders/download-order-v3)를 사용하세요. 이 API의 응답과 동작은 바뀌지 않습니다.
+
+        완료된 주문 파일의 다운로드 URL을 발급합니다.
 
         - `complete` 상태의 주문에서만 사용 가능
 
@@ -3658,55 +4135,354 @@ paths:
           data = response.json()['data']
   /api/v3/orders/{orderId}:
     get:
-      summary: 워터마크 주문 상세 조회
-      operationId: getWatermarkV1Order
+      summary: 주문 상세 조회
+      operationId: getOrderV3
       description: |
-        v3 API로 생성한 워터마크 주문의 상태, 업로드 URL, 삽입 결과, 추출 결과, 보고서 상태를 조회합니다. 주문 상태와 관계없이 항상 호출할 수 있습니다.
+        호출 계정이 소유한 주문의 상세를 **주문 종류·워터마크 엔진과 관계없이 한 가지 형식**으로 조회합니다. Anti-AI, AI Detection, 워터마크 삽입·검출 주문을 v2·v3 어느 쪽으로 만들었든 조회할 수 있습니다. 주문 상태와 관계없이 항상 호출할 수 있습니다.
 
-        `POST /api/v3/orders/wtr-embed`·`wtr-extract`로 만든 워터마크 주문만 조회합니다. Anti-AI, AI Detection 등 그 외 주문은 `404 ORDER_NOT_FOUND`를 반환하므로 [`GET /api/v2/orders/{orderId}`](/ko/api-reference/orders/get-order)를 사용하세요.
+        **공통 최상위 필드**: `type`, `orderId`, `orderName`, `channel`, `status`, `createdAt`, `updatedAt`, `expiresAt`, `retentionDays`, `thumbnailImageUrl`, `processingDelayed`, `errors`, `inputFiles`, `result`. 모든 주문에서 이 키 집합이 같고, 주문 종류별 차이는 `result` 안에만 있습니다.
+        - `type`은 `antiAi`, `aiDetection`, `watermarkEmbed`, `watermarkExtract` 중 하나입니다. v3로 만든 워터마크 주문도 엔진 버전 접미사 없이 같은 값을 씁니다
+        - `status`는 `pending`, `inProgress`, `complete`, `failed`, `expired` 5개 값만 씁니다. v2 워터마크 검출 주문의 저장 status `detected`/`undetected`는 `complete`로 반환하고 판정 값은 `result.detectionStatus`에 담습니다
+        - `processingDelayed`는 v3로 만든 워터마크 주문만 계산합니다. 그 외 주문은 항상 `false`입니다
+        - `errors`는 실패한 주문의 `{ errorCode, errorMessage }`이며 그 외에는 `null`입니다
 
-        - `files[].uploadUrl`은 주문 `status`가 `pending`이고 보관 기한 전이며 업로드 대기 중인 파일에만 발급합니다. 그 외에는 `null`입니다
-        - `result`는 `detectionStatus`, `reportSupported`, `watermarkText`만 포함합니다. 삽입 주문과 추출 결과가 나오기 전에는 `null`입니다
-        - `result.watermarkText`는 검출된 워터마크를 호출 계정이 직접 삽입했고 발급 기록이 정확히 1건일 때만 삽입 문구를 반환하며, 그 외에는 `null`입니다
+        **`inputFiles[]`**: 입력 파일마다 `{ fileId, fileName }`을 요청 순서대로 반환합니다. 파일 수는 `inputFiles.length`로 확인하세요.
+        - `role`(`original`/`query`)은 `watermarkExtract` 주문에만 나옵니다. v2 주문의 `watermarked` 역할은 `query`로 반환합니다
+        - `uploadUrl`(presigned `PUT` URL)은 `status`가 `pending`이고 해당 파일이 업로드 대기 중일 때만 나옵니다. 그 외에는 키 자체가 없습니다(`null`로 채우지 않음)
+
+        **`result`**: 키는 항상 있습니다. `status`가 `complete`일 때만 객체이고, `pending`·`inProgress`·`failed`·`expired`에서는 `null`입니다.
+        - `antiAi`: `{ outputFiles: [{ fileId, fileName, inputFileId }] }`
+        - `watermarkEmbed`: `{ outputFiles: [{ fileId, fileName, inputFileId, watermarkText }] }`. v3 주문에서 입력 파일 하나에 워터마크 문구를 여러 개 넣으면 문구마다 결과 파일이 하나씩 나옵니다
+        - `watermarkExtract`: `{ detectionStatus, watermarkText, reportSupported, reports }`. `detectionStatus`는 `detected`, `undetected`, `inconclusive`, `unsupported`, `error` 중 하나입니다. `detectionStatus`가 `detected`가 아니면 `watermarkText`는 `null`입니다. v2 주문은 `reportSupported: false`, `reports: []`입니다
+        - `aiDetection`: `{ verdict, probability, options, originalImageUrl, heatmapUrl, overlayUrl }`. `verdict`는 `likely_real`, `uncertain_real`, `uncertain_ai`, `likely_ai` 중 하나이며 `probability`가 `null`이면 `verdict`도 `null`입니다. 저장된 옵션이 없으면 `options`는 `null`입니다
+
+        **`fileId`**: 모든 `fileId`와 `inputFileId`는 숫자로만 된 문자열입니다(`-` 같은 구분자 없음). `result.outputFiles[].fileId`는 주문 안에서 유일하며 [`GET /api/v3/orders/{orderId}/download`](/ko/api-reference/orders/download-order-v3)의 `files[].fileId`와 값·순서가 같습니다.
+
+        **만료 주문**: `expired` 주문도 조회할 수 있지만 `result`는 `null`이고 URL을 발급하지 않습니다.
+
+        **이전 v3 응답과의 차이(breaking change, 2026-10-08)**
+        - v3로 만든 워터마크 주문의 `files[]`, `outputs[]`, 최상위 `reports[]`가 `inputFiles[]`, `result.outputFiles[]`, `result.reports[]`로 옮겨졌습니다. 결과 `fileId`가 `{inputFileId}-{n}` 형식에서 숫자 문자열로 바뀌었습니다
+        - `detectionStatus` 값 `not_detected`가 `undetected`로 바뀌었습니다
+        - v2 상세와 같은 형식을 쓰던 그 외 주문의 최상위 `fileCount`, `statusCode`, `watermarks`, `watermarkText`, `probability`, `options`, `originalImageUrl`, `heatmapUrl`, `overlayUrl` 필드가 `inputFiles`와 `result`로 옮겨졌습니다. AI Detection의 `statusCode`는 `result.verdict`로 바뀌었습니다
+        - deprecated된 [`GET /api/v2/orders/{orderId}`](/ko/api-reference/orders/get-order)의 응답은 바뀌지 않습니다
+
+        **테스트 키(`sk_test_`)**: 같은 키로 만든 테스트 주문만 조회합니다. live 주문과 다른 계정의 주문은 `404 ORDER_NOT_FOUND`이며, live 키로 테스트 주문을 조회해도 마찬가지입니다. v2·v3로 만든 모든 테스트 주문을 이 형식으로 반환합니다. `inProgress` 테스트 주문은 업로드가 끝나고 5초가 지난 뒤 조회하면 `complete` 또는 `failed`가 됩니다. pending 테스트 주문의 `uploadUrl`은 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`입니다. 검출 테스트 주문의 `result.reports`는 항상 빈 배열이며, `reportSupported`는 v3로 만든 검출 테스트 주문의 `detectionStatus`가 `detected`일 때만 `true`입니다. `expiresAt`은 주문 생성 7일 뒤입니다.
       tags:
       - Orders
       security:
       - BearerAuth: []
-      parameters:
+      parameters: &id001
       - in: path
         name: orderId
         required: true
         schema:
           type: string
+          pattern: ^[0-9]{1,20}$
         description: 주문 ID
       responses:
         '200':
-          description: 주문 상세
+          description: 주문 상세. 최상위 필드는 모든 주문 종류가 같고 `type`에 따라 `result` 형식만 다릅니다
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/WatermarkV1OrderResponse'
-              example:
-                data:
-                  orderId: '1234567891'
-                  status: complete
-                  processingDelayed: false
-                  expiresAt: '2026-10-08T03:00:00.000Z'
-                  files:
-                  - fileId: '601'
-                    uploadUrl: null
-                  - fileId: '602'
-                    uploadUrl: null
-                  outputs: []
-                  result:
-                    detectionStatus: detected
-                    reportSupported: true
-                    watermarkText: MORI-2026-001
-                  reports:
-                  - locale: en-US
-                    status: completed
+                $ref: '#/components/schemas/PublicOrderV3DetailResponse'
+              examples:
+                antiAiComplete:
+                  summary: Anti-AI · complete (입력 2개)
+                  value:
+                    data:
+                      type: antiAi
+                      orderId: '1001'
+                      orderName: cat.png
+                      channel: api
+                      status: complete
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '11'
+                        fileName: cat.png
+                      - fileId: '12'
+                        fileName: dog.png
+                      result:
+                        outputFiles:
+                        - fileId: '21'
+                          fileName: cat.png
+                          inputFileId: '11'
+                        - fileId: '22'
+                          fileName: dog.png
+                          inputFileId: '12'
+                watermarkEmbedV3:
+                  summary: 워터마크 삽입(v3) · complete (입력 1개에 워터마크 2개, 결과 2개)
+                  value:
+                    data:
+                      type: watermarkEmbed
+                      orderId: '2001'
+                      orderName: logo.png
+                      channel: api
+                      status: complete
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '31'
+                        fileName: logo.png
+                      result:
+                        outputFiles:
+                        - fileId: '201'
+                          fileName: logo.png
+                          inputFileId: '31'
+                          watermarkText: MORI
+                        - fileId: '202'
+                          fileName: logo.png
+                          inputFileId: '31'
+                          watermarkText: MORI-2
+                watermarkEmbedV2:
+                  summary: 워터마크 삽입(v2) · complete (입력 2개)
+                  value:
+                    data:
+                      type: watermarkEmbed
+                      orderId: '2101'
+                      orderName: a.png
+                      channel: api
+                      status: complete
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '31'
+                        fileName: a.png
+                      - fileId: '32'
+                        fileName: b.png
+                      result:
+                        outputFiles:
+                        - fileId: '41'
+                          fileName: a.png
+                          inputFileId: '31'
+                          watermarkText: MORI-A
+                        - fileId: '42'
+                          fileName: b.png
+                          inputFileId: '32'
+                          watermarkText: MORI-B
+                watermarkExtractV3Detected:
+                  summary: 워터마크 검출(v3) · complete (검출됨)
+                  value:
+                    data:
+                      type: watermarkExtract
+                      orderId: '3001'
+                      orderName: suspect.png
+                      channel: api
+                      status: complete
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '51'
+                        fileName: original.png
+                        role: original
+                      - fileId: '52'
+                        fileName: suspect.png
+                        role: query
+                      result:
+                        detectionStatus: detected
+                        watermarkText: MORI
+                        reportSupported: true
+                        reports:
+                        - locale: ko-KR
+                          status: completed
+                watermarkExtractV2Undetected:
+                  summary: 워터마크 검출(v2) · complete (미검출, 저장 status `undetected`도 `complete`로 반환)
+                  value:
+                    data:
+                      type: watermarkExtract
+                      orderId: '3101'
+                      orderName: suspect.png
+                      channel: api
+                      status: complete
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '61'
+                        fileName: original.png
+                        role: original
+                      - fileId: '62'
+                        fileName: suspect.png
+                        role: query
+                      result:
+                        detectionStatus: undetected
+                        watermarkText: null
+                        reportSupported: false
+                        reports: []
+                aiDetectionComplete:
+                  summary: AI Detection · complete
+                  value:
+                    data:
+                      type: aiDetection
+                      orderId: '4001'
+                      orderName: photo.jpg
+                      channel: api
+                      status: complete
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: https://cdn.bizmori.com/ai/photo.jpg
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '71'
+                        fileName: photo.jpg
+                      result:
+                        verdict: uncertain_real
+                        probability: 0.31
+                        options:
+                          generateHeatmap: true
+                          generateOverlay: true
+                          generateThumbnail: true
+                        originalImageUrl: https://cdn.bizmori.com/ai/photo.jpg
+                        heatmapUrl: https://cdn.bizmori.com/ai/heatmap.png
+                        overlayUrl: https://cdn.bizmori.com/ai/overlay.png
+                watermarkExtractPending:
+                  summary: 워터마크 검출(v3) · pending (업로드 대기 파일에만 `uploadUrl`)
+                  value:
+                    data:
+                      type: watermarkExtract
+                      orderId: '3201'
+                      orderName: suspect.png
+                      channel: api
+                      status: pending
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: null
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '81'
+                        fileName: original.png
+                        role: original
+                        uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/81?X-Amz-...
+                      - fileId: '82'
+                        fileName: suspect.png
+                        role: query
+                        uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/82?X-Amz-...
+                      result: null
+                watermarkEmbedPending:
+                  summary: 워터마크 삽입 · pending (`role` 없음, `uploadUrl`만)
+                  value:
+                    data:
+                      type: watermarkEmbed
+                      orderId: '2003'
+                      orderName: logo.png
+                      channel: api
+                      status: pending
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: null
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '34'
+                        fileName: logo.png
+                        uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/34?X-Amz-...
+                      - fileId: '35'
+                        fileName: banner.png
+                        uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/35?X-Amz-...
+                      result: null
+                antiAiInProgress:
+                  summary: Anti-AI · inProgress
+                  value:
+                    data:
+                      type: antiAi
+                      orderId: '1002'
+                      orderName: cat.png
+                      channel: api
+                      status: inProgress
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '13'
+                        fileName: cat.png
+                      result: null
+                watermarkEmbedFailed:
+                  summary: 워터마크 삽입(v3) · failed (`errors`에 사유, `result`는 `null`)
+                  value:
+                    data:
+                      type: watermarkEmbed
+                      orderId: '2002'
+                      orderName: logo.png
+                      channel: api
+                      status: failed
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-11-07T01:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
+                      processingDelayed: false
+                      errors:
+                        errorCode: WATERMARK_FILE_CORRUPTED
+                        errorMessage: 파일이 손상되어 처리할 수 없습니다.
+                      inputFiles:
+                      - fileId: '33'
+                        fileName: logo.png
+                      result: null
+                antiAiExpired:
+                  summary: Anti-AI · expired (모든 주문 종류 공통, `result`는 `null`)
+                  value:
+                    data:
+                      type: antiAi
+                      orderId: '1003'
+                      orderName: cat.png
+                      channel: api
+                      status: expired
+                      createdAt: '2026-10-08T01:00:00.000Z'
+                      updatedAt: '2026-10-08T01:00:40.000Z'
+                      expiresAt: '2026-10-01T00:00:00.000Z'
+                      retentionDays: 30
+                      thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
+                      processingDelayed: false
+                      errors: null
+                      inputFiles:
+                      - fileId: '14'
+                        fileName: cat.png
+                      result: null
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: 요청 형식 오류(`orderId` 형식 등)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: VALIDATION_FAILED
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -3746,47 +4522,104 @@ paths:
           data = response.json()['data']
   /api/v3/orders/{orderId}/download:
     get:
-      summary: 삽입 결과 다운로드 URL 발급
-      operationId: downloadWatermarkV1Order
+      summary: 주문 결과 다운로드 URL 발급
+      operationId: downloadOrderV3
       description: |
-        완료된 삽입 주문의 결과 다운로드 URL을 발급합니다.
+        완료된 Anti-AI·워터마크 삽입 주문의 결과 파일별 다운로드 URL과 결과 전체를 받는 URL을 한 번에 발급합니다. 워터마크 주문을 v2·v3 어느 쪽으로 만들었든 응답 형식은 같습니다.
 
-        - 결과가 1개면 해당 파일, 2개 이상이면 `<orderId>-watermarked.zip` ZIP 파일을 반환합니다
-        - 각 결과 파일명은 `<원본명>-watermarked-<결과 fileId>.<확장자>`입니다
-        - URL은 300초 동안 유효합니다. 새 URL이 필요하면 다시 호출하세요
-        - 주문이 `complete` 전이면 `400 VALIDATION_FAILED`, 보관 기한이 지나면 `400 ORDER_EXPIRED`를 반환합니다
+        - `files[]`: 결과 파일별 `{ fileId, downloadUrl }`. [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)의 `result.outputFiles[]`와 같은 파일을 같은 순서로 담고 `fileId`도 같습니다
+        - `archiveUrl`: 이 URL 하나로 결과 전체를 받습니다. 항상 문자열입니다
+          - Anti-AI 주문, v2로 만든 워터마크 삽입 주문: 결과 ZIP
+          - v3로 만든 워터마크 삽입 주문: 결과 파일이 2개 이상이면 ZIP, 1개면 그 결과 파일 URL(`files[0].downloadUrl`과 같은 파일)
+        - `expiresInSeconds`: URL 유효 시간. 기본 3600초(1시간)이며, 보관 기한(`expiresAt`)까지 남은 시간이 더 짧으면 그 시간으로 줄입니다. 새 URL이 필요하면 다시 호출하세요
+
+        **오류 검사 순서** (처음 걸린 오류를 반환)
+        1. 주문이 없거나 다른 계정의 주문 → `404 ORDER_NOT_FOUND`
+        2. 워터마크 검출·AI Detection 주문 → `400 ORDER_TYPE_CANT_DOWNLOAD`. 보관 기한이 지났어도 이 오류입니다
+        3. 보관 기한 만료 → `400 ORDER_EXPIRED`. 보관 기한을 확인할 수 없으면 `409 FILE_RETENTION_UNKNOWN`
+        4. `status`가 `complete`가 아님(`pending`·`inProgress`·`failed`) → `400 ORDER_NOT_COMPLETED`
+
+        **이전 v3 응답과의 차이(breaking change, 2026-10-08)**: 응답이 `{ downloadUrl, expiresInSeconds: 300 }`에서 `{ archiveUrl, files, expiresInSeconds }`로 바뀌었고, Anti-AI 주문과 v2로 만든 워터마크 삽입 주문도 지원합니다. URL 유효 시간은 300초에서 최대 3600초로 늘었습니다. 미완료 주문은 `VALIDATION_FAILED` 대신 `ORDER_NOT_COMPLETED`를, 검출 주문은 `ORDER_TYPE_CANT_DOWNLOAD`를 반환합니다. 결과 파일 하나를 받는 `GET /api/v3/orders/{orderId}/files/{fileId}/download`는 삭제되었습니다. `files[]`를 사용하세요.
+
+        **테스트 키(`sk_test_`)**: 같은 키로 만든 완료된 Anti-AI·워터마크 삽입 테스트 주문(v2·v3)에서 동작합니다. URL은 처리 결과가 아니라 `https://api.bizmori.com/api/v2/test-samples/{signedToken}`에서 제공하는 샘플 파일을 가리킵니다. 결과 파일이 없는 Anti-AI 테스트 주문은 `files: []`와 샘플 ZIP `archiveUrl`을 반환합니다. 결과가 1개인 v3 삽입 테스트 주문은 그 샘플 파일을, 그 외 테스트 주문은 샘플 ZIP을 `archiveUrl`로 반환합니다. `expiresInSeconds`, 오류 코드, 검사 순서는 운영 주문과 같습니다.
       tags:
       - Orders
       security:
       - BearerAuth: []
-      parameters:
-      - in: path
-        name: orderId
-        required: true
-        schema:
-          type: string
-          pattern: ^[0-9]{1,20}$
-        description: 주문 ID
+      parameters: *id001
       responses:
         '200':
-          description: 파일 또는 ZIP의 서명 URL(300초 유효)
+          description: 결과 파일별 URL과 결과 전체 URL
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DownloadLinkResponse'
+                $ref: '#/components/schemas/PublicOrderV3DownloadResponse'
+              examples:
+                antiAi:
+                  summary: Anti-AI (결과 2개, `archiveUrl`은 ZIP)
+                  value:
+                    data:
+                      archiveUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/zip/1001/archive.zip?X-Amz-...
+                      files:
+                      - fileId: '21'
+                        downloadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/out/cat.png?X-Amz-...
+                      - fileId: '22'
+                        downloadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/out/dog.png?X-Amz-...
+                      expiresInSeconds: 3600
+                watermarkEmbedV3Multiple:
+                  summary: 워터마크 삽입(v3) (결과 2개, `archiveUrl`은 ZIP)
+                  value:
+                    data:
+                      archiveUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/archive/2001.zip?X-Amz-...
+                      files:
+                      - fileId: '201'
+                        downloadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/out/logo-1.png?X-Amz-...
+                      - fileId: '202'
+                        downloadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/out/logo-2.png?X-Amz-...
+                      expiresInSeconds: 3600
+                watermarkEmbedV3Single:
+                  summary: 워터마크 삽입(v3) (결과 1개, `archiveUrl`은 결과 파일 URL)
+                  value:
+                    data:
+                      archiveUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/out/logo.png?X-Amz-...
+                      files:
+                      - fileId: '201'
+                        downloadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/out/logo.png?X-Amz-...
+                      expiresInSeconds: 3600
+                watermarkEmbedV2:
+                  summary: 워터마크 삽입(v2) (결과 2개, `expiresAt`까지 20분 남아 URL 유효 시간 단축)
+                  value:
+                    data:
+                      archiveUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/zip/2101.zip?X-Amz-...
+                      files:
+                      - fileId: '41'
+                        downloadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/out/a.png?X-Amz-...
+                      - fileId: '42'
+                        downloadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/out/b.png?X-Amz-...
+                      expiresInSeconds: 1200
         '400':
-          description: 잘못된 요청, 완료되지 않은 주문, 또는 보관 기한이 지난 주문(`ORDER_EXPIRED`)
+          description: 요청 형식 오류, 다운로드할 수 없는 주문 종류, 보관 기한 만료, 미완료 주문
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
               examples:
                 validation:
+                  summary: '`orderId` 형식 오류'
                   value:
                     code: VALIDATION_FAILED
+                typeCantDownload:
+                  summary: 워터마크 검출·AI Detection 주문
+                  value:
+                    code: ORDER_TYPE_CANT_DOWNLOAD
                 expired:
+                  summary: 보관 기한 만료
                   value:
                     code: ORDER_EXPIRED
+                notCompleted:
+                  summary: '`pending`·`inProgress`·`failed` 주문'
+                  value:
+                    code: ORDER_NOT_COMPLETED
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
@@ -3797,6 +4630,14 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: ORDER_NOT_FOUND
+        '409':
+          description: 주문의 보관 기한을 확인할 수 없음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: FILE_RETENTION_UNKNOWN
         '500':
           $ref: '#/components/responses/InternalError'
       x-codeSamples:
@@ -3821,92 +4662,6 @@ paths:
           order_id = 'ORDER_ID'
           response = requests.get(
               f'https://api.bizmori.com/api/v3/orders/{order_id}/download',
-              headers={'Authorization': 'Bearer YOUR_API_KEY'}
-          )
-          data = response.json()['data']
-  /api/v3/orders/{orderId}/files/{fileId}/download:
-    get:
-      summary: 개별 결과 파일 다운로드 URL 발급
-      operationId: downloadWatermarkV1OutputFile
-      description: |
-        완료된 삽입 주문의 결과 파일 1개에 대한 다운로드 URL을 발급합니다. [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)의 `outputs[].fileId`를 사용합니다.
-
-        URL은 300초 동안 유효합니다. 보관 기한이 지나면 `400 ORDER_EXPIRED`를 반환합니다.
-      tags:
-      - Orders
-      security:
-      - BearerAuth: []
-      parameters:
-      - in: path
-        name: orderId
-        required: true
-        schema:
-          type: string
-          pattern: ^[0-9]{1,20}$
-        description: 주문 ID
-      - in: path
-        name: fileId
-        required: true
-        schema:
-          type: string
-          pattern: ^[0-9]+-[0-9]+$
-        description: '`{inputFileId}-{순번}` 형식의 결과 파일 ID(`outputs[].fileId`)'
-      responses:
-        '200':
-          description: 결과 파일의 서명 URL(300초 유효)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DownloadLinkResponse'
-        '400':
-          description: 잘못된 요청, 완료되지 않은 주문, 또는 보관 기한이 지난 주문(`ORDER_EXPIRED`)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              examples:
-                validation:
-                  value:
-                    code: VALIDATION_FAILED
-                expired:
-                  value:
-                    code: ORDER_EXPIRED
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          description: 주문이 없거나 다른 계정의 주문
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: ORDER_NOT_FOUND
-        '500':
-          $ref: '#/components/responses/InternalError'
-      x-codeSamples:
-      - lang: curl
-        label: cURL
-        source: |
-          curl -X GET https://api.bizmori.com/api/v3/orders/ORDER_ID/files/FILE_ID/download \
-            -H "Authorization: Bearer YOUR_API_KEY"
-      - lang: javascript
-        label: JavaScript
-        source: |
-          const orderId = 'ORDER_ID';
-          const fileId = 'FILE_ID';
-          const response = await fetch(`https://api.bizmori.com/api/v3/orders/${orderId}/files/${fileId}/download`, {
-            headers: { 'Authorization': 'Bearer YOUR_API_KEY' }
-          });
-          const { data } = await response.json();
-      - lang: python
-        label: Python
-        source: |
-          import requests
-
-          order_id = 'ORDER_ID'
-          file_id = 'FILE_ID'
-          response = requests.get(
-              f'https://api.bizmori.com/api/v3/orders/{order_id}/files/{file_id}/download',
               headers={'Authorization': 'Bearer YOUR_API_KEY'}
           )
           data = response.json()['data']

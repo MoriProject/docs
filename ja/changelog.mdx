@@ -2,6 +2,36 @@
 title: 'パッチノート'
 ---
 
+<Update label="API" description="2026-10-08">
+
+### 🔄 v3 の注文詳細・ダウンロードのレスポンスを 1 つの形式に統一しました（破壊的変更）
+
+`GET /api/v3/orders/{orderId}` と `GET /api/v3/orders/{orderId}/download` は、Anti-AI、AI Detection、watermark 埋め込み、watermark 検出のすべての注文を、v2 と v3 のどちらで作成したかに関係なく 1 つの形式で返すようになりました。
+
+**[注文詳細を取得（v3）](/ja/api-reference/orders/get-order-v3)**
+
+- すべての注文が同じトップレベルのフィールドを返します: `type`、`orderId`、`orderName`、`channel`、`status`、`createdAt`、`updatedAt`、`expiresAt`、`retentionDays`、`thumbnailImageUrl`、`processingDelayed`、`errors`、`inputFiles`、`result`。
+- 入力ファイルは `inputFiles[]` にあります。`role` は watermark 検出の注文にだけ、`uploadUrl` は注文が `pending` のときだけ含まれます。`fileCount` は廃止されたため、`inputFiles.length` を使用してください。
+- `result` は `status` が `complete` のときだけオブジェクトで、それ以外は `null` です。Anti-AI と watermark 埋め込みの注文は `result.outputFiles[]`、watermark 検出の注文は `result.detectionStatus`、AI Detection の注文は `statusCode` の代わりに `result.verdict` を返します。
+- `status` は `pending`、`inProgress`、`complete`、`failed`、`expired` の 5 つの値を使います。`detectionStatus` は `not_detected` の代わりに `undetected` を使います。
+- すべての `fileId` は `"201"` のような数字の文字列です。`"601-1"` のような結果 ID は使われなくなりました。
+
+**[注文結果のダウンロード URL を発行（v3）](/ja/api-reference/orders/download-order-v3)**
+
+- レスポンスは `{ archiveUrl, files, expiresInSeconds }` です。結果全体の URL 1 つと、結果ファイルごとの URL をまとめて受け取れます。
+- Anti-AI の注文と、v2 で作成した watermark 埋め込み注文にも対応しました。
+- URL の有効期間は 300 秒から最大 1 時間に延びました。
+- 処理が終わっていない注文は `400 ORDER_NOT_COMPLETED`、watermark 検出・AI Detection の注文は `400 ORDER_TYPE_CANT_DOWNLOAD` を返します。
+- `GET /api/v3/orders/{orderId}/files/{fileId}/download` は削除されました。`files[]` を使用してください。
+
+**非推奨（Deprecated）**
+
+- `GET /api/v2/orders/{orderId}` と `GET /api/v2/orders/{orderId}/download` は非推奨になりました。レスポンスと動作は変わりません。
+
+以前の v3 レスポンスを読み取っている場合は、新しいフィールドに更新してください。以前のフィールドと新しいフィールドの対応は、各 API ページにまとめています。
+
+</Update>
+
 <Update label="1.1.0" description="2026-08-21">
 
 こんにちは、BIZ MORI チームです！🙌

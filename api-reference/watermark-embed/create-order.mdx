@@ -44,13 +44,13 @@ Send a new request to the v3 endpoint in the `Link` header.
 
 ## Download order results
 
-Once your order reaches `complete` status, use the [Get download URL](/api-reference/orders/download-order) endpoint to retrieve a presigned download URL:
+Once your order reaches `complete` status, call [Get order result download URLs](/api-reference/orders/download-order-v3). One call returns a URL for each output file in `files[]` and a ZIP archive of all results in `archiveUrl`:
 
 ```bash
-curl -X GET https://api.bizmori.com/api/v2/orders/{orderId}/download \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
+curl -X GET https://api.bizmori.com/api/v3/orders/{orderId}/download \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 <Warning>
-  Live order files are available for download for **up to 7 days** after order creation. An `sk_test_` order does not create a result file; its download request returns `404 PROCESSED_FILE_NOT_FOUND`.
+  The URLs are valid for up to 1 hour, so request new ones each time you download. You can download files until the order's `expiresAt`; after that, the endpoint returns `400 ORDER_EXPIRED`. For an `sk_test_` order, the URLs point to fixed sample files instead of your results.
 </Warning>

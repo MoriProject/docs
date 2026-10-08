@@ -24,7 +24,7 @@ description: "v3 API로 파일에서 비가시성 워터마크 검출하기"
   - 원본이 PDF라면 검사할 파일은 PDF이거나, 그 PDF를 캡처한 PNG·JPEG 이미지입니다.
 
 <Info>
-  자동 발급된 [`sk_test_` 키](/ko/test-api-keys)를 사용하면 실제 워터마크 검출이나 크레딧 사용 없이 v3 흐름 전체를 검증할 수 있습니다. 테스트 업로드는 파일 내용을 폐기하며, 결과는 검사할 파일의 이름으로 정해집니다. `_detected`가 있으면 `detected`, 그 밖에는 `not_detected`이고, 두 파일 중 하나라도 이름에 `_fail`이 있으면 주문이 실패합니다.
+  자동 발급된 [`sk_test_` 키](/ko/test-api-keys)를 사용하면 실제 워터마크 검출이나 크레딧 사용 없이 v3 흐름 전체를 검증할 수 있습니다. 테스트 업로드는 파일 내용을 폐기하며, 결과는 검사할 파일의 이름으로 정해집니다. `_detected`가 있으면 `detected`, 그 밖에는 `undetected`이고, 두 파일 중 하나라도 이름에 `_fail`이 있으면 주문이 실패합니다.
 </Info>
 
 ## 동작 방식
@@ -156,7 +156,7 @@ order = res.json()['data']
 }
 ```
 
-`files`에는 항상 두 항목이 있습니다. **`files[0]`은 원본 파일**, **`files[1]`은 검사할 파일**입니다.
+`files`에는 항상 두 항목이 있습니다. **`files[0]`은 원본 파일**, **`files[1]`은 검사할 파일**입니다. 주문 상세에서는 같은 파일이 `inputFiles[]`에 `role`이 `original`, `query`인 항목으로 나옵니다.
 
 <Note>
   같은 `idempotencyKey`는 같은 요청을 재시도할 때만 다시 사용하세요. 이 경우 새 주문을 만들지 않고 기존 주문을 반환합니다. 같은 키로 요청 본문이 다른 요청을 보내면 `409 WATERMARK_V2_CONFLICT`를 반환합니다.
@@ -256,7 +256,7 @@ put_file(order['files'][1]['uploadUrl'], 'suspect.png', 'image/png')   # 검사�
 </Info>
 
 <Note>
-  일반 키의 `uploadUrl`은 **900초** 뒤에 만료됩니다. 만료되었다면 [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)를 호출해 아직 업로드되지 않은 파일의 새 `uploadUrl`을 받으세요. 주문 생성 후 **12시간** 안에 두 파일을 모두 업로드하지 않으면 주문이 `failed`가 됩니다. 테스트 키는 1시간 동안 유효한 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL을 받습니다. 인증 없이 같은 방식으로 PUT하면 되며, 업로드한 파일 내용은 폐기됩니다.
+  일반 키의 `uploadUrl`은 **900초** 뒤에 만료됩니다. 만료되었다면 [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)를 호출해 아직 업로드되지 않은 파일의 새 `inputFiles[].uploadUrl`을 받으세요. 주문 생성 후 **12시간** 안에 두 파일을 모두 업로드하지 않으면 주문이 `failed`가 됩니다. 테스트 키는 1시간 동안 유효한 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL을 받습니다. 인증 없이 같은 방식으로 PUT하면 되며, 업로드한 파일 내용은 폐기됩니다.
 </Note>
 
 ## 3단계: 결과 확인
@@ -328,21 +328,28 @@ finished = wait_for_order(order['orderId'])
 ```json
 {
   "data": {
+    "type": "watermarkExtract",
     "orderId": "1234567891",
+    "orderName": "suspect.png",
+    "channel": "api",
     "status": "complete",
-    "processingDelayed": false,
+    "createdAt": "2026-10-03T03:00:00.000Z",
+    "updatedAt": "2026-10-03T03:00:40.000Z",
     "expiresAt": "2026-10-10T03:00:00.000Z",
-    "files": [
-      { "fileId": "601", "uploadUrl": null },
-      { "fileId": "602", "uploadUrl": null }
+    "retentionDays": 7,
+    "thumbnailImageUrl": "https://...",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "601", "fileName": "campaign.png", "role": "original" },
+      { "fileId": "602", "fileName": "suspect.png", "role": "query" }
     ],
-    "outputs": [],
     "result": {
       "detectionStatus": "detected",
+      "watermarkText": "PARTNER-A",
       "reportSupported": true,
-      "watermarkText": "PARTNER-A"
-    },
-    "reports": []
+      "reports": []
+    }
   }
 }
 ```
@@ -360,17 +367,18 @@ finished = wait_for_order(order['orderId'])
 | `result.detectionStatus` | 의미 |
 |--------------------------|------|
 | `detected` | 워터마크를 찾음 |
-| `not_detected` | 파일 전체를 검사했지만 워터마크가 없음 |
+| `undetected` | 파일 전체를 검사했지만 워터마크가 없음 |
 | `inconclusive` | 후보는 있지만 판단할 만큼 확신할 수 없음 |
 | `unsupported` | 처리할 수 없는 입력. 크레딧은 복구됩니다 |
 | `error` | 검출 처리 실패. "워터마크 없음"과는 다릅니다. 크레딧은 복구됩니다 |
 
 - `result.watermarkText`는 삽입했던 문구입니다. 결과가 `detected`이고, 내 계정이 직접 삽입했으며, 삽입 기록이 정확히 1건일 때만 반환됩니다. 그 밖에는 `null`입니다.
 - `result.reportSupported`는 이 결과로 PDF 보고서를 만들 수 있는지를 나타냅니다. PDF를 캡처한 이미지를 검사했다면 `false`입니다.
+- `result.reports[]`에는 이 주문에 요청한 보고서별 상태가 들어 있습니다.
 - `processingDelayed`가 `true`이면 자동 재시도가 모두 소진되어 수동 복구를 기다리는 중입니다. 주문은 `inProgress` 상태로 유지되므로 계속 폴링하거나 웹훅을 기다리세요.
 
 <Note>
-  웹훅 페이로드는 v2의 필드 이름을 그대로 씁니다. `order.watermarkExtract.completed`는 결과를 `statusCode`로 알려주며, `not_detected` 대신 `undetected`를 사용합니다. `watermarkFound`와 `watermarkInfo.text`도 함께 전달됩니다. 전체 페이로드는 [웹훅](/ko/webhooks)을 참고하세요.
+  웹훅 페이로드는 v2의 필드 이름을 그대로 씁니다. `order.watermarkExtract.completed`는 결과를 `result.detectionStatus`와 같은 값의 `statusCode`로 알려주며, `watermarkFound`와 `watermarkInfo.text`도 함께 전달됩니다. 전체 페이로드는 [웹훅](/ko/webhooks)을 참고하세요.
 </Note>
 
 ## 4단계: PDF 보고서 생성 (선택)
@@ -492,7 +500,7 @@ const REPORT_LOCALE = 'ko-KR';
 
 const RESULT_LABELS = {
   detected: '워터마크가 검출되었습니다',
-  not_detected: '이 파일에서 워터마크를 찾지 못했습니다.',
+  undetected: '이 파일에서 워터마크를 찾지 못했습니다.',
   inconclusive: '워터마크로 보이는 신호가 있지만 판단할 수 없습니다.',
   unsupported: '검사할 수 없는 파일입니다. 크레딧은 복구되었습니다.',
   error: '검출에 실패했습니다. 크레딧은 복구되었으니 다시 시도하세요.',
@@ -720,14 +728,14 @@ v3는 검사할 파일을 항상 원본과 비교하므로, 요청에 두 파일
 | 원본 파일 | 선택(`includeOriginal`), 이미지만 지원 | 모든 주문에 필수, 이미지와 PDF 모두 지원 |
 | 요청 본문 | `file.fileName`, `file.includeOriginal`, `file.originalFile` | `file.fileName`, `file.originalFile.fileName`. `includeOriginal`은 없음 |
 | 업로드 | 파일 1개, `includeOriginal` 사용 시 2개 | 항상 2개: `files[0]`은 원본, `files[1]`은 검사할 파일 |
-| 결과 조회 | `GET /api/v2/orders/{orderId}` → `statusCode`(`detected` / `undetected`) | [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3) → `result.detectionStatus`(5가지 값), `result.watermarkText`, `result.reportSupported` |
+| 결과 조회 | `GET /api/v2/orders/{orderId}` (deprecated) → `statusCode`(`detected` / `undetected`) | [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3) → `result.detectionStatus`(5가지 값), `result.watermarkText`, `result.reportSupported` |
 | 크레딧 | — | 이미지·PDF 구분 없이 주문당 1크레딧. `unsupported`·`error` 결과는 복구 |
 | PDF 보고서 | 없음 | 보고서 [생성](/ko/api-reference/reports/create-report)·[조회](/ko/api-reference/reports/get-report) |
 | confirm 단계 | 없음 | 없음 |
 | 웹훅 | `order.watermarkExtract.completed` / `failed` | 이벤트 이름과 `data` 필드 동일. `statusCode`에 `inconclusive`, `unsupported`, `error`가 추가됨 |
 
 <Warning>
-  v3로 만든 주문은 v3 엔드포인트로 다루세요. `GET /api/v2/orders/{orderId}`는 v3 주문의 공통 필드만 반환하며 `result`는 포함하지 않습니다. 반대로 `GET /api/v3/orders/{orderId}`는 v2 주문에 대해 `404 ORDER_NOT_FOUND`를 반환합니다.
+  주문 조회는 v3 엔드포인트를 사용하세요. `GET /api/v3/orders/{orderId}`는 v2·v3로 만든 주문 모두에 같은 형식으로 동작합니다. deprecated된 `GET /api/v2/orders/{orderId}`는 v3 주문의 공통 필드만 반환하며 `result`는 포함하지 않습니다.
 </Warning>
 
 **v2 지원 종료 후 동작** (2026년 10월 9일 09:00 KST, 00:00 UTC부터):
