@@ -2,6 +2,36 @@
 title: '패치노트'
 ---
 
+<Update label="API" description="2026-10-08">
+
+### 🔄 v3 주문 상세·다운로드 응답을 한 가지 형식으로 통일했어요 (하위 호환되지 않는 변경)
+
+`GET /api/v3/orders/{orderId}`와 `GET /api/v3/orders/{orderId}/download`가 이제 Anti-AI, AI Detection, 워터마크 삽입, 워터마크 검출 등 모든 주문 종류를 v2·v3 어느 쪽으로 만들었든 한 가지 형식으로 반환합니다.
+
+**[주문 상세 조회(v3)](/ko/api-reference/orders/get-order-v3)**
+
+- 모든 주문이 같은 최상위 필드를 반환합니다: `type`, `orderId`, `orderName`, `channel`, `status`, `createdAt`, `updatedAt`, `expiresAt`, `retentionDays`, `thumbnailImageUrl`, `processingDelayed`, `errors`, `inputFiles`, `result`.
+- 입력 파일은 `inputFiles[]`에 있습니다. `role`은 워터마크 검출 주문에만, `uploadUrl`은 주문이 `pending`일 때만 나옵니다. `fileCount`는 없어졌으니 `inputFiles.length`를 사용하세요.
+- `result`는 `status`가 `complete`일 때만 객체이고 그 외에는 `null`입니다. Anti-AI·워터마크 삽입 주문은 `result.outputFiles[]`, 워터마크 검출 주문은 `result.detectionStatus`, AI Detection 주문은 `statusCode` 대신 `result.verdict`를 반환합니다.
+- `status`는 `pending`, `inProgress`, `complete`, `failed`, `expired` 5가지 값을 씁니다. `detectionStatus`는 `not_detected` 대신 `undetected`를 씁니다.
+- 모든 `fileId`는 `"201"` 같은 숫자 문자열입니다. `"601-1"` 같은 결과 ID는 더 이상 쓰지 않습니다.
+
+**[주문 결과 다운로드 URL 발급(v3)](/ko/api-reference/orders/download-order-v3)**
+
+- 응답은 `{ archiveUrl, files, expiresInSeconds }`입니다. 결과 전체 URL 하나와 결과 파일별 URL을 함께 받습니다.
+- Anti-AI 주문과 v2로 만든 워터마크 삽입 주문도 지원합니다.
+- URL 유효 시간이 300초에서 최대 1시간으로 늘었습니다.
+- 처리가 끝나지 않은 주문은 `400 ORDER_NOT_COMPLETED`, 워터마크 검출·AI Detection 주문은 `400 ORDER_TYPE_CANT_DOWNLOAD`를 반환합니다.
+- `GET /api/v3/orders/{orderId}/files/{fileId}/download`는 삭제되었습니다. `files[]`를 사용하세요.
+
+**Deprecated**
+
+- `GET /api/v2/orders/{orderId}`와 `GET /api/v2/orders/{orderId}/download`는 deprecated되었습니다. 응답과 동작은 바뀌지 않습니다.
+
+이전 v3 응답을 읽고 있다면 새 필드로 바꿔 주세요. 이전 필드와 새 필드의 대응은 각 API 페이지에 정리되어 있습니다.
+
+</Update>
+
 <Update label="1.1.0" description="2026-08-21">
 
 안녕하세요, 팀 BIZ MORI입니다! 🙌

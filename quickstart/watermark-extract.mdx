@@ -24,7 +24,7 @@ Every endpoint here is plain HTTPS and JSON, so the same calls work from a serve
   - If the original is a PDF, the file to check is a PDF, or a PNG or JPEG image captured from it.
 
 <Info>
-  Use the automatically issued [`sk_test_` key](/test-api-keys) to exercise the whole v3 flow without running watermark extraction or consuming credits. Test uploads discard file contents, and the name of the file to check selects the result: `_detected` returns `detected`, anything else returns `not_detected`, and `_fail` on either file fails the order.
+  Use the automatically issued [`sk_test_` key](/test-api-keys) to exercise the whole v3 flow without running watermark extraction or consuming credits. Test uploads discard file contents, and the name of the file to check selects the result: `_detected` returns `detected`, anything else returns `undetected`, and `_fail` on either file fails the order.
 </Info>
 
 ## How it works
@@ -156,7 +156,7 @@ order = res.json()['data']
 }
 ```
 
-`files` always has two entries: **`files[0]` is the original file** and **`files[1]` is the file to check**.
+`files` always has two entries: **`files[0]` is the original file** and **`files[1]` is the file to check**. In the order details, the same files appear in `inputFiles[]` with `role` set to `original` and `query`.
 
 <Note>
   Reuse the same `idempotencyKey` only when you retry the same request. It returns the existing order instead of creating a new one. The same key with a different request body returns `409 WATERMARK_V2_CONFLICT`.
@@ -256,7 +256,7 @@ put_file(order['files'][1]['uploadUrl'], 'suspect.png', 'image/png')   # file to
 </Info>
 
 <Note>
-  A live `uploadUrl` expires after **900 seconds**. If it expires, call [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) to receive a fresh `uploadUrl` for each file that is still waiting for upload. Upload both files within **12 hours** of creating the order, or the order becomes `failed`. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` instead, valid for 1 hour; it accepts the same unauthenticated PUT and discards the file contents.
+  A live `uploadUrl` expires after **900 seconds**. If it expires, call [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) to receive a fresh `inputFiles[].uploadUrl` for each file that is still waiting for upload. Upload both files within **12 hours** of creating the order, or the order becomes `failed`. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` instead, valid for 1 hour; it accepts the same unauthenticated PUT and discards the file contents.
 </Note>
 
 ## Step 3: Read the result
@@ -328,21 +328,28 @@ finished = wait_for_order(order['orderId'])
 ```json
 {
   "data": {
+    "type": "watermarkExtract",
     "orderId": "1234567891",
+    "orderName": "suspect.png",
+    "channel": "api",
     "status": "complete",
-    "processingDelayed": false,
+    "createdAt": "2026-10-03T03:00:00.000Z",
+    "updatedAt": "2026-10-03T03:00:40.000Z",
     "expiresAt": "2026-10-10T03:00:00.000Z",
-    "files": [
-      { "fileId": "601", "uploadUrl": null },
-      { "fileId": "602", "uploadUrl": null }
+    "retentionDays": 7,
+    "thumbnailImageUrl": "https://...",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "601", "fileName": "campaign.png", "role": "original" },
+      { "fileId": "602", "fileName": "suspect.png", "role": "query" }
     ],
-    "outputs": [],
     "result": {
       "detectionStatus": "detected",
+      "watermarkText": "PARTNER-A",
       "reportSupported": true,
-      "watermarkText": "PARTNER-A"
-    },
-    "reports": []
+      "reports": []
+    }
   }
 }
 ```
@@ -360,17 +367,18 @@ Poll `status` to know when the order is done, then read `result.detectionStatus`
 | `result.detectionStatus` | Meaning |
 |--------------------------|---------|
 | `detected` | A watermark was found |
-| `not_detected` | The whole file was checked and no watermark was found |
+| `undetected` | The whole file was checked and no watermark was found |
 | `inconclusive` | A candidate was found, but not with enough confidence to decide |
 | `unsupported` | The input cannot be processed. The credit is restored |
 | `error` | Detection failed. This is not the same as "no watermark". The credit is restored |
 
 - `result.watermarkText` is the embedded text. It is returned only when the result is `detected`, your account embedded the watermark, and exactly one embed record matches. Otherwise it is `null`.
 - `result.reportSupported` tells you whether you can create a PDF report for this result. It is `false` when you checked an image captured from a PDF.
+- `result.reports[]` lists the status of each report you requested for this order.
 - If `processingDelayed` is `true`, automatic retries are exhausted and the order is waiting for manual recovery. It stays `inProgress`, so keep polling or wait for the webhook.
 
 <Note>
-  Webhook payloads keep the v2 field names: `order.watermarkExtract.completed` reports the outcome in `statusCode`, which uses `undetected` for `not_detected`, plus `watermarkFound` and `watermarkInfo.text`. See [Webhooks](/webhooks) for the full payload.
+  Webhook payloads keep the v2 field names: `order.watermarkExtract.completed` reports the outcome in `statusCode`, which uses the same values as `result.detectionStatus`, plus `watermarkFound` and `watermarkInfo.text`. See [Webhooks](/webhooks) for the full payload.
 </Note>
 
 ## Step 4: Create a PDF report (optional)
@@ -492,7 +500,7 @@ const REPORT_LOCALE = 'en-US';
 
 const RESULT_LABELS = {
   detected: 'Watermark detected',
-  not_detected: 'No watermark was found in this file.',
+  undetected: 'No watermark was found in this file.',
   inconclusive: 'A possible watermark was found, but the result is inconclusive.',
   unsupported: 'This file cannot be checked. The credit was restored.',
   error: 'Detection failed. The credit was restored — try again.',
@@ -720,14 +728,14 @@ v3 always compares the file to check against its original, so the request now na
 | Original file | Optional (`includeOriginal`), images only | Required for every order, images and PDFs |
 | Request body | `file.fileName`, `file.includeOriginal`, `file.originalFile` | `file.fileName` and `file.originalFile.fileName`. There is no `includeOriginal` |
 | Uploads | One file, or two with `includeOriginal` | Always two: `files[0]` is the original, `files[1]` is the file to check |
-| Get the result | `GET /api/v2/orders/{orderId}` → `statusCode` (`detected` / `undetected`) | [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) → `result.detectionStatus` (five values), `result.watermarkText`, `result.reportSupported` |
+| Get the result | `GET /api/v2/orders/{orderId}` (deprecated) → `statusCode` (`detected` / `undetected`) | [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) → `result.detectionStatus` (five values), `result.watermarkText`, `result.reportSupported` |
 | Credits | — | 1 credit per order, for images and PDFs alike. `unsupported` and `error` results are refunded |
 | PDF report | Not available | [Create](/api-reference/reports/create-report) and [get](/api-reference/reports/get-report) a report |
 | Confirm step | None | None |
 | Webhooks | `order.watermarkExtract.completed` / `failed` | Same event names and `data` fields. `statusCode` can also be `inconclusive`, `unsupported`, or `error` |
 
 <Warning>
-  Use the v3 endpoints for orders you create with v3. `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `result`, and `GET /api/v3/orders/{orderId}` returns `404 ORDER_NOT_FOUND` for a v2 order.
+  Use the v3 endpoint to get orders. `GET /api/v3/orders/{orderId}` works for orders created with v2 or v3, in the same shape. The deprecated `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `result`.
 </Warning>
 
 **After v2 support ends** (from 09:00 KST on October 9, 2026, which is 00:00 UTC):

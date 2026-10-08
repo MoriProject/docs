@@ -4,4 +4,8 @@ title: "Get download URL"
 openapi: "/api-reference/openapi.yaml GET /api/v2/orders/{orderId}/download"
 ---
 
+<Warning>
+  This endpoint is deprecated. Use [Get order result download URLs (v3)](/api-reference/orders/download-order-v3), which returns a URL for each output file and one URL for all results. The response and behavior of this endpoint are unchanged.
+</Warning>
+
 Test orders do not create result files. Calling this endpoint for a test order returns `404 PROCESSED_FILE_NOT_FOUND`.

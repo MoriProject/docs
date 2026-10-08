@@ -2,6 +2,36 @@
 title: "What's new"
 ---
 
+<Update label="API" description="2026-10-08">
+
+### 🔄 One response shape for v3 order details and downloads (breaking change)
+
+`GET /api/v3/orders/{orderId}` and `GET /api/v3/orders/{orderId}/download` now return one shape for every order type (Anti-AI, AI Detection, watermark embed, and watermark extract), whether you created the order with v2 or v3.
+
+**[Get order details (v3)](/api-reference/orders/get-order-v3)**
+
+- Every order returns the same top-level fields: `type`, `orderId`, `orderName`, `channel`, `status`, `createdAt`, `updatedAt`, `expiresAt`, `retentionDays`, `thumbnailImageUrl`, `processingDelayed`, `errors`, `inputFiles`, and `result`.
+- Input files are listed in `inputFiles[]`. `role` appears only on watermark extract orders, and `uploadUrl` only while the order is `pending`. `fileCount` was removed; use `inputFiles.length`.
+- `result` is an object only when `status` is `complete`, and `null` otherwise. Anti-AI and watermark embed orders return `result.outputFiles[]`, watermark extract orders return `result.detectionStatus`, and AI Detection orders return `result.verdict` instead of `statusCode`.
+- `status` uses five values: `pending`, `inProgress`, `complete`, `failed`, and `expired`. `detectionStatus` uses `undetected` instead of `not_detected`.
+- Every `fileId` is a numeric string such as `"201"`. Output IDs such as `"601-1"` are no longer used.
+
+**[Get order result download URLs (v3)](/api-reference/orders/download-order-v3)**
+
+- The response is `{ archiveUrl, files, expiresInSeconds }`: one URL for all results plus a URL for each output file.
+- Anti-AI orders and watermark embed orders created with v2 are now supported.
+- URLs are valid for up to 1 hour instead of 300 seconds.
+- An unfinished order returns `400 ORDER_NOT_COMPLETED`, and a watermark extract or AI Detection order returns `400 ORDER_TYPE_CANT_DOWNLOAD`.
+- `GET /api/v3/orders/{orderId}/files/{fileId}/download` was removed. Use `files[]` instead.
+
+**Deprecated**
+
+- `GET /api/v2/orders/{orderId}` and `GET /api/v2/orders/{orderId}/download` are deprecated. Their responses and behavior are unchanged.
+
+If your integration reads the previous v3 responses, update it to the new fields. Each API page lists how the previous fields map to the new ones.
+
+</Update>
+
 <Update label="1.1.0" description="2026-08-21">
 
 Hello from Team BIZ MORI! 🙌

@@ -1,5 +1,351 @@
 ---
 tag: "v3"
-title: "Get watermark order details"
+title: "Get order details"
 openapi: "/api-reference/openapi.yaml GET /api/v3/orders/{orderId}"
 ---
+
+Use this endpoint to check an order's status and read its result. It works for every order type (Anti-AI, AI Detection, watermark embed, and watermark extract), whether you created the order with v2 or v3. Every order returns the same top-level fields; only `result` changes with `type`.
+
+<Warning>
+  The response shape changed on October 8, 2026. If your code reads `files`, `outputs`, the top-level `reports`, `fileCount`, or `statusCode` from this endpoint, see [Changes from the previous response](#changes-from-the-previous-response).
+</Warning>
+
+## Common fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `type` | string | `antiAi`, `aiDetection`, `watermarkEmbed`, or `watermarkExtract` |
+| `orderId` | string | Order ID |
+| `orderName` | string \| null | Order name |
+| `channel` | string | `api` or `web` |
+| `status` | string | One of the five values in [Status](#status) |
+| `createdAt`, `updatedAt` | string | ISO 8601 timestamps |
+| `expiresAt` | string \| null | When the order files are deleted |
+| `retentionDays` | integer \| null | File retention period in days (7 or 30) |
+| `thumbnailImageUrl` | string \| null | Thumbnail image URL |
+| `processingDelayed` | boolean | `true` when a watermark order created with v3 is waiting for manual recovery. Always `false` for other orders |
+| `errors` | object \| null | `{ errorCode, errorMessage }` for a failed order, otherwise `null` |
+| `inputFiles` | array | Input files. See [Input files](#input-files) |
+| `result` | object \| null | Result for the order type. See [Result by order type](#result-by-order-type) |
+
+## Status
+
+| `status` | Meaning | `result` |
+|----------|---------|----------|
+| `pending` | Waiting for file uploads. `inputFiles[].uploadUrl` is present | `null` |
+| `inProgress` | Processing | `null` |
+| `complete` | Finished | Object |
+| `failed` | Processing failed. Read the reason from `errors` | `null` |
+| `expired` | The retention period ended and the files were deleted. No URLs are issued | `null` |
+
+Watermark extract orders created with v2 that are stored as `detected` or `undetected` return `complete`. Read the outcome from `result.detectionStatus`.
+
+## Input files
+
+Each `inputFiles[]` item has `fileId` and `fileName`, in the order of your create request. Two more keys appear only when they apply. When they do not apply, the key is omitted rather than set to `null`.
+
+- `role` appears only on `watermarkExtract` orders. `original` is the file the watermark was embedded in, and `query` is the file to check.
+- `uploadUrl` appears only while `status` is `pending` and the file is still waiting for upload. PUT the file to this URL. If an upload URL expires, call this endpoint again for a fresh one.
+
+Every `fileId` in this response and in the [download response](/api-reference/orders/download-order-v3) is a numeric string such as `"11"`. It never contains a separator such as `-`.
+
+## Result by order type
+
+`result` is an object only when `status` is `complete`. The key is always present and is `null` in every other status.
+
+<Tabs>
+  <Tab title="Anti-AI">
+    `result.outputFiles[]` has one output file for each input file.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `fileId` | string | Output file ID. Matches `files[].fileId` in the [download response](/api-reference/orders/download-order-v3), in the same order |
+    | `fileName` | string \| null | Output file name |
+    | `inputFileId` | string | `inputFiles[].fileId` of the source file |
+  </Tab>
+  <Tab title="Watermark embed">
+    `result.outputFiles[]` has one output file for each embedded watermark text. If a v3 order embeds several texts in one input file, those output files share the same `inputFileId`.
+
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `fileId` | string | Output file ID. Matches `files[].fileId` in the [download response](/api-reference/orders/download-order-v3), in the same order |
+    | `fileName` | string \| null | Output file name |
+    | `inputFileId` | string | `inputFiles[].fileId` of the source file |
+    | `watermarkText` | string | The text embedded in this output file |
+  </Tab>
+  <Tab title="Watermark extract">
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `detectionStatus` | string | Outcome. See the table below |
+    | `watermarkText` | string \| null | Embedded text of the detected watermark. `null` unless `detectionStatus` is `detected`. For v3 orders, it is returned only when your account embedded the watermark and exactly one issuance record matches |
+    | `reportSupported` | boolean | Whether you can [create a report](/api-reference/reports/create-report) from this result. `false` for v2 orders and for images captured from a PDF |
+    | `reports` | array | `{ locale, status }` for each report requested for this order. Always empty for v2 orders |
+
+    | `detectionStatus` | Meaning |
+    |-------------------|---------|
+    | `detected` | A watermark was found |
+    | `undetected` | The file was fully checked and no watermark was found |
+    | `inconclusive` | A candidate was found, but it did not meet the confidence threshold |
+    | `unsupported` | The input cannot be processed. The credit is refunded |
+    | `error` | Detection failed. This is not the same as no watermark |
+  </Tab>
+  <Tab title="AI Detection">
+    | Field | Type | Description |
+    |-------|------|-------------|
+    | `verdict` | string \| null | Verdict based on `probability`. See the table below. `null` when `probability` is `null` |
+    | `probability` | number \| null | Probability that the image is AI-generated, from 0 to 1 |
+    | `options` | object \| null | `generateHeatmap`, `generateOverlay`, and `generateThumbnail` as set when the order was created |
+    | `originalImageUrl` | string \| null | Original image URL, valid for 1 hour |
+    | `heatmapUrl` | string \| null | Heatmap image URL, valid for 1 hour. `null` unless the order used `generateHeatmap` |
+    | `overlayUrl` | string \| null | Heatmap overlay URL, valid for 1 hour. `null` unless the order used `generateOverlay` |
+
+    | `verdict` | Probability range | Meaning |
+    |-----------|-------------------|---------|
+    | `likely_real` | < 0.25 | Likely not AI-generated |
+    | `uncertain_real` | 0.25 – 0.5 | Possibly not AI-generated |
+    | `uncertain_ai` | 0.5 – 0.75 | Possibly AI-generated |
+    | `likely_ai` | ≥ 0.75 | Likely AI-generated |
+  </Tab>
+</Tabs>
+
+## Examples
+
+Completed orders of each type:
+
+<CodeGroup>
+```json Anti-AI
+{
+  "data": {
+    "type": "antiAi",
+    "orderId": "1001",
+    "orderName": "cat.png",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "11", "fileName": "cat.png" },
+      { "fileId": "12", "fileName": "dog.png" }
+    ],
+    "result": {
+      "outputFiles": [
+        { "fileId": "21", "fileName": "cat.png", "inputFileId": "11" },
+        { "fileId": "22", "fileName": "dog.png", "inputFileId": "12" }
+      ]
+    }
+  }
+}
+```
+
+```json AI Detection
+{
+  "data": {
+    "type": "aiDetection",
+    "orderId": "4001",
+    "orderName": "photo.jpg",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/ai/photo.jpg",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "71", "fileName": "photo.jpg" }
+    ],
+    "result": {
+      "verdict": "uncertain_real",
+      "probability": 0.31,
+      "options": {
+        "generateHeatmap": true,
+        "generateOverlay": true,
+        "generateThumbnail": true
+      },
+      "originalImageUrl": "https://cdn.bizmori.com/ai/photo.jpg",
+      "heatmapUrl": "https://cdn.bizmori.com/ai/heatmap.png",
+      "overlayUrl": "https://cdn.bizmori.com/ai/overlay.png"
+    }
+  }
+}
+```
+
+```json Watermark embed
+{
+  "data": {
+    "type": "watermarkEmbed",
+    "orderId": "2001",
+    "orderName": "logo.png",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "31", "fileName": "logo.png" }
+    ],
+    "result": {
+      "outputFiles": [
+        { "fileId": "201", "fileName": "logo.png", "inputFileId": "31", "watermarkText": "MORI" },
+        { "fileId": "202", "fileName": "logo.png", "inputFileId": "31", "watermarkText": "MORI-2" }
+      ]
+    }
+  }
+}
+```
+
+```json Watermark extract
+{
+  "data": {
+    "type": "watermarkExtract",
+    "orderId": "3001",
+    "orderName": "suspect.png",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "51", "fileName": "original.png", "role": "original" },
+      { "fileId": "52", "fileName": "suspect.png", "role": "query" }
+    ],
+    "result": {
+      "detectionStatus": "detected",
+      "watermarkText": "MORI",
+      "reportSupported": true,
+      "reports": [
+        { "locale": "ko-KR", "status": "completed" }
+      ]
+    }
+  }
+}
+```
+</CodeGroup>
+
+Orders that are not complete return `result: null`:
+
+<CodeGroup>
+```json Pending
+{
+  "data": {
+    "type": "watermarkExtract",
+    "orderId": "3201",
+    "orderName": "suspect.png",
+    "channel": "api",
+    "status": "pending",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": null,
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      {
+        "fileId": "81",
+        "fileName": "original.png",
+        "role": "original",
+        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/81?X-Amz-..."
+      },
+      {
+        "fileId": "82",
+        "fileName": "suspect.png",
+        "role": "query",
+        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/82?X-Amz-..."
+      }
+    ],
+    "result": null
+  }
+}
+```
+
+```json Failed
+{
+  "data": {
+    "type": "watermarkEmbed",
+    "orderId": "2002",
+    "orderName": "logo.png",
+    "channel": "api",
+    "status": "failed",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": {
+      "errorCode": "WATERMARK_FILE_CORRUPTED",
+      "errorMessage": "파일이 손상되어 처리할 수 없습니다."
+    },
+    "inputFiles": [
+      { "fileId": "33", "fileName": "logo.png" }
+    ],
+    "result": null
+  }
+}
+```
+
+```json Expired
+{
+  "data": {
+    "type": "antiAi",
+    "orderId": "1003",
+    "orderName": "cat.png",
+    "channel": "api",
+    "status": "expired",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-10-01T00:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "14", "fileName": "cat.png" }
+    ],
+    "result": null
+  }
+}
+```
+</CodeGroup>
+
+- **Pending**: only files that are still waiting for upload have `uploadUrl`. Watermark embed, Anti-AI, and AI Detection orders have no `role`.
+- **Failed**: `errors` has the reason, and `result` is `null`. `errorMessage` is a fixed Korean message for the error code.
+- **Expired**: you can still get the order after the retention period ends, but `result` is `null` and no URLs are issued. [Downloads](/api-reference/orders/download-order-v3) return `400 ORDER_EXPIRED`.
+
+## Changes from the previous response
+
+On October 8, 2026, this endpoint switched to the shape above. This is a breaking change.
+
+| Previous response | Now |
+|-------------------|-----|
+| `files[]` (v3 watermark orders) | `inputFiles[]`. `uploadUrl` is omitted unless the order is `pending` |
+| `outputs[]` (v3 watermark orders) | `result.outputFiles[]`. `outputIndex`, `status`, and `mediaKind` are no longer returned |
+| Output `fileId` such as `"601-1"` | Numeric string such as `"201"` |
+| Top-level `reports[]` | `result.reports[]` |
+| `detectionStatus: "not_detected"` | `"undetected"` |
+| `fileCount` | `inputFiles.length` |
+| `statusCode` (AI Detection) | `result.verdict` |
+| `statusCode` and `status: "detected"` / `"undetected"` (v2 watermark extract) | `status: "complete"` and `result.detectionStatus` |
+| `watermarks[]` (v2 watermark embed) | `result.outputFiles[].watermarkText` |
+| Top-level `watermarkText`, `probability`, `options`, `originalImageUrl`, `heatmapUrl`, `overlayUrl` | Inside `result` |
+
+The deprecated [`GET /api/v2/orders/{orderId}`](/api-reference/orders/get-order) still returns its previous response, unchanged.
+
+## Test keys
+
+With an `sk_test_` key, this endpoint returns only test orders created with the same key, in the shape above. See [Test API keys](/test-api-keys) for how test orders move through each status.

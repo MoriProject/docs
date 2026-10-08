@@ -25,7 +25,7 @@ description: "v3 API で画像と PDF に不可視 watermark を埋め込む"
 1. ファイル名とファイルごとの watermark 文言を指定して**注文を作成**します。
 2. レスポンスのプリサインド `uploadUrl` に**各ファイルを `PUT` でアップロード**します。すべてのファイルがアップロードされると処理が自動的に始まり、confirm ステップはありません。
 3. `GET /api/v3/orders/{orderId}` をポーリングするか [Webhook](/ja/webhooks) を受信して、**注文の完了を待ちます**。
-4. **結果をダウンロード**します。まとめて取得することも、結果ファイルを 1 つずつ取得することもできます。
+4. **結果をダウンロード**します。1 回の呼び出しで、結果ファイルごとの URL と結果全体の URL をまとめて取得できます。
 
 ## ステップ1: 注文の作成
 
@@ -171,7 +171,7 @@ order = res.json()['data']
 ```
 
 - `files[]` はリクエストの `files` と同じ順序で返されます。リクエストの `files[i]` のファイルは `files[i].uploadUrl` にアップロードしてください。
-- `outputs[]` には watermark 文言ごとに 1 件ずつ項目があります。結果ファイルを 1 つずつダウンロードする場合は `outputs[].fileId` を保持しておいてください。
+- `outputs[]` には watermark 文言ごとに 1 件ずつ項目があります。ここの `fileId`（`501-1` など）はこの作成レスポンスでだけ使われます。注文詳細とダウンロードのレスポンスでは、結果ファイルを数字の `fileId` で区別します。
 - `expiresAt` は注文ファイルが削除される日時です。それまでに結果をダウンロードしてください。
 
 <Tip>
@@ -261,7 +261,7 @@ upload.raise_for_status()
 </Info>
 
 <Note>
-  本番キーの `uploadUrl` は **900 秒**で期限切れになります。期限が切れた場合は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) を呼び出すと、まだアップロードされていないファイルの新しい `uploadUrl` を取得できます。注文の作成から **12 時間**以内にすべてのファイルをアップロードしないと、注文は `failed` になります。テストキーでは 1 時間有効な `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` が返されます。認証なしで同じように PUT でき、アップロードしたファイルの内容は破棄されます。
+  本番キーの `uploadUrl` は **900 秒**で期限切れになります。期限が切れた場合は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) を呼び出すと、まだアップロードされていないファイルの新しい `inputFiles[].uploadUrl` を取得できます。注文の作成から **12 時間**以内にすべてのファイルをアップロードしないと、注文は `failed` になります。テストキーでは 1 時間有効な `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` が返されます。認証なしで同じように PUT でき、アップロードしたファイルの内容は破棄されます。
 </Note>
 
 ## ステップ3: 注文の完了を待つ
@@ -287,7 +287,7 @@ async function waitForOrder(orderId) {
 }
 
 const finished = await waitForOrder(order.orderId);
-// 処理が終わった結果ファイルは finished.outputs[].status が 'completed' になります
+// finished.result.outputFiles には watermark 文言ごとに 1 件ずつ項目があります
 ```
 
 ```jsx React
@@ -336,13 +336,43 @@ finished = wait_for_order(order['orderId'])
 | `failed` | 処理失敗。消費したクレジットは戻ります |
 | `expired` | 保管期間が終了し、ファイルが削除された |
 
+注文が `complete` になると、`result.outputFiles[]` に watermark 文言ごとに結果ファイルが 1 つずつ入ります。注文詳細はすべての注文の種類で同じ形式です。すべてのフィールドは[注文詳細を取得](/ja/api-reference/orders/get-order-v3)を参照してください。
+
+```json
+{
+  "data": {
+    "type": "watermarkEmbed",
+    "orderId": "1234567890",
+    "orderName": "photo.jpg",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-03T03:00:00.000Z",
+    "updatedAt": "2026-10-03T03:00:40.000Z",
+    "expiresAt": "2026-10-10T03:00:00.000Z",
+    "retentionDays": 7,
+    "thumbnailImageUrl": "https://...",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "501", "fileName": "photo.jpg" }
+    ],
+    "result": {
+      "outputFiles": [
+        { "fileId": "8812", "fileName": "photo.jpg", "inputFileId": "501", "watermarkText": "PARTNER-A" },
+        { "fileId": "8813", "fileName": "photo.jpg", "inputFileId": "501", "watermarkText": "PARTNER-B" }
+      ]
+    }
+  }
+}
+```
+
 `processingDelayed` が `true` の場合、自動再試行をすべて使い切り、手動での復旧を待っている状態です。注文は `inProgress` のままなので、ポーリングを続けるか Webhook を待ってください。
 
 `order.watermarkEmbed.failed` Webhook には、失敗の原因を示す `errorCode` が含まれます。イベントのペイロードとエラーコードは [Webhook](/ja/webhooks) を参照してください。
 
 ## ステップ4: 結果のダウンロード
 
-`status` が `complete` になったら、注文全体のダウンロード URL をリクエストします。結果ファイルが 1 つならそのファイル、複数なら ZIP ファイルを指す URL が返されます。
+`status` が `complete` になったら、ダウンロード URL をリクエストします。1 回の呼び出しで、結果ファイルごとの URL（`files[]`）と結果全体を受け取る URL（`archiveUrl`）をまとめて取得できます。結果ファイルが 1 つなら `archiveUrl` はそのファイルを、複数なら ZIP ファイルを指します。
 
 <CodeGroup>
 ```bash cURL
@@ -353,18 +383,18 @@ curl https://api.bizmori.com/api/v3/orders/1234567890/download \
 ```javascript Node.js
 const res = await fetch(`${API_BASE}/orders/${order.orderId}/download`, { headers });
 const { data } = await res.json();
-// data.downloadUrl は data.expiresInSeconds（300）秒間有効です
+// data.archiveUrl と data.files[].downloadUrl は data.expiresInSeconds 秒間（最大 3600 秒）有効です
 ```
 
 ```jsx React
-// URL は 300 秒で期限切れになるため、ユーザーがダウンロードを押した時点でリクエストします。
-const { downloadUrl } = await api(`/orders/${order.orderId}/download`);
-window.location.assign(downloadUrl);
+// URL は 1 時間以内に期限切れになるため、ユーザーがダウンロードを押した時点でリクエストします。
+const { archiveUrl } = await api(`/orders/${order.orderId}/download`);
+window.location.assign(archiveUrl);
 ```
 
 ```python Python
 res = requests.get(f'{API_BASE}/orders/{order["orderId"]}/download', headers=HEADERS)
-download_url = res.json()['data']['downloadUrl']
+archive_url = res.json()['data']['archiveUrl']
 ```
 </CodeGroup>
 
@@ -372,23 +402,21 @@ download_url = res.json()['data']['downloadUrl']
 ```json
 {
   "data": {
-    "downloadUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
-    "expiresInSeconds": 300
+    "archiveUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
+    "files": [
+      { "fileId": "8812", "downloadUrl": "https://s3.ap-northeast-2.amazonaws.com/..." },
+      { "fileId": "8813", "downloadUrl": "https://s3.ap-northeast-2.amazonaws.com/..." }
+    ],
+    "expiresInSeconds": 3600
   }
 }
 ```
 
-結果ファイルを 1 つだけ取得するには、個別ダウンロードのエンドポイントに `outputs[].fileId` を渡します。
-
-```bash
-curl https://api.bizmori.com/api/v3/orders/1234567890/files/501-2/download \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
-レスポンスの形式は同じです。どちらの URL も **300 秒**で期限切れになるため、保存せずにダウンロードのたびに新しくリクエストしてください。`expiresAt` を過ぎると、どちらのエンドポイントも `400 ORDER_EXPIRED` を返します。
+- `files[]` は `result.outputFiles[]` と同じ結果ファイルを同じ順序で含み、`fileId` も同じです。`fileId` で突き合わせると、各ファイルにどの watermark 文言が入っているかがわかります。
+- URL は最大 **3600 秒**有効で、保管期限が先に来る場合はそれより短くなります。保存せずに、ダウンロードのたびに新しくリクエストしてください。`expiresAt` を過ぎると、このエンドポイントは `400 ORDER_EXPIRED` を返します。
 
 <Note>
-  テスト注文では、これらのエンドポイントは固定のサンプルファイルの URL を返します（結果が複数ある場合は ZIP）。実際に watermark が埋め込まれたファイルではありません。
+  テスト注文では、`archiveUrl` と `files[]` は固定のサンプルファイルを指します（結果が複数ある場合は ZIP）。実際に watermark が埋め込まれたファイルではありません。
 </Note>
 
 ## React 完全なサンプル
@@ -563,11 +591,11 @@ export default function WatermarkEmbedUploader() {
     }
   }
 
-  // ダウンロード URL は 300 秒で期限切れになるため、押すたびに新しく取得します。
+  // ダウンロード URL は 1 時間以内に期限切れになるため、押すたびに新しく取得します。
   async function download() {
     try {
-      const { downloadUrl } = await api(`/orders/${orderId}/download`);
-      window.location.assign(downloadUrl);
+      const { archiveUrl } = await api(`/orders/${orderId}/download`);
+      window.location.assign(archiveUrl);
     } catch (caught) {
       setError(caught.message);
     }
@@ -636,7 +664,7 @@ export default function WatermarkEmbedUploader() {
 
 | HTTP ステータスコード | 意味 | 対応 |
 |----------------|------|------|
-| `400` | 不正なリクエスト、または保管期間を過ぎた `ORDER_EXPIRED` | パラメータとファイルの拡張子を確認してください。期限切れの注文はダウンロードできません |
+| `400` | 不正なリクエスト、処理が終わっていない注文をダウンロードしたときの `ORDER_NOT_COMPLETED`、または保管期間を過ぎた `ORDER_EXPIRED` | パラメータとファイルの拡張子を確認してください。`complete` になってからダウンロードしてください。期限切れの注文はダウンロードできません |
 | `401` | 認証失敗 | API キーを確認 |
 | `409` | `WATERMARK_V2_CONFLICT`：使用済みの `idempotencyKey` で本文の異なるリクエストを送信 | 新しい注文には新しい `idempotencyKey` を使用してください |
 | `429` | レート制限、またはプラン使用量の超過時は `PLAN_LIMIT_EXCEEDED` | `code` を確認してください。レート制限は再試行で解消しますが、`PLAN_LIMIT_EXCEEDED` は解消しないためプランのアップグレードが必要です |
@@ -657,9 +685,9 @@ v3 のリクエスト本文は v2 と同じ形式です。ほとんどの場合�
 | 注文の作成 | `POST /api/v2/orders/wtr-embed` | `POST /api/v3/orders/wtr-embed` |
 | リクエスト本文 | `files[].fileName`、`originalFileUrl`、`watermarks` | 同じ |
 | クレジット | — | 画像・PDF を問わず watermark 文言ごとに 1 クレジット |
-| 結果 | 注文全体をまとめてダウンロード | watermark 文言ごとに結果ファイルが 1 つずつ `outputs[]` に作成され、まとめても 1 つずつでも取得可能 |
-| 注文の取得 | `GET /api/v2/orders/{orderId}` | [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) |
-| ダウンロード | `GET /api/v2/orders/{orderId}/download`（URL は 7 日間有効） | [注文全体](/ja/api-reference/orders/download-order-v3)または[結果ファイル 1 つ](/ja/api-reference/orders/download-file-v3)（URL は 300 秒間有効） |
+| 結果 | 注文全体をまとめてダウンロード | watermark 文言ごとに結果ファイルが 1 つずつ `result.outputFiles[]` に作成される |
+| 注文の取得 | `GET /api/v2/orders/{orderId}`（非推奨） | [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) |
+| ダウンロード | `GET /api/v2/orders/{orderId}/download`（非推奨、URL は 7 日間有効） | [`GET /api/v3/orders/{orderId}/download`](/ja/api-reference/orders/download-order-v3): `archiveUrl` と結果ファイルごとの URL（最大 1 時間有効） |
 | アップロード URL | 1 時間有効、`refresh-urls` で更新 | 900 秒間有効、`GET /api/v3/orders/{orderId}` を再度呼び出して新しい URL を取得 |
 | confirm ステップ | なし | なし |
 | Webhook | `order.watermarkEmbed.completed` / `failed` | イベント名と `data` フィールドは同じ |
@@ -667,7 +695,7 @@ v3 のリクエスト本文は v2 と同じ形式です。ほとんどの場合�
 変わらない点：1 つの注文に画像と PDF を混在でき、`originalFileUrl` を指定すればアップロードを省略でき、confirm を呼び出さずに処理が始まります。
 
 <Warning>
-  v3 で作成した注文は v3 のエンドポイントで扱ってください。`GET /api/v2/orders/{orderId}` は v3 注文の共通フィールドだけを返し、`outputs` は含みません。逆に `GET /api/v3/orders/{orderId}` は v2 の注文に対して `404 ORDER_NOT_FOUND` を返します。
+  注文の取得とダウンロードには v3 のエンドポイントを使用してください。`GET /api/v3/orders/{orderId}` と `GET /api/v3/orders/{orderId}/download` は、v2・v3 のどちらで作成した注文にも同じ形式で動作します。非推奨の `GET /api/v2/orders/{orderId}` は v3 注文の共通フィールドだけを返し、結果は含みません。
 </Warning>
 
 **v2 のサポート終了後の動作**（2026 年 10 月 9 日 09:00 KST、00:00 UTC から）:

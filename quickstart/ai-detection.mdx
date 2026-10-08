@@ -206,6 +206,10 @@ requests.post(
 
 ## Step 4: Check the result
 
+<Note>
+  This step uses `GET /api/v2/orders/{orderId}`, which is deprecated but unchanged. For new integrations, use [Get order details (v3)](/api-reference/orders/get-order-v3). It returns the outcome in `result.verdict` and `result.probability` instead of the top-level `statusCode` and `probability`.
+</Note>
+
 Poll the order or use [webhooks](/webhooks) to receive a push notification when detection completes. The detection result is included directly in the order detail — there is no separate download step.
 
 <CodeGroup>

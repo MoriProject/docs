@@ -4,4 +4,8 @@ title: "Get order details"
 openapi: "/api-reference/openapi.yaml GET /api/v2/orders/{orderId}"
 ---
 
+<Warning>
+  This endpoint is deprecated. Use [Get order details (v3)](/api-reference/orders/get-order-v3), which returns every order type in one shape. The response and behavior of this endpoint are unchanged.
+</Warning>
+
 With an `sk_test_` key, this endpoint returns only test orders owned by the key's account. Test orders use the same `pending`, `inProgress`, `complete`, and `failed` status values as live orders.

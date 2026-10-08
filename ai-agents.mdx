@@ -43,7 +43,7 @@ one up rather than assuming — do not ship code that skips them:
 
 After you finish, verify — do not just claim it works:
 1. With an `sk_test_` key, verify the upload, service-specific confirm step, and synthetic result state. State that processing did not run. For an actual end-to-end result, use a live API key and show the order reaching `complete`.
-2. With a live key, show me the result actually retrieved (the downloaded file, or the detection field). With a test key, explain that no result file is created and download returns `PROCESSED_FILE_NOT_FOUND`.
+2. With a live key, show me the result actually retrieved (the downloaded file, or the detection field). With a test key, explain that no result file is created: the v3 download returns URLs for fixed sample files, and the deprecated v2 download returns `PROCESSED_FILE_NOT_FOUND`.
 3. Grep your own diff for a hardcoded key or a logged token, and show me the output.
 4. If you built a webhook receiver, send it a bad signature and show it returns 401.
 If you could not run one of these, say so plainly instead of asserting it passed.
@@ -120,7 +120,7 @@ The prompt above works because these docs are published in a machine-readable fo
     The HMAC must be computed over the raw request bytes. If a JSON body-parser runs first and the code re-serializes the object, the signature will not match and the agent may be tempted to "fix" it by skipping verification. It must compare in constant time.
   </Accordion>
   <Accordion title="Presigned URL expiry is handled" icon="clock">
-    Upload URLs are valid for 1 hour; download URLs for 7 days. A long-running batch job must call [Refresh URLs](/api-reference/orders/refresh-urls) rather than reusing a stale URL.
+    Upload URLs are valid for 1 hour, and [v3 download URLs](/api-reference/orders/download-order-v3) for up to 1 hour. A long-running batch job must call [Refresh URLs](/api-reference/orders/refresh-urls) rather than reusing a stale upload URL, and request download URLs again right before downloading.
   </Accordion>
 </AccordionGroup>
 

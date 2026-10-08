@@ -221,6 +221,10 @@ requests.post(
 
 ## Step 4: Check order status
 
+<Note>
+  Steps 4 and 5 use `GET /api/v2/orders/{orderId}` and `GET /api/v2/orders/{orderId}/download`, which are deprecated but unchanged. For new integrations, use [Get order details (v3)](/api-reference/orders/get-order-v3) and [Get order result download URLs (v3)](/api-reference/orders/download-order-v3). They return every order type in one shape, and the v3 download returns a URL for each output file plus a ZIP archive of all results.
+</Note>
+
 Poll the order or use [webhooks](/webhooks) to receive a push notification when processing completes.
 
 <CodeGroup>

@@ -25,7 +25,7 @@ Every endpoint here is plain HTTPS and JSON, so the same calls work from a serve
 1. **Create an order** with the file names and the watermark texts for each file.
 2. **Upload each file** with `PUT` to the presigned `uploadUrl` in the response. Processing starts automatically once every file is uploaded — there is no confirm step.
 3. **Wait for the order to finish** by polling `GET /api/v3/orders/{orderId}` or by receiving a [webhook](/webhooks).
-4. **Download the results**, either all at once or one output file at a time.
+4. **Download the results**: one call returns a URL for each output file and one URL for all of them.
 
 ## Step 1: Create an order
 
@@ -171,7 +171,7 @@ order = res.json()['data']
 ```
 
 - `files[]` follows the order of `files` in your request. Use `files[i].uploadUrl` to upload the file you sent as `files[i]`.
-- `outputs[]` has one entry per watermark text. Keep `outputs[].fileId` if you want to download output files one at a time.
+- `outputs[]` has one entry per watermark text. Its `fileId` values (such as `501-1`) appear only in this create response. The order details and the download response identify output files with numeric `fileId` values instead.
 - `expiresAt` is when the order files are deleted. Download your results before then.
 
 <Tip>
@@ -261,7 +261,7 @@ upload.raise_for_status()
 </Info>
 
 <Note>
-  A live `uploadUrl` expires after **900 seconds**. If it expires, call [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) to receive a fresh `uploadUrl` for each file that is still waiting for upload. Upload every file within **12 hours** of creating the order, or the order becomes `failed`. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` instead, valid for 1 hour; it accepts the same unauthenticated PUT and discards the file contents.
+  A live `uploadUrl` expires after **900 seconds**. If it expires, call [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) to receive a fresh `inputFiles[].uploadUrl` for each file that is still waiting for upload. Upload every file within **12 hours** of creating the order, or the order becomes `failed`. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` instead, valid for 1 hour; it accepts the same unauthenticated PUT and discards the file contents.
 </Note>
 
 ## Step 3: Wait for the order to finish
@@ -287,7 +287,7 @@ async function waitForOrder(orderId) {
 }
 
 const finished = await waitForOrder(order.orderId);
-// finished.outputs[].status is 'completed' for each finished output file
+// finished.result.outputFiles has one entry per watermark text
 ```
 
 ```jsx React
@@ -336,13 +336,43 @@ finished = wait_for_order(order['orderId'])
 | `failed` | Processing failed. Used credits are restored |
 | `expired` | The retention period ended and the files were deleted |
 
+When the order is `complete`, `result.outputFiles[]` lists one output file per watermark text. The order details have the same shape for every order type; see [Get order details](/api-reference/orders/get-order-v3) for every field.
+
+```json
+{
+  "data": {
+    "type": "watermarkEmbed",
+    "orderId": "1234567890",
+    "orderName": "photo.jpg",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-03T03:00:00.000Z",
+    "updatedAt": "2026-10-03T03:00:40.000Z",
+    "expiresAt": "2026-10-10T03:00:00.000Z",
+    "retentionDays": 7,
+    "thumbnailImageUrl": "https://...",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "501", "fileName": "photo.jpg" }
+    ],
+    "result": {
+      "outputFiles": [
+        { "fileId": "8812", "fileName": "photo.jpg", "inputFileId": "501", "watermarkText": "PARTNER-A" },
+        { "fileId": "8813", "fileName": "photo.jpg", "inputFileId": "501", "watermarkText": "PARTNER-B" }
+      ]
+    }
+  }
+}
+```
+
 If `processingDelayed` is `true`, automatic retries are exhausted and the order is waiting for manual recovery. It stays `inProgress`, so keep polling or wait for the webhook.
 
 The `order.watermarkEmbed.failed` webhook includes an `errorCode` that explains why the order failed. See [Webhooks](/webhooks) for the event payloads and error codes.
 
 ## Step 4: Download the results
 
-Once `status` is `complete`, request a download URL for the whole order. If the order has one output file, the URL points to that file; if it has several, it points to a ZIP archive.
+Once `status` is `complete`, request the download URLs. One call returns a URL for each output file in `files[]` and one URL for all results in `archiveUrl`. If the order has one output file, `archiveUrl` points to that file; if it has several, it points to a ZIP archive.
 
 <CodeGroup>
 ```bash cURL
@@ -353,18 +383,18 @@ curl https://api.bizmori.com/api/v3/orders/1234567890/download \
 ```javascript Node.js
 const res = await fetch(`${API_BASE}/orders/${order.orderId}/download`, { headers });
 const { data } = await res.json();
-// data.downloadUrl is valid for data.expiresInSeconds (300) seconds
+// data.archiveUrl and data.files[].downloadUrl are valid for data.expiresInSeconds seconds (up to 3600)
 ```
 
 ```jsx React
-// Request the URL right when the user clicks Download: it expires after 300 seconds.
-const { downloadUrl } = await api(`/orders/${order.orderId}/download`);
-window.location.assign(downloadUrl);
+// Request the URL right when the user clicks Download: it expires within an hour.
+const { archiveUrl } = await api(`/orders/${order.orderId}/download`);
+window.location.assign(archiveUrl);
 ```
 
 ```python Python
 res = requests.get(f'{API_BASE}/orders/{order["orderId"]}/download', headers=HEADERS)
-download_url = res.json()['data']['downloadUrl']
+archive_url = res.json()['data']['archiveUrl']
 ```
 </CodeGroup>
 
@@ -372,23 +402,21 @@ download_url = res.json()['data']['downloadUrl']
 ```json
 {
   "data": {
-    "downloadUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
-    "expiresInSeconds": 300
+    "archiveUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
+    "files": [
+      { "fileId": "8812", "downloadUrl": "https://s3.ap-northeast-2.amazonaws.com/..." },
+      { "fileId": "8813", "downloadUrl": "https://s3.ap-northeast-2.amazonaws.com/..." }
+    ],
+    "expiresInSeconds": 3600
   }
 }
 ```
 
-To download a single output file, pass its `outputs[].fileId` to the per-file endpoint:
-
-```bash
-curl https://api.bizmori.com/api/v3/orders/1234567890/files/501-2/download \
-  -H "Authorization: Bearer YOUR_API_KEY"
-```
-
-The response has the same shape. Both URLs expire after **300 seconds**, so request a new one each time you download instead of storing it. After `expiresAt`, both endpoints return `400 ORDER_EXPIRED`.
+- `files[]` lists the same output files in the same order as `result.outputFiles[]`, with the same `fileId` values. Match them by `fileId` to see which watermark text each file carries.
+- The URLs are valid for up to **3600 seconds**, or less if the retention period ends sooner. Request new URLs each time you download instead of storing them. After `expiresAt`, this endpoint returns `400 ORDER_EXPIRED`.
 
 <Note>
-  For a test order, these endpoints return a URL for a fixed sample file (a ZIP when the order has several outputs). The sample is not your watermarked file.
+  For a test order, `archiveUrl` and `files[]` point to fixed sample files (a ZIP when the order has several outputs). The samples are not your watermarked files.
 </Note>
 
 ## Full React example
@@ -563,11 +591,11 @@ export default function WatermarkEmbedUploader() {
     }
   }
 
-  // Download URLs expire after 300 seconds, so fetch a fresh one on every click.
+  // Download URLs expire within an hour, so fetch a fresh one on every click.
   async function download() {
     try {
-      const { downloadUrl } = await api(`/orders/${orderId}/download`);
-      window.location.assign(downloadUrl);
+      const { archiveUrl } = await api(`/orders/${orderId}/download`);
+      window.location.assign(archiveUrl);
     } catch (caught) {
       setError(caught.message);
     }
@@ -636,7 +664,7 @@ export default function WatermarkEmbedUploader() {
 
 | HTTP Status | Meaning | Action |
 |-------------|---------|--------|
-| `400` | Invalid request, or `ORDER_EXPIRED` after the retention period | Check parameters and file extensions. Expired orders cannot be downloaded |
+| `400` | Invalid request, `ORDER_NOT_COMPLETED` when you download an unfinished order, or `ORDER_EXPIRED` after the retention period | Check parameters and file extensions. Wait for `complete` before downloading. Expired orders cannot be downloaded |
 | `401` | Authentication failed | Verify your API key |
 | `409` | `WATERMARK_V2_CONFLICT`: the `idempotencyKey` was already used with a different request body | Use a new `idempotencyKey` for a new order |
 | `429` | Rate limit, or `PLAN_LIMIT_EXCEEDED` when the plan quota is spent | Check the `code` field. A rate limit clears on retry; `PLAN_LIMIT_EXCEEDED` does not — upgrade the plan |
@@ -657,9 +685,9 @@ The v3 request body has the same shape as v2, so most integrations only change t
 | Create an order | `POST /api/v2/orders/wtr-embed` | `POST /api/v3/orders/wtr-embed` |
 | Request body | `files[].fileName`, `originalFileUrl`, `watermarks` | Same fields |
 | Credits | — | 1 credit per watermark text, for images and PDFs alike |
-| Results | One download for the whole order | One output file per watermark text, listed in `outputs[]`; download all at once or one at a time |
-| Get the order | `GET /api/v2/orders/{orderId}` | [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) |
-| Download | `GET /api/v2/orders/{orderId}/download` (URL valid for 7 days) | [Whole order](/api-reference/orders/download-order-v3) or [one output file](/api-reference/orders/download-file-v3) (URL valid for 300 seconds) |
+| Results | One download for the whole order | One output file per watermark text, listed in `result.outputFiles[]` |
+| Get the order | `GET /api/v2/orders/{orderId}` (deprecated) | [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) |
+| Download | `GET /api/v2/orders/{orderId}/download` (deprecated, URL valid for 7 days) | [`GET /api/v3/orders/{orderId}/download`](/api-reference/orders/download-order-v3): `archiveUrl` plus a URL for each output file (valid for up to 1 hour) |
 | Upload URL | Valid for 1 hour; refresh with `refresh-urls` | Valid for 900 seconds; call `GET /api/v3/orders/{orderId}` for a fresh one |
 | Confirm step | None | None |
 | Webhooks | `order.watermarkEmbed.completed` / `failed` | Same event names and `data` fields |
@@ -667,7 +695,7 @@ The v3 request body has the same shape as v2, so most integrations only change t
 Things that stay the same: images and PDFs can be mixed in one order, `originalFileUrl` still skips the upload for hosted files, and processing still starts without a confirm call.
 
 <Warning>
-  Use the v3 endpoints for orders you create with v3. `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without `outputs`, and `GET /api/v3/orders/{orderId}` returns `404 ORDER_NOT_FOUND` for a v2 order.
+  Use the v3 endpoints to get and download orders. `GET /api/v3/orders/{orderId}` and `GET /api/v3/orders/{orderId}/download` work for orders created with v2 or v3, in the same shape. The deprecated `GET /api/v2/orders/{orderId}` returns only the common fields of a v3 order, without its results.
 </Warning>
 
 **After v2 support ends** (from 09:00 KST on October 9, 2026, which is 00:00 UTC):

@@ -1,5 +1,164 @@
 ---
 tag: "v3"
-title: "Get embed result download URL"
+title: "Get order result download URLs"
 openapi: "/api-reference/openapi.yaml GET /api/v3/orders/{orderId}/download"
 ---
+
+Use this endpoint to download the results of a completed Anti-AI or watermark embed order. One call returns a URL for every output file and one URL for all results. The response has the same shape whether you created the watermark order with v2 or v3.
+
+<Warning>
+  The response shape changed on October 8, 2026, and `GET /api/v3/orders/{orderId}/files/{fileId}/download` was removed. See [Changes from the previous response](#changes-from-the-previous-response).
+</Warning>
+
+## Response fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `archiveUrl` | string | One URL for all results. Always present |
+| `files[]` | array | `{ fileId, downloadUrl }` for each output file |
+| `expiresInSeconds` | integer | How long the URLs are valid, in seconds. At most 3600 |
+
+`files[]` lists the same files in the same order as `result.outputFiles[]` from [Get order details](/api-reference/orders/get-order-v3), with the same `fileId` values. Use `fileId` to match each URL to its output file and its `inputFileId`.
+
+### What `archiveUrl` points to
+
+| Order | `archiveUrl` |
+|-------|--------------|
+| Anti-AI | ZIP archive of all output files |
+| Watermark embed created with v2 | ZIP archive of all output files |
+| Watermark embed created with v3, two or more output files | ZIP archive of all output files |
+| Watermark embed created with v3, one output file | That output file, the same file as `files[0].downloadUrl` |
+
+You can always hand `archiveUrl` to a single Download button: it is either the only result file or a ZIP of all of them.
+
+### URL lifetime
+
+The URLs are valid for 3600 seconds (1 hour). If the order's retention period ends sooner (`expiresAt`), the lifetime is shortened to the time left, and `expiresInSeconds` reports the shorter value. Don't store the URLs. Call this endpoint again whenever you need to download.
+
+## Examples
+
+<CodeGroup>
+```json Anti-AI
+{
+  "data": {
+    "archiveUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/zip/1001/archive.zip?X-Amz-...",
+    "files": [
+      {
+        "fileId": "21",
+        "downloadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/out/cat.png?X-Amz-..."
+      },
+      {
+        "fileId": "22",
+        "downloadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/out/dog.png?X-Amz-..."
+      }
+    ],
+    "expiresInSeconds": 3600
+  }
+}
+```
+
+```json Watermark embed (one output)
+{
+  "data": {
+    "archiveUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/out/logo.png?X-Amz-...",
+    "files": [
+      {
+        "fileId": "201",
+        "downloadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/out/logo.png?X-Amz-..."
+      }
+    ],
+    "expiresInSeconds": 3600
+  }
+}
+```
+
+```json Watermark embed (two outputs)
+{
+  "data": {
+    "archiveUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/archive/2001.zip?X-Amz-...",
+    "files": [
+      {
+        "fileId": "201",
+        "downloadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/out/logo-1.png?X-Amz-..."
+      },
+      {
+        "fileId": "202",
+        "downloadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/out/logo-2.png?X-Amz-..."
+      }
+    ],
+    "expiresInSeconds": 3600
+  }
+}
+```
+</CodeGroup>
+
+## Download every output file
+
+<CodeGroup>
+```javascript Node.js
+import { writeFile } from 'node:fs/promises';
+
+const headers = { Authorization: 'Bearer YOUR_API_KEY' };
+const base = `https://api.bizmori.com/api/v3/orders/${orderId}`;
+
+const { data: order } = await (await fetch(base, { headers })).json();
+const { data: download } = await (await fetch(`${base}/download`, { headers })).json();
+
+// files[] and result.outputFiles[] share fileId values and order.
+const names = new Map(order.result.outputFiles.map((file) => [file.fileId, file.fileName]));
+for (const { fileId, downloadUrl } of download.files) {
+  const res = await fetch(downloadUrl);
+  await writeFile(`${fileId}-${names.get(fileId)}`, Buffer.from(await res.arrayBuffer()));
+}
+```
+
+```python Python
+import requests
+
+headers = {'Authorization': 'Bearer YOUR_API_KEY'}
+base = f'https://api.bizmori.com/api/v3/orders/{order_id}'
+
+order = requests.get(base, headers=headers).json()['data']
+download = requests.get(f'{base}/download', headers=headers).json()['data']
+
+# files[] and result.outputFiles[] share fileId values and order.
+names = {f['fileId']: f['fileName'] for f in order['result']['outputFiles']}
+for item in download['files']:
+    res = requests.get(item['downloadUrl'])
+    with open(f"{item['fileId']}-{names[item['fileId']]}", 'wb') as out:
+        out.write(res.content)
+```
+</CodeGroup>
+
+## Errors
+
+The endpoint checks for errors in this order and returns the first one that applies:
+
+| Order | Condition | HTTP | `code` |
+|-------|-----------|------|--------|
+| 1 | The order does not exist or belongs to another account | 404 | `ORDER_NOT_FOUND` |
+| 2 | Watermark extract or AI Detection order, even after the retention period ends | 400 | `ORDER_TYPE_CANT_DOWNLOAD` |
+| 3 | The retention period has ended | 400 | `ORDER_EXPIRED` |
+| 3 | The retention period cannot be determined | 409 | `FILE_RETENTION_UNKNOWN` |
+| 4 | `status` is `pending`, `inProgress`, or `failed` | 400 | `ORDER_NOT_COMPLETED` |
+
+An invalid `orderId` format returns `400 VALIDATION_FAILED`.
+
+## Changes from the previous response
+
+On October 8, 2026, this endpoint switched to the shape above. This is a breaking change.
+
+| Previous behavior | Now |
+|-------------------|-----|
+| Response `{ downloadUrl, expiresInSeconds }` | `{ archiveUrl, files, expiresInSeconds }`. `archiveUrl` replaces `downloadUrl` |
+| v3 watermark embed orders only | Anti-AI orders and watermark embed orders created with v2 or v3 |
+| URLs valid for 300 seconds | Up to 3600 seconds, capped by the retention period |
+| Incomplete order: `400 VALIDATION_FAILED` | `400 ORDER_NOT_COMPLETED` |
+| Watermark extract and AI Detection orders: not supported | Still not supported, with a dedicated error: `400 ORDER_TYPE_CANT_DOWNLOAD` |
+| `GET /api/v3/orders/{orderId}/files/{fileId}/download` for one output file | Removed. Use `files[]` from this endpoint |
+
+The deprecated [`GET /api/v2/orders/{orderId}/download`](/api-reference/orders/download-order) still returns its previous response, unchanged.
+
+## Test keys
+
+With an `sk_test_` key, this endpoint works for completed Anti-AI and watermark embed test orders created with the same key. The URLs point to fixed sample files, not to your processed files. See [Test API keys](/test-api-keys).

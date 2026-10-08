@@ -24,7 +24,7 @@ description: "v3 API でファイルから不可視 watermark を検出する"
   - 元のファイルが PDF の場合、検査するファイルは PDF、またはその PDF をキャプチャした PNG・JPEG 画像です。
 
 <Info>
-  自動発行される [`sk_test_` キー](/ja/test-api-keys)を使うと、実際の watermark 検出を行わず、クレジットも消費せずに v3 のフロー全体を検証できます。テストアップロードはファイルの内容を破棄し、結果は検査するファイルの名前で決まります。`_detected` を含めば `detected`、それ以外は `not_detected` になり、どちらかのファイル名に `_fail` が含まれると注文は失敗します。
+  自動発行される [`sk_test_` キー](/ja/test-api-keys)を使うと、実際の watermark 検出を行わず、クレジットも消費せずに v3 のフロー全体を検証できます。テストアップロードはファイルの内容を破棄し、結果は検査するファイルの名前で決まります。`_detected` を含めば `detected`、それ以外は `undetected` になり、どちらかのファイル名に `_fail` が含まれると注文は失敗します。
 </Info>
 
 ## 処理の流れ
@@ -156,7 +156,7 @@ order = res.json()['data']
 }
 ```
 
-`files` には常に 2 つの項目があります。**`files[0]` は元のファイル**、**`files[1]` は検査するファイル**です。
+`files` には常に 2 つの項目があります。**`files[0]` は元のファイル**、**`files[1]` は検査するファイル**です。注文詳細では、同じファイルが `inputFiles[]` に `role` が `original`・`query` の項目として表示されます。
 
 <Note>
   同じ `idempotencyKey` は、同じリクエストを再試行するときだけ再利用してください。その場合は新しい注文を作成せず、既存の注文を返します。同じキーでリクエスト本文が異なる場合は `409 WATERMARK_V2_CONFLICT` を返します。
@@ -256,7 +256,7 @@ put_file(order['files'][1]['uploadUrl'], 'suspect.png', 'image/png')   # 検査�
 </Info>
 
 <Note>
-  本番キーの `uploadUrl` は **900 秒**で期限切れになります。期限が切れた場合は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) を呼び出すと、まだアップロードされていないファイルの新しい `uploadUrl` を取得できます。注文の作成から **12 時間**以内に両方のファイルをアップロードしないと、注文は `failed` になります。テストキーでは 1 時間有効な `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` が返されます。認証なしで同じように PUT でき、アップロードしたファイルの内容は破棄されます。
+  本番キーの `uploadUrl` は **900 秒**で期限切れになります。期限が切れた場合は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) を呼び出すと、まだアップロードされていないファイルの新しい `inputFiles[].uploadUrl` を取得できます。注文の作成から **12 時間**以内に両方のファイルをアップロードしないと、注文は `failed` になります。テストキーでは 1 時間有効な `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` が返されます。認証なしで同じように PUT でき、アップロードしたファイルの内容は破棄されます。
 </Note>
 
 ## ステップ3: 結果の確認
@@ -328,21 +328,28 @@ finished = wait_for_order(order['orderId'])
 ```json
 {
   "data": {
+    "type": "watermarkExtract",
     "orderId": "1234567891",
+    "orderName": "suspect.png",
+    "channel": "api",
     "status": "complete",
-    "processingDelayed": false,
+    "createdAt": "2026-10-03T03:00:00.000Z",
+    "updatedAt": "2026-10-03T03:00:40.000Z",
     "expiresAt": "2026-10-10T03:00:00.000Z",
-    "files": [
-      { "fileId": "601", "uploadUrl": null },
-      { "fileId": "602", "uploadUrl": null }
+    "retentionDays": 7,
+    "thumbnailImageUrl": "https://...",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "601", "fileName": "campaign.png", "role": "original" },
+      { "fileId": "602", "fileName": "suspect.png", "role": "query" }
     ],
-    "outputs": [],
     "result": {
       "detectionStatus": "detected",
+      "watermarkText": "PARTNER-A",
       "reportSupported": true,
-      "watermarkText": "PARTNER-A"
-    },
-    "reports": []
+      "reports": []
+    }
   }
 }
 ```
@@ -360,17 +367,18 @@ finished = wait_for_order(order['orderId'])
 | `result.detectionStatus` | 意味 |
 |--------------------------|------|
 | `detected` | watermark が見つかった |
-| `not_detected` | ファイル全体を検査したが、watermark はなかった |
+| `undetected` | ファイル全体を検査したが、watermark はなかった |
 | `inconclusive` | 候補はあるが、判断できるほどの確度がない |
 | `unsupported` | 処理できない入力。クレジットは戻ります |
 | `error` | 検出処理に失敗。「watermark なし」とは異なります。クレジットは戻ります |
 
 - `result.watermarkText` は埋め込んだ文言です。結果が `detected` で、自分のアカウントが埋め込み、埋め込み記録がちょうど 1 件のときだけ返されます。それ以外は `null` です。
 - `result.reportSupported` は、この結果で PDF レポートを作成できるかを示します。PDF をキャプチャした画像を検査した場合は `false` です。
+- `result.reports[]` には、この注文で依頼したレポートごとのステータスが入ります。
 - `processingDelayed` が `true` の場合、自動再試行をすべて使い切り、手動での復旧を待っている状態です。注文は `inProgress` のままなので、ポーリングを続けるか Webhook を待ってください。
 
 <Note>
-  Webhook のペイロードは v2 のフィールド名をそのまま使います。`order.watermarkExtract.completed` は結果を `statusCode` で通知し、`not_detected` の代わりに `undetected` を使います。`watermarkFound` と `watermarkInfo.text` も含まれます。ペイロード全体は [Webhook](/ja/webhooks) を参照してください。
+  Webhook のペイロードは v2 のフィールド名をそのまま使います。`order.watermarkExtract.completed` は結果を `result.detectionStatus` と同じ値の `statusCode` で通知し、`watermarkFound` と `watermarkInfo.text` も含まれます。ペイロード全体は [Webhook](/ja/webhooks) を参照してください。
 </Note>
 
 ## ステップ4: PDF レポートの作成（任意）
@@ -492,7 +500,7 @@ const REPORT_LOCALE = 'ja-JP';
 
 const RESULT_LABELS = {
   detected: 'watermark が検出されました',
-  not_detected: 'このファイルから watermark は見つかりませんでした。',
+  undetected: 'このファイルから watermark は見つかりませんでした。',
   inconclusive: 'watermark らしき信号はありますが、判断できません。',
   unsupported: '検査できないファイルです。クレジットは戻りました。',
   error: '検出に失敗しました。クレジットは戻りましたので、もう一度お試しください。',
@@ -720,14 +728,14 @@ v3 では検査するファイルを常に元のファイルと比較するた�
 | 元のファイル | 任意（`includeOriginal`）、画像のみ | すべての注文で必須、画像と PDF の両方に対応 |
 | リクエスト本文 | `file.fileName`、`file.includeOriginal`、`file.originalFile` | `file.fileName` と `file.originalFile.fileName`。`includeOriginal` はなし |
 | アップロード | 1 ファイル、`includeOriginal` 使用時は 2 ファイル | 常に 2 ファイル：`files[0]` は元のファイル、`files[1]` は検査するファイル |
-| 結果の取得 | `GET /api/v2/orders/{orderId}` → `statusCode`（`detected` / `undetected`） | [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) → `result.detectionStatus`（5 種類）、`result.watermarkText`、`result.reportSupported` |
+| 結果の取得 | `GET /api/v2/orders/{orderId}`（非推奨）→ `statusCode`（`detected` / `undetected`） | [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) → `result.detectionStatus`（5 種類）、`result.watermarkText`、`result.reportSupported` |
 | クレジット | — | 画像・PDF を問わず注文ごとに 1 クレジット。`unsupported`・`error` の結果は返還 |
 | PDF レポート | なし | レポートの[作成](/ja/api-reference/reports/create-report)・[取得](/ja/api-reference/reports/get-report) |
 | confirm ステップ | なし | なし |
 | Webhook | `order.watermarkExtract.completed` / `failed` | イベント名と `data` フィールドは同じ。`statusCode` に `inconclusive`、`unsupported`、`error` が追加 |
 
 <Warning>
-  v3 で作成した注文は v3 のエンドポイントで扱ってください。`GET /api/v2/orders/{orderId}` は v3 注文の共通フィールドだけを返し、`result` は含みません。逆に `GET /api/v3/orders/{orderId}` は v2 の注文に対して `404 ORDER_NOT_FOUND` を返します。
+  注文の取得には v3 のエンドポイントを使用してください。`GET /api/v3/orders/{orderId}` は、v2・v3 のどちらで作成した注文にも同じ形式で動作します。非推奨の `GET /api/v2/orders/{orderId}` は v3 注文の共通フィールドだけを返し、`result` は含みません。
 </Warning>
 
 **v2 のサポート終了後の動作**（2026 年 10 月 9 日 09:00 KST、00:00 UTC から）:

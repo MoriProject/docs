@@ -110,7 +110,6 @@
                   "api-reference/orders/get-order-v3",
                   "api-reference/orders/download-order",
                   "api-reference/orders/download-order-v3",
-                  "api-reference/orders/download-file-v3",
                   "api-reference/orders/refresh-urls",
                   "api-reference/orders/recent-stats"
                 ]
@@ -244,7 +243,6 @@
                   "ko/api-reference/orders/get-order-v3",
                   "ko/api-reference/orders/download-order",
                   "ko/api-reference/orders/download-order-v3",
-                  "ko/api-reference/orders/download-file-v3",
                   "ko/api-reference/orders/refresh-urls",
                   "ko/api-reference/orders/recent-stats"
                 ]
@@ -378,7 +376,6 @@
                   "ja/api-reference/orders/get-order-v3",
                   "ja/api-reference/orders/download-order",
                   "ja/api-reference/orders/download-order-v3",
-                  "ja/api-reference/orders/download-file-v3",
                   "ja/api-reference/orders/refresh-urls",
                   "ja/api-reference/orders/recent-stats"
                 ]
@@ -542,6 +539,20 @@
       }
     ]
   },
+  "redirects": [
+    {
+      "source": "/api-reference/orders/download-file-v3",
+      "destination": "/api-reference/orders/download-order-v3"
+    },
+    {
+      "source": "/ko/api-reference/orders/download-file-v3",
+      "destination": "/ko/api-reference/orders/download-order-v3"
+    },
+    {
+      "source": "/ja/api-reference/orders/download-file-v3",
+      "destination": "/ja/api-reference/orders/download-order-v3"
+    }
+  ],
   "api": {
     "openapi": ["api-reference/openapi.yaml", "ko/api-reference/openapi.yaml", "ja/api-reference/openapi.yaml"],
     "baseUrl": "https://api.bizmori.com",

@@ -22,18 +22,27 @@ curl -X PUT "UPLOAD_URL" \
 Once you confirm the upload, the order status changes to `inProgress`. When detection completes, the result is available via:
 
 1. **Webhook** — Subscribe to `order.aiDetection.completed` or `order.aiDetection.failed` events
-2. **Polling** — Call the [Get order](/api-reference/orders/get-order) endpoint until status is `complete` or `failed`
+2. **Polling** — Call [Get order details](/api-reference/orders/get-order-v3) until `status` is `complete` or `failed`
 
-The detection result is included in the order detail response under `aiDetection`:
+When the order is `complete`, the detection result is in `result`. The example below omits the common order fields; see [Get order details](/api-reference/orders/get-order-v3) for the full response.
 
 ```json
 {
   "data": {
+    "type": "aiDetection",
     "orderId": "...",
     "status": "complete",
-    "aiDetection": {
+    "result": {
+      "verdict": "likely_ai",
       "probability": 0.97,
-      "statusCode": 1
+      "options": {
+        "generateHeatmap": true,
+        "generateOverlay": false,
+        "generateThumbnail": true
+      },
+      "originalImageUrl": "https://...",
+      "heatmapUrl": "https://...",
+      "overlayUrl": null
     }
   }
 }
@@ -43,11 +52,11 @@ The detection result is included in the order detail response under `aiDetection
   Test orders return deterministic detection results from the input file name. Use `_ai` for probability `0.98` or `_human` for probability `0.02`. Test orders do not create downloadable heatmap or overlay files.
 </Info>
 
-### Status Codes
+### Verdict
 
-| `statusCode` | Meaning |
-|---|---|
-| `1` | Highly likely AI-generated |
-| `2` | Likely AI-generated |
-| `3` | Likely human-created |
-| `4` | Highly likely human-created |
+| `result.verdict` | Probability range | Meaning |
+|---|---|---|
+| `likely_ai` | ≥ 0.75 | Likely AI-generated |
+| `uncertain_ai` | 0.5 – 0.75 | Possibly AI-generated |
+| `uncertain_real` | 0.25 – 0.5 | Possibly not AI-generated |
+| `likely_real` | < 0.25 | Likely not AI-generated |

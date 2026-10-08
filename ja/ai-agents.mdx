@@ -141,10 +141,10 @@ OpenAPI:      https://docs.bizmori.com/api-reference/openapi.yaml  <- 正式な�
     あります。
   </Accordion>
   <Accordion title='Presigned URL の期限切れを処理しているか' icon='clock'>
-    アップロード用 URL は1時間、ダウンロード用 URL は7日間有効です。時間のかかる
-    バッチ処理の場合、期限切れの URL を再利用せず、
-    [URL 再発行](/ja/api-reference/orders/refresh-urls)エンドポイントを
-    呼び出す必要があります。
+    アップロード用 URL は1時間、[v3 のダウンロード用 URL](/ja/api-reference/orders/download-order-v3) は最大1時間
+    有効です。時間のかかるバッチ処理の場合、期限切れのアップロード用 URL を再利用せず、
+    [URL 再発行](/ja/api-reference/orders/refresh-urls)エンドポイントを呼び出し、
+    ダウンロード用 URL はダウンロードの直前に改めてリクエストする必要があります。
   </Accordion>
 </AccordionGroup>
 

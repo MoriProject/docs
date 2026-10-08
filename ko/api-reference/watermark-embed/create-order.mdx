@@ -44,13 +44,13 @@ Link: </api/v3/orders/wtr-embed>; rel="successor-version"
 
 ## 주문 결과 다운로드
 
-주문이 `complete` 상태가 되면 [다운로드 URL 발급](/ko/api-reference/orders/download-order) 엔드포인트를 사용하여 처리된 파일을 다운로드할 수 있습니다:
+주문이 `complete` 상태가 되면 [주문 결과 다운로드 URL 발급](/ko/api-reference/orders/download-order-v3)을 호출하세요. 한 번의 호출로 결과 파일별 URL(`files[]`)과 결과 전체 ZIP(`archiveUrl`)을 함께 받습니다.
 
 ```bash
-curl -X GET https://api.bizmori.com/api/v2/orders/{orderId}/download \
-  -H "Authorization: Bearer YOUR_API_TOKEN"
+curl -X GET https://api.bizmori.com/api/v3/orders/{orderId}/download \
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 <Warning>
-  일반 주문 파일은 주문 생성 후 **최대 7일**까지 다운로드할 수 있습니다. `sk_test_` 주문은 결과 파일을 만들지 않으므로 다운로드 요청이 `404 PROCESSED_FILE_NOT_FOUND`를 반환합니다.
+  URL은 최대 1시간 동안 유효하므로 다운로드할 때마다 새로 요청하세요. 파일은 주문의 `expiresAt`까지 내려받을 수 있으며, 그 뒤에는 `400 ORDER_EXPIRED`를 반환합니다. `sk_test_` 주문의 URL은 실제 결과가 아니라 고정 샘플 파일을 가리킵니다.
 </Warning>

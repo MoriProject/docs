@@ -193,6 +193,10 @@ requests.post(
 
 ## ステップ4: 結果の確認
 
+<Note>
+  このステップでは、非推奨ですが動作は変わらない `GET /api/v2/orders/{orderId}` を使用します。新しく連携する場合は[注文詳細を取得（v3）](/ja/api-reference/orders/get-order-v3)を使用してください。結果をトップレベルの `statusCode` と `probability` ではなく、`result.verdict` と `result.probability` で返します。
+</Note>
+
 注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して検出完了の通知を受け取ります。検出結果は注文の詳細に直接含まれており、別途ダウンロードのステップはありません。
 
 <CodeGroup>
