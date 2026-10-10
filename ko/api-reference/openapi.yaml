@@ -1865,7 +1865,7 @@ paths:
       summary: 워터마크 삽입 주문 생성
       operationId: createWatermarkEmbedOrder
       deprecated: true
-      description: '**지원 종료 예정.** 이 엔드포인트는 2026년 10월 9일 09:00 KST(00:00 UTC)에 지원 종료 예정입니다. `POST /api/v3/orders/wtr-embed`를 사용하세요.
+      description: '**지원 종료.** 이 엔드포인트는 2026년 10월 9일 09:00 KST(00:00 UTC)에 지원이 종료되었습니다. `POST /api/v3/orders/wtr-embed`를 사용하세요.
 
 
         이 엔드포인트의 모든 응답(인증 오류와 `410` 응답 포함)에는 `Deprecation: true`, `Sunset: Fri, 09 Oct 2026 00:00:00 GMT`, `Link: </api/v3/orders/wtr-embed>; rel="successor-version"` 헤더가 포함됩니다.
@@ -2200,7 +2200,7 @@ paths:
       deprecated: true
       x-mint:
         href: /ko/api-reference/watermark-extract/create-order
-      description: '**지원 종료 예정.** 이 엔드포인트는 2026년 10월 9일 09:00 KST(00:00 UTC)에 지원 종료 예정입니다. `POST /api/v3/orders/wtr-extract`를 사용하세요.
+      description: '**지원 종료.** 이 엔드포인트는 2026년 10월 9일 09:00 KST(00:00 UTC)에 지원이 종료되었습니다. `POST /api/v3/orders/wtr-extract`를 사용하세요.
 
 
         이 엔드포인트의 모든 응답(인증 오류와 `410` 응답 포함)에는 `Deprecation: true`, `Sunset: Fri, 09 Oct 2026 00:00:00 GMT`, `Link: </api/v3/orders/wtr-extract>; rel="successor-version"` 헤더가 포함됩니다.
