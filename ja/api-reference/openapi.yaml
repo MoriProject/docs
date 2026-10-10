@@ -1798,7 +1798,7 @@ paths:
       summary: watermark 埋め込み注文を作成
       operationId: createWatermarkEmbedOrder
       deprecated: true
-      description: '**非推奨。** このエンドポイントは 2026 年 10 月 9 日 09:00 KST（00:00 UTC）にサポートを終了する予定です。`POST /api/v3/orders/wtr-embed` を使用してください。
+      description: '**サポート終了。** このエンドポイントは 2026 年 10 月 9 日 09:00 KST（00:00 UTC）にサポートを終了しました。`POST /api/v3/orders/wtr-embed` を使用してください。
 
 
         このエンドポイントのすべてのレスポンス（認証エラーと `410` レスポンスを含む）には、`Deprecation: true`、`Sunset: Fri, 09 Oct 2026 00:00:00 GMT`、`Link: </api/v3/orders/wtr-embed>; rel="successor-version"` ヘッダーが含まれます。
@@ -2121,7 +2121,7 @@ paths:
       summary: watermark 抽出注文を作成
       operationId: createWatermarkExtractOrder
       deprecated: true
-      description: '**非推奨。** このエンドポイントは 2026 年 10 月 9 日 09:00 KST（00:00 UTC）にサポートを終了する予定です。`POST /api/v3/orders/wtr-extract` を使用してください。
+      description: '**サポート終了。** このエンドポイントは 2026 年 10 月 9 日 09:00 KST（00:00 UTC）にサポートを終了しました。`POST /api/v3/orders/wtr-extract` を使用してください。
 
 
         このエンドポイントのすべてのレスポンス（認証エラーと `410` レスポンスを含む）には、`Deprecation: true`、`Sunset: Fri, 09 Oct 2026 00:00:00 GMT`、`Link: </api/v3/orders/wtr-extract>; rel="successor-version"` ヘッダーが含まれます。
