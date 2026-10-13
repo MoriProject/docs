@@ -6,7 +6,7 @@ This file provides guidance to Claude Code for the MORI API documentation projec
 
 @.claude/repos/mori-biz-was.md
 @.claude/repos/mori-biz-aws.md
-@.claude/repos/mori-admin-rev.md
+@.claude/repos/mori-admin-console.md
 
 ## Project Overview
 
