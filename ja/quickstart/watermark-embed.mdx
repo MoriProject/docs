@@ -667,7 +667,6 @@ export default function WatermarkEmbedUploader() {
 | `400` | 不正なリクエスト、処理が終わっていない注文をダウンロードしたときの `ORDER_NOT_COMPLETED`、または保管期間を過ぎた `ORDER_EXPIRED` | パラメータとファイルの拡張子を確認してください。`complete` になってからダウンロードしてください。期限切れの注文はダウンロードできません |
 | `401` | 認証失敗 | API キーを確認 |
 | `409` | `WATERMARK_V2_CONFLICT`：使用済みの `idempotencyKey` で本文の異なるリクエストを送信 | 新しい注文には新しい `idempotencyKey` を使用してください |
-| `413` | `UPLOAD_FILE_TOO_LARGE`: ファイルが 32 MiB を超えている | 32 MiB 以下のファイルを使用。`files[].byteSize` を送信するとアップロード前に確認可能。送信しない場合はアップロード後に同じ `errorCode` で注文が失敗。[アップロードサイズのエラー](/ja/errors#アップロードサイズのエラー)を参照 |
 | `429` | レート制限、またはプラン使用量の超過時は `PLAN_LIMIT_EXCEEDED` | `code` を確認してください。レート制限は再試行で解消しますが、`PLAN_LIMIT_EXCEEDED` は解消しないためプランのアップグレードが必要です |
 | `503` | `WATERMARK_V2_UNAVAILABLE`：watermark 処理が一時的に利用できない | 同じ `idempotencyKey` でしばらくしてから再試行してください |
 

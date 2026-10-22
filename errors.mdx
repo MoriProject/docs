@@ -54,44 +54,6 @@ The HTTP status code conveys the error category. Use the `code` field for progra
 
 When an order fails after it was created, the order details return `errors.errorCode` and `errors.errorMessage`, and the failed webhook event carries the same values. These codes describe why processing failed (for example, `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED`). See [Failed event error codes](/webhooks#failed-event-error-codes) for the full list.
 
-## Upload size errors
-
-| Error Code | HTTP Status | Description |
-|-----------|-------------|-------------|
-| `UPLOAD_FILE_TOO_LARGE` | 413 | An upload file exceeds the per-file size limit |
-
-Each file you upload to a presigned URL has a size limit. A file exactly at the limit is accepted.
-
-| Service | Limit per file |
-|---------|----------------|
-| Anti-AI | 32 MiB (33,554,432 bytes) |
-| AI Detection | 32 MiB |
-| Watermark embed | 32 MiB for images and PDFs |
-| Watermark extract | 32 MiB for the original file. For the file to inspect, 64 MiB for an image and 32 MiB for a PDF |
-
-To catch an oversized file before you upload it, send its size in bytes as `byteSize` when you create the order: `files[].byteSize` for Anti-AI and watermark embed, `byteSize` for AI Detection, and `file.byteSize` and `file.originalFile.byteSize` for watermark extract. A file over the limit returns `413 UPLOAD_FILE_TOO_LARGE`, no order is created, and no credits are used. If the size passes, the upload URL in the response is signed with it, so the uploaded file must be exactly `byteSize` bytes or S3 rejects the upload with `403`.
-
-If you do not send `byteSize`, the size is checked after upload:
-
-| Service | When | Result |
-|---------|------|--------|
-| Anti-AI | [Confirm order](/api-reference/anti-ai/confirm-order) | `413 UPLOAD_FILE_TOO_LARGE`. The order becomes `failed` and its credits are restored |
-| AI Detection | [Confirm order](/api-reference/ai-detection/confirm-order) | `413 UPLOAD_FILE_TOO_LARGE`. The order stays `pending` and no credits are used. Upload a smaller image to the same upload URL and confirm again |
-| Watermark embed / extract | Right after upload | The order becomes `failed` with `errorCode` `UPLOAD_FILE_TOO_LARGE`, its credits are restored, and one failed webhook is sent |
-
-The 413 response lists each file over the limit. `actualBytes` is the `byteSize` you sent, or the uploaded file size when the check runs after upload.
-
-```json
-{
-  "code": "UPLOAD_FILE_TOO_LARGE",
-  "errors": [
-    { "field": "files[1].byteSize", "reason": "too_large", "limitBytes": 33554432, "actualBytes": 33554433 }
-  ]
-}
-```
-
-Test keys keep the 50 MiB test upload limit below.
-
 ## Test upload errors
 
 | Error Code | HTTP Status | Description |

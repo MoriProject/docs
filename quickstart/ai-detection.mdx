@@ -470,7 +470,6 @@ export default function AiDetectionChecker() {
 |-------------|---------|--------|
 | `400` | Invalid request | Check parameters and file format |
 | `401` | Authentication failed | Verify your API key |
-| `413` | `UPLOAD_FILE_TOO_LARGE`: the image is over 32 MiB | Use an image of 32 MiB or less. Send `byteSize` to catch this before you upload. See [Upload size errors](/errors#upload-size-errors) |
 | `429` | Rate limit, or `PLAN_LIMIT_EXCEEDED` when the plan quota is spent | Check the `code` field. A rate limit clears on retry; `PLAN_LIMIT_EXCEEDED` does not — upgrade the plan |
 
 For the complete error code reference, see [Error Codes](/errors).
