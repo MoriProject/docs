@@ -54,6 +54,44 @@ HTTP 상태 코드가 오류 유형을 나타냅니다. 프로그래밍 방식�
 
 생성된 주문이 처리 중 실패하면 주문 상세의 `errors.errorCode`·`errors.errorMessage`와 실패 웹훅 이벤트에 같은 값이 담깁니다. 이 코드는 처리 실패 원인을 나타냅니다(예: `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED`). 전체 목록은 [실패 이벤트 오류 코드](/ko/webhooks#실패-이벤트-오류-코드)를 참고하세요.
 
+## 업로드 크기 오류
+
+| 오류 코드 | HTTP 상태 | 설명 |
+|-----------|-----------|------|
+| `UPLOAD_FILE_TOO_LARGE` | 413 | 업로드 파일이 파일당 크기 한도를 초과함 |
+
+presigned URL로 올리는 파일에는 파일당 크기 한도가 있습니다. 한도와 정확히 같은 크기는 통과합니다.
+
+| 서비스 | 파일당 한도 |
+|--------|-------------|
+| Anti-AI | 32 MiB(33,554,432바이트) |
+| AI Detection | 32 MiB |
+| 워터마크 삽입 | 이미지·PDF 32 MiB |
+| 워터마크 검출 | 원본 파일 32 MiB. 검사 파일은 이미지 64 MiB, PDF 32 MiB |
+
+한도를 넘는 파일을 업로드 전에 걸러내려면 주문을 만들 때 파일 크기(바이트)를 `byteSize`로 보내세요. Anti-AI·워터마크 삽입은 `files[].byteSize`, AI Detection은 `byteSize`, 워터마크 검출은 `file.byteSize`와 `file.originalFile.byteSize`입니다. 한도를 넘으면 `413 UPLOAD_FILE_TOO_LARGE`를 반환하며, 주문을 만들지 않고 크레딧도 사용하지 않습니다. 통과하면 응답의 업로드 URL에 그 크기가 서명되므로, 올리는 파일은 정확히 `byteSize` 바이트여야 하며 다르면 S3가 `403`으로 거절합니다.
+
+`byteSize`를 보내지 않으면 업로드 뒤에 크기를 확인합니다.
+
+| 서비스 | 확인 시점 | 결과 |
+|--------|-----------|------|
+| Anti-AI | [주문 확정](/ko/api-reference/anti-ai/confirm-order) | `413 UPLOAD_FILE_TOO_LARGE`. 주문은 `failed`가 되고 크레딧은 반환됩니다 |
+| AI Detection | [주문 확정](/ko/api-reference/ai-detection/confirm-order) | `413 UPLOAD_FILE_TOO_LARGE`. 주문은 `pending`으로 남고 크레딧은 사용하지 않습니다. 더 작은 이미지를 같은 업로드 URL에 올린 뒤 다시 확정하세요 |
+| 워터마크 삽입 / 검출 | 업로드 직후 | 주문이 `failed`(`errorCode` `UPLOAD_FILE_TOO_LARGE`)가 되고, 크레딧이 반환되며, 실패 웹훅이 한 번 전송됩니다 |
+
+413 응답은 한도를 넘은 파일을 모두 나열합니다. `actualBytes`는 보낸 `byteSize`이거나, 업로드 뒤에 확인한 경우 올린 파일의 크기입니다.
+
+```json
+{
+  "code": "UPLOAD_FILE_TOO_LARGE",
+  "errors": [
+    { "field": "files[1].byteSize", "reason": "too_large", "limitBytes": 33554432, "actualBytes": 33554433 }
+  ]
+}
+```
+
+테스트 키는 아래의 테스트 업로드 한도(50 MiB)를 그대로 따릅니다.
+
 ## 테스트 업로드 오류
 
 | 오류 코드 | HTTP 상태 | 설명 |

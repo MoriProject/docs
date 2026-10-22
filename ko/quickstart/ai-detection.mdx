@@ -481,6 +481,7 @@ export default function AiDetectionChecker() {
 |----------------|------|------|
 | `400` | 잘못된 요청 | 파라미터 및 파일 형식 확인 |
 | `401` | 인증 실패 | API 키 확인 |
+| `413` | `UPLOAD_FILE_TOO_LARGE`: 이미지가 32 MiB를 넘음 | 32 MiB 이하 이미지 사용. `byteSize`를 보내면 업로드 전에 확인 가능. [업로드 크기 오류](/ko/errors#업로드-크기-오류) 참고 |
 | `429` | 레이트 리밋, 또는 요금제 사용량 소진 시 `PLAN_LIMIT_EXCEEDED` | `code` 값을 확인하세요. 레이트 리밋은 재시도로 풀리지만 `PLAN_LIMIT_EXCEEDED`는 풀리지 않으므로 요금제를 업그레이드해야 합니다 |
 
 전체 에러 코드는 [에러 코드](/ko/errors) 페이지를 참고하세요.

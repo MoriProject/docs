@@ -48,6 +48,12 @@ components:
         code:
           type: string
           description: Error code
+    UploadByteSize:
+      type: integer
+      minimum: 1
+      maximum: 9007199254740991
+      example: 1048576
+      description: 'Size in bytes of the file you will upload (optional). Send the exact size, for example `File.size` in a browser. BIZ MORI checks it against the upload size limit when you create the order: a file over the limit returns `413 UPLOAD_FILE_TOO_LARGE`, no order is created, and no credits are used. If it passes, the `uploadUrl` in the order creation response is signed with this size, so the `PUT` body must be exactly this many bytes or S3 rejects the upload with `403`. If you resize or compress the file before uploading, send the new size. Without `byteSize`, the upload URL has no size condition and the size is checked after upload. Upload URLs you receive again later (a retry with the same `idempotencyKey`, order details, or refreshed URLs) are not signed with the size. Ignored for a file that uses `originalFileUrl`. See [Upload size errors](/errors#upload-size-errors).'
     PageInfo:
       type: object
       properties:
@@ -1405,6 +1411,55 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: USAGE_LIMIT_EXCEEDED
+    UploadFileTooLarge:
+      description: 'A file exceeds the per-file upload size limit. See [Upload size errors](/errors#upload-size-errors).'
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - code
+            - errors
+            properties:
+              code:
+                type: string
+                enum:
+                - UPLOAD_FILE_TOO_LARGE
+              errors:
+                type: array
+                description: 'One entry for each file over the limit'
+                items:
+                  type: object
+                  required:
+                  - field
+                  - reason
+                  - limitBytes
+                  - actualBytes
+                  properties:
+                    field:
+                      type: string
+                      description: 'Request field of the file, such as `files[1].byteSize` or `byteSize`. The same path is used whether the size came from `byteSize` or from the uploaded file'
+                      example: files[1].byteSize
+                    reason:
+                      type: string
+                      enum:
+                      - too_large
+                      description: 'Always `too_large`'
+                    limitBytes:
+                      type: integer
+                      description: 'Upload size limit for this file, in bytes'
+                      example: 33554432
+                    actualBytes:
+                      type: integer
+                      description: 'File size in bytes: the `byteSize` you sent when you create the order, or the size of the uploaded file after upload'
+                      example: 33554433
+          example:
+            code: UPLOAD_FILE_TOO_LARGE
+            errors:
+            - field: files[1].byteSize
+              reason: too_large
+              limitBytes: 33554432
+              actualBytes: 33554433
     InternalError:
       description: Internal server error
       content:
@@ -1482,6 +1537,12 @@ paths:
 
         In this case, `outputTargets` array is required and must match the length of `files` array.
 
+
+        ## Upload size limit
+
+
+        Each upload file can be up to 32 MiB (33,554,432 bytes). Send `files[].byteSize` to check the size before you upload. A file over the limit returns `413 UPLOAD_FILE_TOO_LARGE`, no order is created, and no credits are used. Without `byteSize`, the size is checked when you call `/confirm`. See [Upload size errors](/errors#upload-size-errors).
+
         '
       tags:
       - Anti-AI
@@ -1517,6 +1578,8 @@ paths:
                         type: string
                         description: File name (with extension)
                         example: image.jpg
+                      byteSize:
+                        $ref: '#/components/schemas/UploadByteSize'
                       originalFileUrl:
                         type: string
                         format: uri
@@ -1650,6 +1713,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
         '500':
@@ -1691,6 +1756,9 @@ paths:
 
         - Orders where all files are in URL mode are already `inProgress` and don''t need confirm
 
+
+        If any uploaded file is over 32 MiB, this endpoint returns `413 UPLOAD_FILE_TOO_LARGE`. The order becomes `failed` and its credits are restored. Create a new order with smaller files.
+
         '
       tags:
       - Anti-AI
@@ -1725,6 +1793,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2472,6 +2542,12 @@ paths:
 
         jpg, jpeg, png, webp, bmp, tiff
 
+
+        ## Upload size limit
+
+
+        The image can be up to 32 MiB (33,554,432 bytes). Send `byteSize` to check the size before you upload. A file over the limit returns `413 UPLOAD_FILE_TOO_LARGE`, no order is created, and no credits are used. Without `byteSize`, the size is checked when you call `/confirm`. See [Upload size errors](/errors#upload-size-errors).
+
         '
       tags:
       - AI Detection
@@ -2496,6 +2572,8 @@ paths:
                   maxLength: 64
                   description: Order name (optional, auto-generated if not provided)
                   example: my-detection-order
+                byteSize:
+                  $ref: '#/components/schemas/UploadByteSize'
                 fileName:
                   type: string
                   description: 'Image file name with extension. Supported: jpg, jpeg, png, webp, bmp,
@@ -2561,6 +2639,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
       x-codeSamples:
@@ -2596,6 +2676,9 @@ paths:
 
         The detection result is delivered via webhook (`order.aiDetection.completed` or `order.aiDetection.failed`),
         or can be retrieved by polling the [Get order](/api-reference/orders/get-order) endpoint.
+
+
+        If the uploaded image is over 32 MiB, this endpoint returns `413 UPLOAD_FILE_TOO_LARGE`. The order stays `pending` and no credits are used. Upload an image of 32 MiB or less to the same upload URL and call this endpoint again. If the URL has expired, [refresh it](/api-reference/orders/refresh-urls) first.
 
         '
       tags:
@@ -2646,6 +2729,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -3766,6 +3851,7 @@ paths:
         - Processing starts automatically when every file is uploaded. There is no confirm step
         - Orders whose files are not uploaded within 12 hours become `failed`
         - Poll [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) until `status` is `complete`, then call the download endpoint
+        - Each file can be up to 32 MiB. Send `files[].byteSize` to check the size before you upload: a file over the limit returns `413 UPLOAD_FILE_TOO_LARGE`, no order is created, and no credits are used. Without `byteSize`, an uploaded file over the limit fails the order right away with `errorCode` `UPLOAD_FILE_TOO_LARGE`, restores the credits, and sends one failed webhook. See [Upload size errors](/errors#upload-size-errors).
       tags:
       - Watermark Embed
       security:
@@ -3802,6 +3888,8 @@ paths:
                         maxLength: 255
                         description: 'File name with extension. Supported: `jpg`, `jpeg`, `png`, `webp`,
                           `bmp`, `tif`, `tiff`, `pdf`.'
+                      byteSize:
+                        $ref: '#/components/schemas/UploadByteSize'
                       originalFileUrl:
                         type: string
                         format: uri
@@ -3885,6 +3973,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: WATERMARK_V2_CONFLICT
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
         '429':
           description: Too many requests
           content:
@@ -4023,6 +4113,7 @@ paths:
         - The response `files[]` contains two entries: `files[0]` is the original and `files[1]` is the file to inspect. Upload each with `PUT` to its `uploadUrl`
         - Processing starts automatically when both files are uploaded. Each order uses 1 credit, and `unsupported` or `error` results are refunded
         - Read the outcome from `result` in [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3)
+        - The original file can be up to 32 MiB. The file to inspect can be up to 64 MiB for an image and 32 MiB for a PDF. Send `byteSize` for each file to check the size before you upload: a file over the limit returns `413 UPLOAD_FILE_TOO_LARGE`, no order is created, and no credits are used. Without `byteSize`, an uploaded file over the limit fails the order right away with `errorCode` `UPLOAD_FILE_TOO_LARGE`, refunds the credit, and sends one failed webhook. See [Upload size errors](/errors#upload-size-errors).
       tags:
       - Watermark Extract
       security:
@@ -4054,12 +4145,16 @@ paths:
                       type: string
                       maxLength: 255
                       description: File name of the file to inspect, with extension
+                    byteSize:
+                      $ref: '#/components/schemas/UploadByteSize'
                     originalFile:
                       type: object
                       required:
                       - fileName
                       description: The original file the watermark was embedded into
                       properties:
+                        byteSize:
+                          $ref: '#/components/schemas/UploadByteSize'
                         fileName:
                           type: string
                           maxLength: 255
@@ -4088,6 +4183,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: WATERMARK_V2_CONFLICT
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
         '429':
           description: Too many requests
           content:
