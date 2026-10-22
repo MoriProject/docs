@@ -709,7 +709,6 @@ export default function WatermarkExtractChecker() {
 | `401` | 인증 실패 | API 키 확인 |
 | `404` | `ORDER_NOT_FOUND`, 또는 요청한 적 없는 locale의 `REPORT_NOT_FOUND` | 주문 ID를 확인하고, 보고서는 생성한 뒤 조회하세요 |
 | `409` | 이미 사용한 `idempotencyKey`의 `WATERMARK_V2_CONFLICT`, 또는 보고서를 만들 수 없는 결과의 `REPORT_NOT_AVAILABLE` | 새 `idempotencyKey`를 사용하거나 `result.reportSupported`를 확인하세요 |
-| `413` | `UPLOAD_FILE_TOO_LARGE`: 원본 파일이 32 MiB, 또는 검사 파일이 64 MiB(이미지)·32 MiB(PDF)를 넘음 | 더 작은 파일 사용. 파일마다 `byteSize`를 보내면 업로드 전에 확인 가능. 보내지 않으면 업로드 뒤 같은 `errorCode`로 주문 실패. [업로드 크기 오류](/ko/errors#업로드-크기-오류) 참고 |
 | `429` | 레이트 리밋, 또는 요금제 사용량 소진 시 `PLAN_LIMIT_EXCEEDED` | `code` 값을 확인하세요. 레이트 리밋은 재시도로 풀리지만 `PLAN_LIMIT_EXCEEDED`는 풀리지 않으므로 요금제를 업그레이드해야 합니다 |
 | `503` | 워터마크 처리 또는 보고서 생성을 일시적으로 사용할 수 없음 | 잠시 후 다시 시도하세요 |
 

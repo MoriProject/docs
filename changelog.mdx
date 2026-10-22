@@ -2,20 +2,6 @@
 title: "What's new"
 ---
 
-<Update label="API" description="2026-10-22">
-
-### 📏 Upload size limits for Anti-AI, AI Detection, and watermark uploads
-
-BIZ MORI now rejects an upload file over the per-file size limit with `413 UPLOAD_FILE_TOO_LARGE`. See [Upload size errors](/errors#upload-size-errors).
-
-- **Limits**: Anti-AI and AI Detection accept files up to 32 MiB. Watermark limits are unchanged: 32 MiB for images and PDFs, and 64 MiB for an image to inspect in watermark extract.
-- **New optional `byteSize` field**: send the file size when you create an order to reject an oversized file before you upload it. No order is created and no credits are used. When the size passes, the upload URL in the response is signed with it, so the uploaded file must be exactly that size.
-- **Checks after upload**: without `byteSize`, Anti-AI confirm returns 413 and fails the order with its credits restored. AI Detection confirm returns 413 and keeps the order `pending`, so you can upload a smaller image and confirm again. A watermark embed or extract order fails right after upload with `errorCode` `UPLOAD_FILE_TOO_LARGE`, instead of waiting 12 hours for `UPLOAD_EXPIRED`.
-
-Integrations that do not send `byteSize` keep working. Only files over the limit are affected.
-
-</Update>
-
 <Update label="API" description="2026-10-08">
 
 ### 🔄 One response shape for v3 order details and downloads (breaking change)
