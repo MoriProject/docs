@@ -709,6 +709,7 @@ The public result contains only `detectionStatus`, `reportSupported`, and `water
 | `401` | Authentication failed | Verify your API key |
 | `404` | `ORDER_NOT_FOUND`, or `REPORT_NOT_FOUND` for a locale you haven't requested | Check the order ID, and create the report before getting it |
 | `409` | `WATERMARK_V2_CONFLICT` for a reused `idempotencyKey`, or `REPORT_NOT_AVAILABLE` when the result does not support a report | Use a new `idempotencyKey`, or check `result.reportSupported` |
+| `413` | `UPLOAD_FILE_TOO_LARGE`: the original file is over 32 MiB, or the file to inspect is over 64 MiB (image) or 32 MiB (PDF) | Use smaller files. Send `byteSize` for each file to catch this before you upload; without it, the order fails after upload with the same `errorCode`. See [Upload size errors](/errors#upload-size-errors) |
 | `429` | Rate limit, or `PLAN_LIMIT_EXCEEDED` when the plan quota is spent | Check the `code` field. A rate limit clears on retry; `PLAN_LIMIT_EXCEEDED` does not — upgrade the plan |
 | `503` | Watermark processing or report generation is temporarily unavailable | Retry later |
 

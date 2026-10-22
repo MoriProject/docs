@@ -53,6 +53,44 @@ HTTP ステータスコードがエラーの種類を示します。プログラ
 
 作成済みの注文が処理中に失敗すると、注文詳細の `errors.errorCode`・`errors.errorMessage` と失敗Webhookイベントに同じ値が入ります。このコードは処理失敗の原因を表します（例: `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED`）。一覧は[失敗イベントのエラーコード](/ja/webhooks#失敗イベントのエラーコード)を参照してください。
 
+## アップロードサイズのエラー
+
+| エラーコード | HTTP ステータス | 説明 |
+|-----------|-----------|------|
+| `UPLOAD_FILE_TOO_LARGE` | 413 | アップロードファイルが 1 ファイルあたりのサイズ上限を超えています |
+
+プリサインド URL にアップロードするファイルには、1 ファイルあたりのサイズ上限があります。上限とちょうど同じサイズは受け付けます。
+
+| サービス | 1 ファイルあたりの上限 |
+|----------|------------------------|
+| Anti-AI | 32 MiB（33,554,432 バイト） |
+| AI Detection | 32 MiB |
+| watermark 埋め込み | 画像・PDF 32 MiB |
+| watermark 検出 | 元ファイル 32 MiB。検査ファイルは画像 64 MiB、PDF 32 MiB |
+
+上限を超えるファイルをアップロード前に検出するには、注文作成時にファイルサイズ（バイト）を `byteSize` として送信してください。Anti-AI と watermark 埋め込みは `files[].byteSize`、AI Detection は `byteSize`、watermark 検出は `file.byteSize` と `file.originalFile.byteSize` です。上限を超えると `413 UPLOAD_FILE_TOO_LARGE` を返し、注文は作成されず、クレジットも使用されません。上限内であればレスポンスのアップロード URL にそのサイズが署名されるため、アップロードするファイルはちょうど `byteSize` バイトである必要があり、異なると S3 が `403` で拒否します。
+
+`byteSize` を送信しない場合は、アップロード後にサイズを確認します。
+
+| サービス | 確認するタイミング | 結果 |
+|----------|--------------------|------|
+| Anti-AI | [注文の確定](/ja/api-reference/anti-ai/confirm-order) | `413 UPLOAD_FILE_TOO_LARGE`。注文は `failed` になり、クレジットは返還されます |
+| AI Detection | [注文の確定](/ja/api-reference/ai-detection/confirm-order) | `413 UPLOAD_FILE_TOO_LARGE`。注文は `pending` のままで、クレジットは使用されません。より小さい画像を同じアップロード URL にアップロードしてから、もう一度確定してください |
+| watermark 埋め込み / 検出 | アップロード直後 | 注文が `failed`（`errorCode` は `UPLOAD_FILE_TOO_LARGE`）になり、クレジットが返還され、失敗Webhookが 1 回送信されます |
+
+413 レスポンスには上限を超えたファイルがすべて含まれます。`actualBytes` は送信した `byteSize`、またはアップロード後に確認した場合はアップロードしたファイルのサイズです。
+
+```json
+{
+  "code": "UPLOAD_FILE_TOO_LARGE",
+  "errors": [
+    { "field": "files[1].byteSize", "reason": "too_large", "limitBytes": 33554432, "actualBytes": 33554433 }
+  ]
+}
+```
+
+テストキーには、テストアップロードの上限（50 MiB）が引き続き適用されます。
+
 ## 使用量・プランエラー
 
 | エラーコード | HTTP ステータス | 説明 |

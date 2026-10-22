@@ -46,6 +46,12 @@ components:
         code:
           type: string
           description: エラーコード
+    UploadByteSize:
+      type: integer
+      minimum: 1
+      maximum: 9007199254740991
+      example: 1048576
+      description: 'アップロードするファイルのバイト数（任意）。ブラウザの `File.size` のように正確なサイズを送信してください。注文作成時にアップロードサイズの上限と比較し、上限を超えると `413 UPLOAD_FILE_TOO_LARGE` を返し、注文は作成されず、クレジットも使用されません。上限内であれば注文作成レスポンスの `uploadUrl` にこのサイズが署名されるため、`PUT` の本文はちょうどこのバイト数である必要があり、異なると S3 が `403` で拒否します。アップロード前にファイルをリサイズまたは圧縮する場合は、変更後のサイズを送信してください。`byteSize` を送信しない場合、アップロード URL にサイズ条件はなく、アップロード後にサイズを確認します。後から再取得したアップロード URL（同じ `idempotencyKey` での再リクエスト、注文詳細、URL の再発行）にはサイズを署名しません。`originalFileUrl` を使うファイルでは無視されます。[アップロードサイズのエラー](/ja/errors#アップロードサイズのエラー)を参照してください。'
     PageInfo:
       type: object
       properties:
@@ -1358,6 +1364,55 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
           example:
             code: USAGE_LIMIT_EXCEEDED
+    UploadFileTooLarge:
+      description: '1 ファイルあたりのアップロードサイズ上限を超えています。[アップロードサイズのエラー](/ja/errors#アップロードサイズのエラー)を参照してください。'
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+            - code
+            - errors
+            properties:
+              code:
+                type: string
+                enum:
+                - UPLOAD_FILE_TOO_LARGE
+              errors:
+                type: array
+                description: '上限を超えたファイルごとに 1 件'
+                items:
+                  type: object
+                  required:
+                  - field
+                  - reason
+                  - limitBytes
+                  - actualBytes
+                  properties:
+                    field:
+                      type: string
+                      description: 'そのファイルのリクエストフィールド（例: `files[1].byteSize`、`byteSize`）。サイズを `byteSize` で確認した場合もアップロードしたファイルで確認した場合も同じパスを使います'
+                      example: files[1].byteSize
+                    reason:
+                      type: string
+                      enum:
+                      - too_large
+                      description: '常に `too_large`'
+                    limitBytes:
+                      type: integer
+                      description: 'このファイルのアップロードサイズ上限（バイト）'
+                      example: 33554432
+                    actualBytes:
+                      type: integer
+                      description: 'ファイルサイズ（バイト）。注文作成時は送信した `byteSize`、アップロード後はアップロードしたファイルのサイズです'
+                      example: 33554433
+          example:
+            code: UPLOAD_FILE_TOO_LARGE
+            errors:
+            - field: files[1].byteSize
+              reason: too_large
+              limitBytes: 33554432
+              actualBytes: 33554433
     InternalError:
       description: 内部サーバーエラー
       content:
@@ -1415,7 +1470,13 @@ paths:
 
         `mode.zeroCopy: true` の場合、処理結果は顧客が提供したプリサインドURLへ直接アップロードされます。
 
-        この場合、`outputTargets` 配列が必須であり、`files` 配列と同じ長さである必要があります。'
+        この場合、`outputTargets` 配列が必須であり、`files` 配列と同じ長さである必要があります。
+
+
+        ## アップロードサイズの上限
+
+
+        アップロードするファイルは 1 ファイルあたり 32 MiB（33,554,432 バイト）までです。アップロード前にサイズを確認するには `files[].byteSize` を送信してください。上限を超えるファイルがあると `413 UPLOAD_FILE_TOO_LARGE` を返し、注文は作成されず、クレジットも使用されません。`byteSize` を送信しない場合は、`/confirm` を呼び出したときにサイズを確認します。[アップロードサイズのエラー](/ja/errors#アップロードサイズのエラー)を参照してください。'
       tags:
       - Anti-AI
       security:
@@ -1450,6 +1511,8 @@ paths:
                         type: string
                         description: ファイル名（拡張子を含む）
                         example: image.jpg
+                      byteSize:
+                        $ref: '#/components/schemas/UploadByteSize'
                       originalFileUrl:
                         type: string
                         format: uri
@@ -1578,6 +1641,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
         '500':
@@ -1614,7 +1679,10 @@ paths:
 
         - 混合モードでは、アップロードファイルのみS3への存在が確認され、URLファイルはすでに準備完了しています
 
-        - すべてのファイルがURLモードの注文はすでに `inProgress` のため、confirmは不要です'
+        - すべてのファイルがURLモードの注文はすでに `inProgress` のため、confirmは不要です
+
+
+        アップロードしたファイルのいずれかが 32 MiB を超えると `413 UPLOAD_FILE_TOO_LARGE` を返します。注文は `failed` になり、クレジットは返還されます。より小さいファイルで新しい注文を作成してください。'
       tags:
       - Anti-AI
       security:
@@ -1648,6 +1716,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2366,7 +2436,13 @@ paths:
         ## 対応形式
 
 
-        jpg, jpeg, png, webp, bmp, tiff'
+        jpg, jpeg, png, webp, bmp, tiff
+
+
+        ## アップロードサイズの上限
+
+
+        画像は 32 MiB（33,554,432 バイト）までです。アップロード前にサイズを確認するには `byteSize` を送信してください。上限を超えると `413 UPLOAD_FILE_TOO_LARGE` を返し、注文は作成されず、クレジットも使用されません。`byteSize` を送信しない場合は、`/confirm` を呼び出したときにサイズを確認します。[アップロードサイズのエラー](/ja/errors#アップロードサイズのエラー)を参照してください。'
       tags:
       - AI Detection
       security:
@@ -2390,6 +2466,8 @@ paths:
                   maxLength: 64
                   description: 注文名（任意、未指定の場合は自動生成）
                   example: my-detection-order
+                byteSize:
+                  $ref: '#/components/schemas/UploadByteSize'
                 fileName:
                   type: string
                   description: '拡張子を含む画像ファイル名。対応形式: jpg, jpeg, png, webp, bmp, tiff'
@@ -2452,6 +2530,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
         '429':
           $ref: '#/components/responses/UsageLimitExceeded'
       x-codeSamples:
@@ -2482,7 +2562,10 @@ paths:
         に変わります。
 
 
-        検知結果はWebhook（`order.aiDetection.completed` または `order.aiDetection.failed`）で通知されるか、[注文取得](/ja/api-reference/orders/get-order)エンドポイントをポーリングして取得できます。'
+        検知結果はWebhook（`order.aiDetection.completed` または `order.aiDetection.failed`）で通知されるか、[注文取得](/ja/api-reference/orders/get-order)エンドポイントをポーリングして取得できます。
+
+
+        アップロードした画像が 32 MiB を超えると `413 UPLOAD_FILE_TOO_LARGE` を返します。注文は `pending` のままで、クレジットは使用されません。32 MiB 以下の画像を同じアップロード URL に再度アップロードしてから、このエンドポイントをもう一度呼び出してください。URL の有効期限が切れている場合は、先に [URL を再発行](/ja/api-reference/orders/refresh-urls)してください。'
       tags:
       - AI Detection
       security:
@@ -2529,6 +2612,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -3565,6 +3650,7 @@ paths:
         - すべてのファイルのアップロードが終わると処理が自動で始まります。confirm の呼び出しはありません
         - 12 時間以内にアップロードされない注文は `failed` になります
         - [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) で `status` が `complete` になるまで照会してから、ダウンロード API を呼び出してください
+        - 1 ファイルあたり 32 MiB までです。アップロード前にサイズを確認するには `files[].byteSize` を送信してください。上限を超えると `413 UPLOAD_FILE_TOO_LARGE` を返し、注文は作成されず、クレジットも使用されません。`byteSize` なしで上限を超えるファイルをアップロードすると、注文はすぐに `failed`（`errorCode` は `UPLOAD_FILE_TOO_LARGE`）になり、クレジットが返還され、失敗Webhookが 1 回送信されます。[アップロードサイズのエラー](/ja/errors#アップロードサイズのエラー)を参照してください。
       tags:
       - Watermark Embed
       security:
@@ -3599,6 +3685,8 @@ paths:
                         type: string
                         maxLength: 255
                         description: '拡張子を含むファイル名。対応形式: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, `pdf`'
+                      byteSize:
+                        $ref: '#/components/schemas/UploadByteSize'
                       originalFileUrl:
                         type: string
                         format: uri
@@ -3680,6 +3768,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: WATERMARK_V2_CONFLICT
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
         '429':
           description: リクエスト回数の超過
           content:
@@ -3818,6 +3908,7 @@ paths:
         - レスポンスの `files[]` は 2 件です。`files[0]` が元ファイル、`files[1]` が検査ファイルで、それぞれ `uploadUrl` へ `PUT` でアップロードします
         - 2 つのファイルのアップロードが終わると処理が自動で始まります。注文あたり 1 クレジットを使用し、`unsupported`・`error` の結果は返金されます
         - 結果は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) の `result` で確認します
+        - 元ファイルは 32 MiB まで、検査ファイルは画像 64 MiB・PDF 32 MiB までです。アップロード前にサイズを確認するにはファイルごとに `byteSize` を送信してください。上限を超えると `413 UPLOAD_FILE_TOO_LARGE` を返し、注文は作成されず、クレジットも使用されません。`byteSize` なしで上限を超えるファイルをアップロードすると、注文はすぐに `failed`（`errorCode` は `UPLOAD_FILE_TOO_LARGE`）になり、クレジットが返金され、失敗Webhookが 1 回送信されます。[アップロードサイズのエラー](/ja/errors#アップロードサイズのエラー)を参照してください。
       tags:
       - Watermark Extract
       security:
@@ -3848,12 +3939,16 @@ paths:
                       type: string
                       maxLength: 255
                       description: 拡張子を含む検査ファイル名
+                    byteSize:
+                      $ref: '#/components/schemas/UploadByteSize'
                     originalFile:
                       type: object
                       required:
                       - fileName
                       description: watermark を埋め込んだ元ファイル
                       properties:
+                        byteSize:
+                          $ref: '#/components/schemas/UploadByteSize'
                         fileName:
                           type: string
                           maxLength: 255
@@ -3882,6 +3977,8 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
               example:
                 code: WATERMARK_V2_CONFLICT
+        '413':
+          $ref: '#/components/responses/UploadFileTooLarge'
         '429':
           description: リクエスト回数の超過
           content:
