@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  title: BIZ MORI API
+  title: ContentCare API
   version: 2.0.0
-  description: 'BIZ MORI API は、デジタルコンテンツ保護のための4つのコアサービスを提供します:
+  description: 'ContentCare API は、デジタルコンテンツ保護のための4つのコアサービスを提供します:
 
     - **Anti-AI**: 画像をAI学習から保護
 
@@ -14,7 +14,7 @@ info:
 
     - **テストAPIキー**: `sk_test_` プレフィックスのキーは同じBearer認証を使用し、実際の処理サービスの実行やクレジットの消費なしに注文ライフサイクルを検証できます。テストアップロードの内容は破棄され、結果ファイルは作成されません'
   contact:
-    name: BIZ MORI サポート
+    name: ContentCare サポート
     email: support@contentcare.ai
   license:
     name: Proprietary
@@ -1268,7 +1268,7 @@ components:
           enum:
           - watermarkDetection
           - aiDetection
-          description: BIZ MORI が注文の種類から決定
+          description: ContentCare が注文の種類から決定
         locale:
           type: string
           enum:
@@ -3602,7 +3602,7 @@ paths:
                       originalFileUrl:
                         type: string
                         format: uri
-                        description: 元ファイルの公開 HTTPS URL(任意)。指定すると BIZ MORI がファイルをダウンロードし(最大 32 MiB、リダイレクト非対応)、そのファイルの
+                        description: 元ファイルの公開 HTTPS URL(任意)。指定すると ContentCare がファイルをダウンロードし(最大 32 MiB、リダイレクト非対応)、そのファイルの
                           `uploadUrl` は発行しません。
                       watermarks:
                         type: array
@@ -4492,7 +4492,7 @@ paths:
       summary: 注文レポートを作成
       operationId: createOrderReport
       description: |
-        注文の PDF 分析レポートを作成します。レポートの種類は BIZ MORI が注文の種類から決めるため、送信しません。
+        注文の PDF 分析レポートを作成します。レポートの種類は ContentCare が注文の種類から決めるため、送信しません。
 
         - v3 API で作成した watermark 抽出注文 → `watermarkDetection`
         - AI Detection 注文 → `aiDetection`

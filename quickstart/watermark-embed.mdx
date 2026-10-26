@@ -13,7 +13,7 @@ Every endpoint here is plain HTTPS and JSON, so the same calls work from a serve
 
 ## Prerequisites
 
-- A BIZ MORI API key ([get one here](https://app.contentcare.ai/keys))
+- A ContentCare API key ([get one here](https://app.contentcare.ai/keys))
 - An image or PDF file to watermark (`jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, or `pdf`)
 
 <Info>
@@ -175,7 +175,7 @@ order = res.json()['data']
 - `expiresAt` is when the order files are deleted. Download your results before then.
 
 <Tip>
-  One order can hold up to 100 files, and images and PDFs can be mixed. If a file is already hosted, send its public HTTPS URL in `originalFileUrl` instead of uploading it. BIZ MORI downloads the file (up to 32 MiB, redirects are not followed), and that file's `uploadUrl` is `null`.
+  One order can hold up to 100 files, and images and PDFs can be mixed. If a file is already hosted, send its public HTTPS URL in `originalFileUrl` instead of uploading it. ContentCare downloads the file (up to 32 MiB, redirects are not followed), and that file's `uploadUrl` is `null`.
 </Tip>
 
 <Note>

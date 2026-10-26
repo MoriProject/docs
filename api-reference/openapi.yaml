@@ -1,8 +1,8 @@
 openapi: "3.0.0"
 info:
-  title: BIZ MORI API
+  title: ContentCare API
   version: 2.0.0
-  description: 'BIZ MORI API provides four core services for digital content protection:
+  description: 'ContentCare API provides four core services for digital content protection:
 
     - **Anti-AI**: Protect images from AI training
 
@@ -16,7 +16,7 @@ info:
 
     '
   contact:
-    name: BIZ MORI Support
+    name: ContentCare Support
     email: support@contentcare.ai
   license:
     name: Proprietary
@@ -1315,7 +1315,7 @@ components:
           enum:
           - watermarkDetection
           - aiDetection
-          description: Set by BIZ MORI from the order type
+          description: Set by ContentCare from the order type
         locale:
           type: string
           enum:
@@ -2436,7 +2436,7 @@ paths:
     post:
       summary: Create AI Detection order
       operationId: createAiDetectionOrder
-      description: 'Creates an AI Detection order and issues an upload URL for the image. Live keys receive an S3 presigned URL; test keys receive an absolute BIZ MORI test-upload URL.
+      description: 'Creates an AI Detection order and issues an upload URL for the image. Live keys receive an S3 presigned URL; test keys receive an absolute ContentCare test-upload URL.
 
 
         ## Flow
@@ -2444,7 +2444,7 @@ paths:
 
         1. Call this endpoint to receive an upload URL
 
-        2. Upload the image using the live S3 URL or test BIZ MORI URL
+        2. Upload the image using the live S3 URL or test ContentCare URL
 
         3. Call `POST /api/v2/orders/ai-detection/confirm` to start async detection
 
@@ -2999,7 +2999,7 @@ paths:
 
         - Only available for orders with `pending` status
 
-        - For test orders, the response contains a BIZ MORI test upload URL instead of
+        - For test orders, the response contains a ContentCare test upload URL instead of
         a storage presigned URL
 
         '
@@ -3805,7 +3805,7 @@ paths:
                       originalFileUrl:
                         type: string
                         format: uri
-                        description: Public HTTPS URL of the original file (optional). When set, BIZ MORI
+                        description: Public HTTPS URL of the original file (optional). When set, ContentCare
                           downloads the file (up to 32 MiB, redirects not followed) and no `uploadUrl` is
                           issued for it.
                       watermarks:
@@ -4698,7 +4698,7 @@ paths:
       summary: Create an order report
       operationId: createOrderReport
       description: |
-        Create a PDF analysis report for an order. BIZ MORI picks the report type from the order type, so you don't send it:
+        Create a PDF analysis report for an order. ContentCare picks the report type from the order type, so you don't send it:
 
         - Watermark extract orders created with the v3 API → `watermarkDetection`
         - AI Detection orders → `aiDetection`

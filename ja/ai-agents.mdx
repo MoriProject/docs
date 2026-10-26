@@ -1,6 +1,6 @@
 ---
 title: 'AI エージェント連携'
-description: 'Claude Code、Cursor、Codex に貼り付けるだけで、BIZ MORI API 連携に必要なすべてのルールが伝わります'
+description: 'Claude Code、Cursor、Codex に貼り付けるだけで、ContentCare API 連携に必要なすべてのルールが伝わります'
 ---
 
 ## このプロンプトをコピーしてください
@@ -10,13 +10,13 @@ description: 'Claude Code、Cursor、Codex に貼り付けるだけで、BIZ MOR
 このプロンプトは意図的に短くしてあります。API 仕様をそのまま書き写す代わりに、エージェントが自力ではやらない3つのことだけを指示します。**コードを書く前にドキュメントを読んでリスクを報告させ**、**出荷してはいけないミスを明確に禁止し**（confirm ステップの省略、Webhook 署名の未検証、API キーのハードコーディング）、最後に**連携が実際に動作することを証明させます** — 動作すると主張するだけで終わらせないためです。
 
 ```text wrap
-BIZ MORI API を統合してください。
+ContentCare API を統合してください。
 
 ドキュメント:    https://docs.contentcare.ai
 全文ドキュメント: https://docs.contentcare.ai/llms-full.txt          <- ガイド全文（プレーンテキスト）
 OpenAPI:      https://docs.contentcare.ai/api-reference/openapi.yaml  <- 正式なスキーマ
 ベース URL:    https://api.bizmori.com
-認証:         Authorization: Bearer $BIZMORI_API_KEY  （環境変数から読み込むこと。ハードコーディングやログ出力は禁止）
+認証:         Authorization: Bearer $CONTENTCARE_API_KEY  （環境変数から読み込むこと。ハードコーディングやログ出力は禁止）
 サービス:      <Anti-AI | Watermark Embed | Watermark Extract | AI Detection>
 スタック:      <例: TypeScript + Express, Python + FastAPI>
 作業内容:      <実装してほしい内容>
@@ -64,22 +64,22 @@ OpenAPI:      https://docs.contentcare.ai/api-reference/openapi.yaml  <- 正式�
   <Tab title="Claude Code">
     一回限りの作業であれば、そのままセッションに貼り付ければ十分です。
 
-    すべてのセッションで自動的に読み込ませたい場合は、プロンプトを `.claude/bizmori-api.md` として保存し、`CLAUDE.md` から import してください。
+    すべてのセッションで自動的に読み込ませたい場合は、プロンプトを `.claude/contentcare-api.md` として保存し、`CLAUDE.md` から import してください。
 
     ```markdown CLAUDE.md
-    @.claude/bizmori-api.md
+    @.claude/contentcare-api.md
     ```
 
     Claude Code は起動時に import されたファイルを読み込むため、リクエストする前にすでに指示がコンテキストへ入っています。
 
   </Tab>
   <Tab title="Cursor">
-    プロジェクトルールとして保存しておくと、連携コードを触るたびに Cursor が自動的に適用します。`.cursor/rules/bizmori-api.mdc` ファイルを作成してください。
+    プロジェクトルールとして保存しておくと、連携コードを触るたびに Cursor が自動的に適用します。`.cursor/rules/contentcare-api.mdc` ファイルを作成してください。
 
     ```markdown
     ---
-    description: BIZ MORI API integration contract
-    globs: ["**/*bizmori*", "**/api/**"]
+    description: ContentCare API integration contract
+    globs: ["**/*contentcare*", "**/*ContentCare*", "**/api/**"]
     ---
 
     （ここにプロンプトを貼り付けてください）
@@ -89,7 +89,7 @@ OpenAPI:      https://docs.contentcare.ai/api-reference/openapi.yaml  <- 正式�
 
   </Tab>
   <Tab title="Codex / その他のエージェント">
-    Codex をはじめとするほとんどのコーディングエージェントは、リポジトリルートの `AGENTS.md` を読み込みます。`## BIZ MORI API` という見出しの下にプロンプトを貼り付けておけば、実行のたびに自動的に参照されます。
+    Codex をはじめとするほとんどのコーディングエージェントは、リポジトリルートの `AGENTS.md` を読み込みます。`## ContentCare API` という見出しの下にプロンプトを貼り付けておけば、実行のたびに自動的に参照されます。
 
     規約ファイルを持たないエージェントの場合は、会話の最初のメッセージとしてプロンプトを貼り付けてください。
 

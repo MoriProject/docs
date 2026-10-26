@@ -1,13 +1,13 @@
 ---
 title: 'MCP Connector'
-description: 'Use BIZ MORI from Claude by chatting — no code, no API key'
+description: 'Use ContentCare from Claude by chatting — no code, no API key'
 ---
 
-The **BIZ MORI MCP connector** lets you use BIZ MORI directly inside an AI assistant like Claude. You connect once with your BIZ MORI account, then ask in plain language:
+The **ContentCare MCP connector** lets you use ContentCare directly inside an AI assistant like Claude. You connect once with your ContentCare account, then ask in plain language:
 
 > "Check whether this image is AI-generated: `<image URL>`"
 
-Claude runs the job on BIZ MORI and reports the result back in the chat. No code, no API key, no dashboard.
+Claude runs the job on ContentCare and reports the result back in the chat. No code, no API key, no dashboard.
 
 <Note>
   **MCP** (Model Context Protocol) is an open standard that lets AI assistants
@@ -29,7 +29,7 @@ Claude runs the job on BIZ MORI and reports the result back in the chat. No code
     Add an invisible ownership watermark carrying your text.
   </Card>
   <Card title='Extract a watermark' icon='magnifying-glass'>
-    Check whether a file carries a BIZ MORI watermark and read its text.
+    Check whether a file carries a ContentCare watermark and read its text.
   </Card>
   <Card title='Review your history' icon='clock-rotate-left'>
     "Show me my jobs from this week" — list past jobs and check their results.
@@ -50,11 +50,11 @@ Claude runs the job on BIZ MORI and reports the result back in the chat. No code
     https://mcp.bizmori.com/mcp
     ```
 
-    Give it a name you will recognize, such as `BIZ MORI`.
+    Give it a name you will recognize, such as `ContentCare`.
 
   </Step>
-  <Step title="Sign in with your BIZ MORI account">
-    A BIZ MORI login window opens. Sign in with the same account you use for [app.contentcare.ai](https://app.contentcare.ai) and approve the connection.
+  <Step title="Sign in with your ContentCare account">
+    A ContentCare login window opens. Sign in with the same account you use for [app.contentcare.ai](https://app.contentcare.ai) and approve the connection.
 
     <Check>
       You do **not** need an API key.
@@ -65,7 +65,7 @@ Claude runs the job on BIZ MORI and reports the result back in the chat. No code
     Start a new chat and try:
 
     ```text
-    Use BIZ MORI to check if this image is AI-generated:
+    Use ContentCare to check if this image is AI-generated:
     <image URL>
     ```
 
@@ -84,7 +84,7 @@ Claude runs the job on BIZ MORI and reports the result back in the chat. No code
 
 <AccordionGroup>
   <Accordion title="Claude app — you must use an image URL" icon="browser">
-    An image you **attach to the chat cannot be used**. The attachment goes to Claude's eyes only; the connector never receives the actual file. This is a platform limitation, not something BIZ MORI can fix. The app also has no access to your computer's files.
+    An image you **attach to the chat cannot be used**. The attachment goes to Claude's eyes only; the connector never receives the actual file. This is a platform limitation, not something ContentCare can fix. The app also has no access to your computer's files.
 
     So upload the image somewhere that gives you a link — Google Drive, Dropbox, or Notion with link sharing turned on — and paste that link into the chat.
 
@@ -100,7 +100,7 @@ Claude runs the job on BIZ MORI and reports the result back in the chat. No code
     Apply Anti-AI protection to ~/Pictures/artwork.png
     ```
 
-    It uploads the file to BIZ MORI for you. An image URL works too.
+    It uploads the file to ContentCare for you. An image URL works too.
 
   </Accordion>
   <Accordion title="Codex CLI — local file upload works" icon="terminal">
@@ -158,17 +158,17 @@ Embed the watermark "© 2026 MORI Corp" into this image:
 ```
 
 ```text
-Does this file have a BIZ MORI watermark in it?
+Does this file have a ContentCare watermark in it?
 <image URL>
 ```
 
 ```text
-Show me my BIZ MORI jobs from the last week and which ones failed.
+Show me my ContentCare jobs from the last week and which ones failed.
 ```
 
 ## Billing account
 
-If you belong to one or more organizations on BIZ MORI, jobs can be billed to your personal account **or** to an organization. The connector never guesses — it will stop and ask you which one to use.
+If you belong to one or more organizations on ContentCare, jobs can be billed to your personal account **or** to an organization. The connector never guesses — it will stop and ask you which one to use.
 
 Answer with the account name and the job runs. **You are only asked once** — your choice is remembered, so later jobs use the same account without asking again. Name a different account any time to switch. Every result tells you which account it was billed to.
 
@@ -217,7 +217,7 @@ If your personal account is the only one you have, nothing is asked and it is us
 
 ## Prefer to write code?
 
-The connector covers everyday use. For building BIZ MORI into your own product, use the REST API directly.
+The connector covers everyday use. For building ContentCare into your own product, use the REST API directly.
 
 <Columns cols={2}>
   <Card title='Quickstart' icon='rocket' href='/quickstart'>

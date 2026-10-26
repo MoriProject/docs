@@ -1,6 +1,6 @@
 ---
 title: 'AI 에이전트 연동'
-description: 'Claude Code, Cursor, Codex에 붙여넣기만 하면 BIZ MORI API 연동에 필요한 모든 규칙이 전달됩니다'
+description: 'Claude Code, Cursor, Codex에 붙여넣기만 하면 ContentCare API 연동에 필요한 모든 규칙이 전달됩니다'
 ---
 
 ## 이 프롬프트를 복사하세요
@@ -10,13 +10,13 @@ description: 'Claude Code, Cursor, Codex에 붙여넣기만 하면 BIZ MORI API 
 프롬프트는 의도적으로 짧습니다. API를 다시 옮겨 적는 대신, 에이전트가 스스로는 하지 않는 세 가지만 시킵니다. **코드를 쓰기 전에 문서를 읽고 위험한 부분을 보고**하게 하고, **출시하면 안 되는 실수를 못박고**(confirm 단계 누락, 웹훅 서명 미검증, API 키 하드코딩), 마지막에 **연동이 실제로 동작함을 증명**하게 합니다 — 동작한다고 주장만 하지 않도록.
 
 ```text wrap
-Integrate the BIZ MORI API for me.
+Integrate the ContentCare API for me.
 
 Docs:      https://docs.contentcare.ai
 Full docs: https://docs.contentcare.ai/llms-full.txt          <- guides, in plain text
 OpenAPI:   https://docs.contentcare.ai/api-reference/openapi.yaml  <- authoritative schemas
 Base URL:  https://api.bizmori.com
-Auth:      Authorization: Bearer $BIZMORI_API_KEY  (read from env; never hardcode or log it)
+Auth:      Authorization: Bearer $CONTENTCARE_API_KEY  (read from env; never hardcode or log it)
 Testing:   use an sk_test_ key for the order lifecycle and webhook contract; use a live key for actual processing results
 Service:   <Anti-AI | Watermark Embed | Watermark Extract | AI Detection>
 Stack:     <e.g. TypeScript + Express, Python + FastAPI>
@@ -66,22 +66,22 @@ If you could not run one of these, say so plainly instead of asserting it passed
   <Tab title="Claude Code">
     일회성 작업이라면 세션에 그대로 붙여넣으면 됩니다.
 
-    모든 세션에서 자동으로 불러오려면 프롬프트를 `.claude/bizmori-api.md`로 저장하고 `CLAUDE.md`에서 import 하세요:
+    모든 세션에서 자동으로 불러오려면 프롬프트를 `.claude/contentcare-api.md`로 저장하고 `CLAUDE.md`에서 import 하세요:
 
     ```markdown CLAUDE.md
-    @.claude/bizmori-api.md
+    @.claude/contentcare-api.md
     ```
 
     Claude Code는 시작 시 import된 파일을 읽으므로, 요청하기 전에 이미 지시문이 컨텍스트에 들어옵니다.
 
   </Tab>
   <Tab title="Cursor">
-    프로젝트 룰로 저장해 두면 연동 코드를 만질 때마다 Cursor가 자동 적용합니다. `.cursor/rules/bizmori-api.mdc` 파일을 만드세요:
+    프로젝트 룰로 저장해 두면 연동 코드를 만질 때마다 Cursor가 자동 적용합니다. `.cursor/rules/contentcare-api.mdc` 파일을 만드세요:
 
     ```markdown
     ---
-    description: BIZ MORI API integration contract
-    globs: ["**/*bizmori*", "**/api/**"]
+    description: ContentCare API integration contract
+    globs: ["**/*contentcare*", "**/*ContentCare*", "**/api/**"]
     ---
 
     (여기에 프롬프트를 붙여넣으세요)
@@ -91,7 +91,7 @@ If you could not run one of these, say so plainly instead of asserting it passed
 
   </Tab>
   <Tab title="Codex / 기타 에이전트">
-    Codex를 비롯한 대부분의 코딩 에이전트는 저장소 루트의 `AGENTS.md`를 읽습니다. `## BIZ MORI API` 제목 아래에 프롬프트를 붙여넣으면 실행할 때마다 자동으로 참조됩니다.
+    Codex를 비롯한 대부분의 코딩 에이전트는 저장소 루트의 `AGENTS.md`를 읽습니다. `## ContentCare API` 제목 아래에 프롬프트를 붙여넣으면 실행할 때마다 자동으로 참조됩니다.
 
     규약 파일이 없는 에이전트라면 대화의 첫 메시지로 프롬프트를 붙여넣으세요.
 

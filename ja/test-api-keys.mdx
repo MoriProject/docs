@@ -1,6 +1,6 @@
 ---
 title: "テスト API キー"
-description: "ファイルを処理したりクレジットを消費したりせずに BIZ MORI の注文ライフサイクルを検証します。"
+description: "ファイルを処理したりクレジットを消費したりせずに ContentCare の注文ライフサイクルを検証します。"
 ---
 
 `sk_test_` プレフィックスの自動発行テスト API キーを使用すると、本番 API キーを使う前に連携を検証できます。
@@ -19,7 +19,7 @@ description: "ファイルを処理したりクレジットを消費したりせ
 
     ~~~bash
     curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
-      -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+      -H "Authorization: Bearer $CONTENTCARE_TEST_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "idempotencyKey": "2f1c3e4a-8b57-4a6d-9c20-7e5f1a3b6d42",
@@ -30,7 +30,7 @@ description: "ファイルを処理したりクレジットを消費したりせ
   <Step title="テストファイルをアップロードする">
     アップロード方式のテスト注文では、注文レスポンスの `uploadUrl` にファイルを送信します。テスト用のアップロード URL は `PUT /api/v2/test-uploads/{token}` ルートを使用します。
 
-    アップロード URL には独自の認証情報が含まれています。API キーヘッダーを追加しないでください。BIZ MORI はリクエストストリームを受け取り、アップロード完了を記録した後、ファイル内容を破棄します。
+    アップロード URL には独自の認証情報が含まれています。API キーヘッダーを追加しないでください。ContentCare はリクエストストリームを受け取り、アップロード完了を記録した後、ファイル内容を破棄します。
 
     ~~~bash
     curl -X PUT "TEST_UPLOAD_URL" \
@@ -92,7 +92,7 @@ Dashboard、本番 API キー、またはテスト API キーで、同じ所有�
 
 ~~~bash
 curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
-  -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+  -H "Authorization: Bearer $CONTENTCARE_TEST_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Integration test webhook",

@@ -1,8 +1,8 @@
 openapi: "3.0.0"
 info:
-  title: BIZ MORI API
+  title: ContentCare API
   version: 2.0.0
-  description: 'BIZ MORI API는 디지털 콘텐츠 보호를 위한 네 가지 핵심 서비스를 제공합니다:
+  description: 'ContentCare API는 디지털 콘텐츠 보호를 위한 네 가지 핵심 서비스를 제공합니다:
 
     - **Anti-AI**: 이미지를 AI 학습으로부터 보호
 
@@ -16,7 +16,7 @@ info:
 
     '
   contact:
-    name: BIZ MORI 지원
+    name: ContentCare 지원
     email: support@contentcare.ai
   license:
     name: Proprietary
@@ -1299,7 +1299,7 @@ components:
           enum:
           - watermarkDetection
           - aiDetection
-          description: BIZ MORI가 주문 종류로 결정
+          description: ContentCare가 주문 종류로 결정
         locale:
           type: string
           enum:
@@ -2417,7 +2417,7 @@ paths:
     post:
       summary: AI Detection 주문 생성
       operationId: createAiDetectionOrder
-      description: 'AI Detection 주문을 생성하고 이미지 업로드 URL을 발급합니다. live 키는 S3 presigned URL을 받고, 테스트 키는 절대 BIZ MORI test-upload URL을 받습니다.
+      description: 'AI Detection 주문을 생성하고 이미지 업로드 URL을 발급합니다. live 키는 S3 presigned URL을 받고, 테스트 키는 절대 ContentCare test-upload URL을 받습니다.
 
 
         ## 처리 흐름
@@ -2425,7 +2425,7 @@ paths:
 
         1. 이 엔드포인트를 호출하여 업로드 URL을 발급받습니다
 
-        2. live S3 URL 또는 테스트 BIZ MORI URL로 이미지를 업로드합니다
+        2. live S3 URL 또는 테스트 ContentCare URL로 이미지를 업로드합니다
 
         3. `POST /api/v2/orders/ai-detection/confirm` 을 호출하여 비동기 감지를 시작합니다
 
@@ -2985,7 +2985,7 @@ paths:
 
         - `pending` 상태의 주문에서만 사용 가능
 
-        - 테스트 주문은 저장소 프리사인드 URL 대신 BIZ MORI 테스트 업로드 URL을 반환합니다
+        - 테스트 주문은 저장소 프리사인드 URL 대신 ContentCare 테스트 업로드 URL을 반환합니다
 
         '
       tags:
@@ -3780,7 +3780,7 @@ paths:
                       originalFileUrl:
                         type: string
                         format: uri
-                        description: 원본 파일의 공개 HTTPS URL(선택). 지정하면 BIZ MORI가 파일을 내려받으며(최대 32 MiB, redirect
+                        description: 원본 파일의 공개 HTTPS URL(선택). 지정하면 ContentCare가 파일을 내려받으며(최대 32 MiB, redirect
                           미지원) 해당 파일의 `uploadUrl`은 발급하지 않습니다.
                       watermarks:
                         type: array
@@ -4670,7 +4670,7 @@ paths:
       summary: 주문 보고서 생성
       operationId: createOrderReport
       description: |
-        주문의 PDF 분석 보고서를 생성합니다. 보고서 종류는 BIZ MORI가 주문 종류로 정하므로 보내지 않습니다.
+        주문의 PDF 분석 보고서를 생성합니다. 보고서 종류는 ContentCare가 주문 종류로 정하므로 보내지 않습니다.
 
         - v3 API로 만든 워터마크 추출 주문 → `watermarkDetection`
         - AI Detection 주문 → `aiDetection`
