@@ -12,9 +12,9 @@ description: 'Claude Code、Cursor、Codex に貼り付けるだけで、BIZ MOR
 ```text wrap
 BIZ MORI API を統合してください。
 
-ドキュメント:    https://docs.contentcare.ai
-全文ドキュメント: https://docs.contentcare.ai/llms-full.txt          <- ガイド全文（プレーンテキスト）
-OpenAPI:      https://docs.contentcare.ai/api-reference/openapi.yaml  <- 正式なスキーマ
+ドキュメント:    https://docs.bizmori.com
+全文ドキュメント: https://docs.bizmori.com/llms-full.txt          <- ガイド全文（プレーンテキスト）
+OpenAPI:      https://docs.bizmori.com/api-reference/openapi.yaml  <- 正式なスキーマ
 ベース URL:    https://api.bizmori.com
 認証:         Authorization: Bearer $BIZMORI_API_KEY  （環境変数から読み込むこと。ハードコーディングやログ出力は禁止）
 サービス:      <Anti-AI | Watermark Embed | Watermark Extract | AI Detection>
@@ -102,9 +102,9 @@ OpenAPI:      https://docs.contentcare.ai/api-reference/openapi.yaml  <- 正式�
 
 | リソース               | URL                                                   | 用途                                                                                   |
 | -------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| OpenAPI スペック         | `https://docs.contentcare.ai/api-reference/openapi.yaml` | 正確なリクエスト/レスポンススキーマ — フィールド名、型、enum、必須かどうか。型付きクライアントの生成にも使用 |
-| フルドキュメント            | `https://docs.contentcare.ai/llms-full.txt`              | ガイド全体を1つのプレーンテキストファイルに — フロー、Webhook 検証、エラーコード                          |
-| ドキュメントインデックス          | `https://docs.contentcare.ai/llms.txt`                   | すべてを一度に読み込ませるのではなく、必要なドキュメントだけを探させたいとき                                   |
+| OpenAPI スペック         | `https://docs.bizmori.com/api-reference/openapi.yaml` | 正確なリクエスト/レスポンススキーマ — フィールド名、型、enum、必須かどうか。型付きクライアントの生成にも使用 |
+| フルドキュメント            | `https://docs.bizmori.com/llms-full.txt`              | ガイド全体を1つのプレーンテキストファイルに — フロー、Webhook 検証、エラーコード                          |
+| ドキュメントインデックス          | `https://docs.bizmori.com/llms.txt`                   | すべてを一度に読み込ませるのではなく、必要なドキュメントだけを探させたいとき                                   |
 | 個別ページの Markdown | ページ URL の末尾に `.md` を付加                            | 特定のガイド1つだけをコンテキストに入れたいとき                                                  |
 
 <Warning>

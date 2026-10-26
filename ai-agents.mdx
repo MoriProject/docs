@@ -12,9 +12,9 @@ It is deliberately short. Rather than restating the API, it does the three thing
 ```text wrap
 Integrate the BIZ MORI API for me.
 
-Docs:      https://docs.contentcare.ai
-Full docs: https://docs.contentcare.ai/llms-full.txt          <- guides, in plain text
-OpenAPI:   https://docs.contentcare.ai/api-reference/openapi.yaml  <- authoritative schemas
+Docs:      https://docs.bizmori.com
+Full docs: https://docs.bizmori.com/llms-full.txt          <- guides, in plain text
+OpenAPI:   https://docs.bizmori.com/api-reference/openapi.yaml  <- authoritative schemas
 Base URL:  https://api.bizmori.com
 Auth:      Authorization: Bearer $BIZMORI_API_KEY  (read from env; never hardcode or log it)
 Testing:   use an sk_test_ key for the order lifecycle and webhook contract; use a live key for actual processing results
@@ -94,9 +94,9 @@ The prompt above works because these docs are published in a machine-readable fo
 
 | Resource | URL | Use it for |
 |---|---|---|
-| OpenAPI spec | `https://docs.contentcare.ai/api-reference/openapi.yaml` | Exact request/response schemas — field names, types, enums, required flags. Also generates a typed client |
-| Full docs | `https://docs.contentcare.ai/llms-full.txt` | The guides as one plain-text file — flows, webhook verification, error codes |
-| Docs index | `https://docs.contentcare.ai/llms.txt` | A compact map of every page, when the agent should navigate rather than ingest everything |
+| OpenAPI spec | `https://docs.bizmori.com/api-reference/openapi.yaml` | Exact request/response schemas — field names, types, enums, required flags. Also generates a typed client |
+| Full docs | `https://docs.bizmori.com/llms-full.txt` | The guides as one plain-text file — flows, webhook verification, error codes |
+| Docs index | `https://docs.bizmori.com/llms.txt` | A compact map of every page, when the agent should navigate rather than ingest everything |
 | Any page as Markdown | append `.md` to a page URL | Feeding one specific guide into context |
 
 <Warning>
