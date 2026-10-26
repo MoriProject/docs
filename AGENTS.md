@@ -32,3 +32,14 @@
 - Only document public API endpoints (marked with `x-public: true` in source swagger)
 - Do not document internal APIs, admin APIs, or dashboard APIs
 - Do not include internal implementation details or database schemas
+
+<!-- contentcare-naming:start -->
+## ContentCare 명명 규칙 (2026-10-26)
+
+제품 이름이 BIZ MORI에서 **ContentCare**로 바뀌었다. 이 저장소의 문서는 머지하면 바로 게시된다. 이 파일도 공개 사이트에 게시되므로 내부 인프라 이름을 적지 않는다.
+
+- 새로 쓰는 문서 문구·제목·예제에는 `ContentCare`를 쓴다. `BIZ MORI`·`MORI BIZ`·`BizMori`·`bizmori`를 새로 쓰지 않는다. 예제 환경변수는 `CONTENTCARE_API_KEY`처럼 쓴다.
+- 고객 연동이 의존하는 옛 이름은 호환용으로 남아 있다: 웹훅 서명 헤더 `X-MoriBiz-Signature`, MCP 설정 변수 `BIZMORI_*`, SDK `@bizmori/sdk`, 오류 번호 `BIZMORI-nnnn`. 새 이름(`X-ContentCare-Signature`, `CONTENTCARE_*`, `@contentcare/sdk`)이 **운영에 배포된 뒤에만** 문서에서 새 이름을 기본으로 안내하고, 옛 이름은 호환용으로 함께 적는다.
+- 도메인·이메일 주소(`*.bizmori.com`, `support@bizmori.com` 등)는 도메인 전환이 끝나기 전까지 그대로 둔다.
+- 운영에 없는 기능이나 이름을 먼저 게시하지 않는다.
+<!-- contentcare-naming:end -->
