@@ -122,7 +122,7 @@ The Korean and Japanese API Reference endpoint lists must match the English side
 - 도메인·이메일 주소는 현재 상태를 따른다.
   - 연락처 메일은 `@contentcare.ai`를 쓴다(`support@`·`legal@`·`privacy@`·`security@contentcare.ai`). `@bizmori.com` 연락처를 새로 쓰지 않는다.
   - 콘솔(개발자 포털)은 `https://app.contentcare.ai`를 쓴다(`app.bizmori.com`은 308으로 넘어감). 경로는 그대로 둔다(예: `/pricing`).
-  - 문서·API·상태 페이지 도메인(`docs.bizmori.com`, `api.bizmori.com`, `status.bizmori.com`)은 전환이 끝나기 전까지 그대로 둔다. `docs.contentcare.ai`는 Mintlify 커스텀 도메인과 DNS가 연결된 뒤에만 쓴다.
+  - 문서 주소는 `https://docs.contentcare.ai`를 쓴다(2026-10-26 Mintlify 커스텀 도메인 연결, `docs.bizmori.com`은 Cloudflare 301로 경로를 유지해 넘어감). API·상태 페이지 도메인(`api.bizmori.com`, `status.bizmori.com`)은 전환이 끝나기 전까지 그대로 둔다.
   - 약관·개인정보처리방침의 서비스명(`BizMORI`)과 시행일은 법무 확인 없이 바꾸지 않는다.
 - 운영에 없는 기능이나 이름을 먼저 게시하지 않는다.
 <!-- contentcare-naming:end -->

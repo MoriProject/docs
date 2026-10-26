@@ -20,7 +20,7 @@ info:
     email: support@contentcare.ai
   license:
     name: Proprietary
-    url: https://docs.bizmori.com/legal/terms
+    url: https://docs.contentcare.ai/legal/terms
 servers:
 - url: https://api.bizmori.com
   description: Production
