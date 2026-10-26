@@ -1,6 +1,6 @@
 ---
 title: "Test API keys"
-description: "Exercise the BIZ MORI order lifecycle without processing files or consuming credits."
+description: "Exercise the ContentCare order lifecycle without processing files or consuming credits."
 ---
 
 Use the automatically issued test API key with the `sk_test_` prefix to validate your integration before you use a live API key.
@@ -19,7 +19,7 @@ Test API keys use the same Bearer authentication as live keys, but they do not r
 
     ```bash
     curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
-      -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+      -H "Authorization: Bearer $CONTENTCARE_TEST_API_KEY" \
       -H "Content-Type: application/json" \
       -d '{
         "idempotencyKey": "2f1c3e4a-8b57-4a6d-9c20-7e5f1a3b6d42",
@@ -30,7 +30,7 @@ Test API keys use the same Bearer authentication as live keys, but they do not r
   <Step title="Upload the test file">
     For an upload-mode test order, send the file to the `uploadUrl` returned by the order response. A test upload URL uses the `PUT /api/v2/test-uploads/{token}` route.
 
-    The upload URL carries its own authorization. Do not add an API key header. BIZ MORI consumes the request stream, records upload completion, and discards the file contents.
+    The upload URL carries its own authorization. Do not add an API key header. ContentCare consumes the request stream, records upload completion, and discards the file contents.
 
     ```bash
     curl -X PUT "TEST_UPLOAD_URL" \
@@ -92,7 +92,7 @@ Create an owned test webhook endpoint with the Dashboard, a live API key, or a t
 
 ```bash
 curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
-  -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+  -H "Authorization: Bearer $CONTENTCARE_TEST_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Integration test webhook",

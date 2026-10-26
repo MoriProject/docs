@@ -1,13 +1,13 @@
 ---
 title: 'MCP 커넥터'
-description: '코드도 API 키도 없이, Claude에서 대화만으로 BIZ MORI 사용하기'
+description: '코드도 API 키도 없이, Claude에서 대화만으로 ContentCare 사용하기'
 ---
 
-**BIZ MORI MCP 커넥터**를 쓰면 Claude 같은 AI 어시스턴트 안에서 바로 BIZ MORI를 사용할 수 있습니다. BIZ MORI 계정으로 한 번만 연결해두면, 이후에는 평소 말하듯 요청하면 됩니다.
+**ContentCare MCP 커넥터**를 쓰면 Claude 같은 AI 어시스턴트 안에서 바로 ContentCare를 사용할 수 있습니다. ContentCare 계정으로 한 번만 연결해두면, 이후에는 평소 말하듯 요청하면 됩니다.
 
 > "이 이미지가 AI로 생성된 건지 확인해줘: `<이미지 주소>`"
 
-Claude가 BIZ MORI에서 작업을 실행하고 결과를 대화창에 알려줍니다. 코드도, API 키도, 대시보드도 필요 없습니다.
+Claude가 ContentCare에서 작업을 실행하고 결과를 대화창에 알려줍니다. 코드도, API 키도, 대시보드도 필요 없습니다.
 
 <Note>
   **MCP**(Model Context Protocol)는 AI 어시스턴트를 외부 서비스와 연결하는 공개
@@ -28,7 +28,7 @@ Claude가 BIZ MORI에서 작업을 실행하고 결과를 대화창에 알려줍
     원하는 문구를 담은 비가시성 소유권 워터마크를 넣습니다.
   </Card>
   <Card title='워터마크 검출' icon='magnifying-glass'>
-    파일에 BIZ MORI 워터마크가 있는지 확인하고 그 문구를 읽어냅니다.
+    파일에 ContentCare 워터마크가 있는지 확인하고 그 문구를 읽어냅니다.
   </Card>
   <Card title='작업 기록 확인' icon='clock-rotate-left'>
     "이번 주 작업 목록 보여줘" — 지난 작업과 결과를 조회합니다.
@@ -49,11 +49,11 @@ Claude가 BIZ MORI에서 작업을 실행하고 결과를 대화창에 알려줍
     https://mcp.bizmori.com/mcp
     ```
 
-    이름은 알아보기 쉽게 `BIZ MORI` 정도로 지정하세요.
+    이름은 알아보기 쉽게 `ContentCare` 정도로 지정하세요.
 
   </Step>
-  <Step title="BIZ MORI 계정으로 로그인">
-    BIZ MORI 로그인 창이 열립니다. [app.contentcare.ai](https://app.contentcare.ai)에서 쓰는 것과 같은 계정으로 로그인하고 연결을 승인하세요.
+  <Step title="ContentCare 계정으로 로그인">
+    ContentCare 로그인 창이 열립니다. [app.contentcare.ai](https://app.contentcare.ai)에서 쓰는 것과 같은 계정으로 로그인하고 연결을 승인하세요.
 
     <Check>
       API 키는 **필요하지 않습니다.**
@@ -64,7 +64,7 @@ Claude가 BIZ MORI에서 작업을 실행하고 결과를 대화창에 알려줍
     새 대화를 열고 이렇게 입력해보세요.
 
     ```text
-    BIZ MORI로 이 이미지가 AI 생성인지 확인해줘:
+    ContentCare로 이 이미지가 AI 생성인지 확인해줘:
     <이미지 주소>
     ```
 
@@ -83,7 +83,7 @@ Claude가 BIZ MORI에서 작업을 실행하고 결과를 대화창에 알려줍
 
 <AccordionGroup>
   <Accordion title="Claude 앱 — 반드시 이미지 주소를 써야 합니다" icon="browser">
-    대화창에 **첨부한 이미지는 사용할 수 없습니다.** 첨부 파일은 Claude가 눈으로 보는 용도로만 들어가고, 커넥터에는 실제 파일이 전달되지 않습니다. BIZ MORI 쪽에서 해결할 수 없는 플랫폼 한계입니다. 앱은 내 컴퓨터의 파일에도 접근할 수 없습니다.
+    대화창에 **첨부한 이미지는 사용할 수 없습니다.** 첨부 파일은 Claude가 눈으로 보는 용도로만 들어가고, 커넥터에는 실제 파일이 전달되지 않습니다. ContentCare 쪽에서 해결할 수 없는 플랫폼 한계입니다. 앱은 내 컴퓨터의 파일에도 접근할 수 없습니다.
 
     따라서 이미지를 링크가 생기는 곳에 먼저 올리고 — Google Drive, Dropbox, Notion에서 링크 공유를 켜고 — 그 링크를 대화창에 붙여넣으세요.
 
@@ -156,17 +156,17 @@ AI 검사는 세 가지 이미지를 기본으로 만듭니다. 추가 비용은
 ```
 
 ```text
-이 파일에 BIZ MORI 워터마크가 들어있어?
+이 파일에 ContentCare 워터마크가 들어있어?
 <이미지 주소>
 ```
 
 ```text
-지난 일주일 BIZ MORI 작업 목록 보여주고, 실패한 게 있으면 알려줘.
+지난 일주일 ContentCare 작업 목록 보여주고, 실패한 게 있으면 알려줘.
 ```
 
 ## 청구 계정 설정
 
-BIZ MORI에서 조직에 소속되어 있다면, 작업을 개인 계정으로도 조직 계정으로도 청구할 수 있습니다. 커넥터는 임의로 고르지 않고 **반드시 물어봅니다.**
+ContentCare에서 조직에 소속되어 있다면, 작업을 개인 계정으로도 조직 계정으로도 청구할 수 있습니다. 커넥터는 임의로 고르지 않고 **반드시 물어봅니다.**
 
 계정 이름으로 답하면 작업이 진행됩니다. **한 번만 물어봅니다** — 선택한 계정을 기억해서 이후 작업에는 다시 묻지 않습니다. 다른 계정 이름을 말하면 그때 바뀝니다. 모든 결과에 어느 계정으로 청구됐는지 표시됩니다.
 
@@ -213,7 +213,7 @@ BIZ MORI에서 조직에 소속되어 있다면, 작업을 개인 계정으로�
 
 ## 코드로 직접 만들고 싶다면
 
-커넥터는 일상적인 사용을 위한 것입니다. BIZ MORI를 제품에 직접 넣으려면 REST API를 사용하세요.
+커넥터는 일상적인 사용을 위한 것입니다. ContentCare를 제품에 직접 넣으려면 REST API를 사용하세요.
 
 <Columns cols={2}>
   <Card title='빠른 시작' icon='rocket' href='/ko/quickstart'>

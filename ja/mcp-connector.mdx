@@ -1,13 +1,13 @@
 ---
 title: 'MCP コネクタ'
-description: 'コードも API キーも使わず、Claude との会話だけで BIZ MORI を使う'
+description: 'コードも API キーも使わず、Claude との会話だけで ContentCare を使う'
 ---
 
-**BIZ MORI MCP コネクタ**を使うと、Claude のような AI アシスタントの中から直接 BIZ MORI を利用できます。BIZ MORI アカウントで一度接続しておけば、あとは普段の会話のようにリクエストするだけです。
+**ContentCare MCP コネクタ**を使うと、Claude のような AI アシスタントの中から直接 ContentCare を利用できます。ContentCare アカウントで一度接続しておけば、あとは普段の会話のようにリクエストするだけです。
 
 > 「この画像が AI で生成されたものか確認して: `<画像 URL>`」
 
-Claude が BIZ MORI 上でジョブを実行し、結果をチャットで知らせてくれます。コードも、API キーも、ダッシュボードも必要ありません。
+Claude が ContentCare 上でジョブを実行し、結果をチャットで知らせてくれます。コードも、API キーも、ダッシュボードも必要ありません。
 
 <Note>
   **MCP**（Model Context Protocol）は、AI アシスタントを外部サービスに接続する
@@ -28,7 +28,7 @@ Claude が BIZ MORI 上でジョブを実行し、結果をチャットで知ら
     任意の文言を含んだ不可視の所有権 watermark を埋め込みます。
   </Card>
   <Card title='watermark 抽出' icon='magnifying-glass'>
-    ファイルに BIZ MORI watermark が含まれているかを確認し、その文言を
+    ファイルに ContentCare watermark が含まれているかを確認し、その文言を
     読み取ります。
   </Card>
   <Card title='作業履歴の確認' icon='clock-rotate-left'>
@@ -50,11 +50,11 @@ Claude が BIZ MORI 上でジョブを実行し、結果をチャットで知ら
     https://mcp.bizmori.com/mcp
     ```
 
-    名前はわかりやすく `BIZ MORI` のように設定してください。
+    名前はわかりやすく `ContentCare` のように設定してください。
 
   </Step>
-  <Step title="BIZ MORI アカウントでログインする">
-    BIZ MORI のログイン画面が開きます。[app.contentcare.ai](https://app.contentcare.ai)で使っているのと同じアカウントでログインし、接続を承認してください。
+  <Step title="ContentCare アカウントでログインする">
+    ContentCare のログイン画面が開きます。[app.contentcare.ai](https://app.contentcare.ai)で使っているのと同じアカウントでログインし、接続を承認してください。
 
     <Check>
       API キーは **必要ありません。**
@@ -65,7 +65,7 @@ Claude が BIZ MORI 上でジョブを実行し、結果をチャットで知ら
     新しいチャットを開いて、次のように入力してみましょう。
 
     ```text
-    BIZ MORI でこの画像が AI 生成かどうか確認して:
+    ContentCare でこの画像が AI 生成かどうか確認して:
     <画像 URL>
     ```
 
@@ -84,7 +84,7 @@ Claude が BIZ MORI 上でジョブを実行し、結果をチャットで知ら
 
 <AccordionGroup>
   <Accordion title="Claude アプリ — 必ず画像 URL を使う必要があります" icon="browser">
-    チャットに**添付した画像は使用できません。** 添付ファイルは Claude が「見る」ためだけに渡され、コネクタには実際のファイルが渡されません。これは BIZ MORI 側では解決できないプラットフォームの制約です。アプリは自分の PC 上のファイルにもアクセスできません。
+    チャットに**添付した画像は使用できません。** 添付ファイルは Claude が「見る」ためだけに渡され、コネクタには実際のファイルが渡されません。これは ContentCare 側では解決できないプラットフォームの制約です。アプリは自分の PC 上のファイルにもアクセスできません。
 
     そのため、まず画像をリンクが生成される場所にアップロードし — Google Drive、Dropbox、Notion でリンク共有をオンにして — そのリンクをチャットに貼り付けてください。
 
@@ -158,17 +158,17 @@ AI 検査はデフォルトで3種類の画像を生成します。追加料金�
 ```
 
 ```text
-このファイルに BIZ MORI watermark が入っている?
+このファイルに ContentCare watermark が入っている?
 <画像 URL>
 ```
 
 ```text
-先週の BIZ MORI 作業一覧を見せて、失敗したものがあれば教えて。
+先週の ContentCare 作業一覧を見せて、失敗したものがあれば教えて。
 ```
 
 ## 請求先アカウントの設定
 
-BIZ MORI で組織に所属している場合、ジョブを個人アカウントにも組織アカウントにも請求できます。コネクタは勝手に選ばず、**必ず確認します。**
+ContentCare で組織に所属している場合、ジョブを個人アカウントにも組織アカウントにも請求できます。コネクタは勝手に選ばず、**必ず確認します。**
 
 アカウント名で答えるとジョブが実行されます。**確認は一度だけです** — 選択したアカウントを記憶し、以降のジョブでは再度尋ねません。別のアカウント名を伝えれば、そこで切り替わります。すべての結果に、どのアカウントに請求されたかが表示されます。
 
@@ -217,7 +217,7 @@ BIZ MORI で組織に所属している場合、ジョブを個人アカウン�
 
 ## コードで直接組み込みたい場合
 
-コネクタは日常的な利用のためのものです。BIZ MORI を自社プロダクトに直接組み込むには REST API を使用してください。
+コネクタは日常的な利用のためのものです。ContentCare を自社プロダクトに直接組み込むには REST API を使用してください。
 
 <Columns cols={2}>
   <Card title='クイックスタート' icon='rocket' href='/ja/quickstart'>

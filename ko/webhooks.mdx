@@ -53,7 +53,7 @@ description: "주문 완료 또는 실패 시 실시간 푸시 알림 받기"
 
 ```bash
 curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
-  -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+  -H "Authorization: Bearer $CONTENTCARE_TEST_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Integration test webhook",
@@ -347,11 +347,11 @@ public ResponseEntity<Void> handleWebhook(
 
 ## 재시도 정책
 
-BIZ MORI는 안정적인 웹훅 전송을 보장하기 위해 다단계 재시도 시스템을 사용합니다.
+ContentCare는 안정적인 웹훅 전송을 보장하기 위해 다단계 재시도 시스템을 사용합니다.
 
 ### 초기 재시도
 
-엔드포인트가 `2xx` 상태 코드를 반환하지 않으면 BIZ MORI가 즉시 재시도합니다:
+엔드포인트가 `2xx` 상태 코드를 반환하지 않으면 ContentCare가 즉시 재시도합니다:
 
 | 시도 | 지연 |
 |------|------|

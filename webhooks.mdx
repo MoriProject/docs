@@ -53,7 +53,7 @@ To receive test-order events, register a separate test endpoint from the Dashboa
 
 ```bash
 curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
-  -H "Authorization: Bearer $BIZMORI_TEST_API_KEY" \
+  -H "Authorization: Bearer $CONTENTCARE_TEST_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Integration test webhook",
@@ -348,11 +348,11 @@ public ResponseEntity<Void> handleWebhook(
 
 ## Retry policy
 
-BIZ MORI uses a multi-layered retry system to ensure reliable webhook delivery.
+ContentCare uses a multi-layered retry system to ensure reliable webhook delivery.
 
 ### Initial retry
 
-If your endpoint doesn't return a `2xx` status code, BIZ MORI immediately retries:
+If your endpoint doesn't return a `2xx` status code, ContentCare immediately retries:
 
 | Attempt | Delay |
 |---------|-------|
@@ -396,7 +396,7 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks/{webhookId}/events/r
 
 ### Failure notification email
 
-When initial webhook delivery fails, BIZ MORI sends a failure notification email to the account owner. This email is sent at most **once per day** to avoid excessive notifications.
+When initial webhook delivery fails, ContentCare sends a failure notification email to the account owner. This email is sent at most **once per day** to avoid excessive notifications.
 
 ## Managing webhooks
 

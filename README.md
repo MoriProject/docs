@@ -1,6 +1,6 @@
-# BIZ MORI API Documentation
+# ContentCare API Documentation
 
-Public API documentation for [BIZ MORI](https://app.contentcare.ai), built with [Mintlify](https://mintlify.com).
+Public API documentation for [ContentCare](https://app.contentcare.ai), built with [Mintlify](https://mintlify.com).
 
 ## Local development
 
@@ -35,7 +35,7 @@ View your local preview at `http://localhost:3000`.
 
 ## API spec
 
-The OpenAPI spec (`api-reference/openapi.yaml`) is derived from the source Swagger files in the `mori-biz-was` repository (`src/docs/*.swagger.yaml`). Only `x-public: true` endpoints are included.
+The OpenAPI spec (`api-reference/openapi.yaml`) is derived from the source Swagger files in the `contentcare-was` repository (`src/docs/*.swagger.yaml`). Only `x-public: true` endpoints are included.
 
 To update the spec, modify the source swagger files and regenerate the public spec.
 

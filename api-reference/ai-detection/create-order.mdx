@@ -5,7 +5,7 @@ openapi: "/api-reference/openapi.yaml POST /api/v2/orders/ai-detection"
 
 ## How to upload the image
 
-After receiving the `uploadUrl` from the response, upload your image using a `PUT` request. Live keys return a presigned storage URL. Test keys return a BIZ MORI test upload URL that consumes and discards the request body:
+After receiving the `uploadUrl` from the response, upload your image using a `PUT` request. Live keys return a presigned storage URL. Test keys return a ContentCare test upload URL that consumes and discards the request body:
 
 ```bash
 curl -X PUT "UPLOAD_URL" \

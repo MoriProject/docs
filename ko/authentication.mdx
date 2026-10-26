@@ -1,6 +1,6 @@
 ---
 title: "인증"
-description: "BIZ MORI API 요청을 인증하는 방법"
+description: "ContentCare API 요청을 인증하는 방법"
 ---
 
 모든 API 엔드포인트는 `Authorization: Bearer` 헤더의 **API 키**가 필요합니다. [ContentCare 대시보드](https://app.contentcare.ai/keys)에서 키를 발급해 안전하게 보관하세요. 키는 한 번만 표시됩니다.
@@ -131,4 +131,4 @@ live 주문 API 키의 플랜 사용량 quota는 전역 요청 제한과 별개�
 
 ## Live 및 테스트 API 키
 
-live 키의 `uploadUrl`은 S3 presigned URL입니다. 테스트 키의 URL은 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` 형식의 절대 BIZ MORI API URL입니다. 두 URL 모두 발급 후 1시간 동안 유효합니다. 업로드와 재발급은 [빠른 시작](/ko/quickstart), 테스트 키 웹훅 범위는 [웹훅](/ko/webhooks)에서 확인하세요.
+live 키의 `uploadUrl`은 S3 presigned URL입니다. 테스트 키의 URL은 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` 형식의 절대 ContentCare API URL입니다. 두 URL 모두 발급 후 1시간 동안 유효합니다. 업로드와 재발급은 [빠른 시작](/ko/quickstart), 테스트 키 웹훅 범위는 [웹훅](/ko/webhooks)에서 확인하세요.

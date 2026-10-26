@@ -13,7 +13,7 @@ description: "v3 API로 이미지와 PDF에 비가시성 워터마크 삽입하�
 
 ## 사전 준비
 
-- BIZ MORI API 키 ([여기서 발급](https://app.contentcare.ai/keys))
+- ContentCare API 키 ([여기서 발급](https://app.contentcare.ai/keys))
 - 워터마크를 삽입할 이미지 또는 PDF 파일 (`jpg`, `jpeg`, `png`, `webp`, `bmp`, `tif`, `tiff`, `pdf`)
 
 <Info>
@@ -175,7 +175,7 @@ order = res.json()['data']
 - `expiresAt`은 주문 파일이 삭제되는 시각입니다. 그 전에 결과를 다운로드하세요.
 
 <Tip>
-  주문 하나에 파일을 최대 100개까지 넣을 수 있고, 이미지와 PDF를 섞어도 됩니다. 이미 공개된 파일이라면 업로드하는 대신 `originalFileUrl`에 HTTPS URL을 지정하세요. BIZ MORI가 파일을 직접 내려받으며(최대 32 MiB, 리다이렉트는 따라가지 않음), 이 파일의 `uploadUrl`은 `null`입니다.
+  주문 하나에 파일을 최대 100개까지 넣을 수 있고, 이미지와 PDF를 섞어도 됩니다. 이미 공개된 파일이라면 업로드하는 대신 `originalFileUrl`에 HTTPS URL을 지정하세요. ContentCare가 파일을 직접 내려받으며(최대 32 MiB, 리다이렉트는 따라가지 않음), 이 파일의 `uploadUrl`은 `null`입니다.
 </Tip>
 
 <Note>

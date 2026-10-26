@@ -1,6 +1,6 @@
 ---
 title: "AI Agent Integration"
-description: "Give Claude Code, Cursor, or Codex everything it needs to integrate the BIZ MORI API in one paste"
+description: "Give Claude Code, Cursor, or Codex everything it needs to integrate the ContentCare API in one paste"
 ---
 
 ## Copy this prompt
@@ -10,13 +10,13 @@ Copy it, paste it into your agent, and fill in the `<...>` placeholders — serv
 It is deliberately short. Rather than restating the API, it does the three things an agent will not do on its own: **read the docs and report risks before writing code**, **name the mistakes to refuse to ship** (skipped confirm calls, unverified webhook signatures, hardcoded keys), and **prove the integration works** afterward instead of just claiming it does.
 
 ```text wrap
-Integrate the BIZ MORI API for me.
+Integrate the ContentCare API for me.
 
 Docs:      https://docs.contentcare.ai
 Full docs: https://docs.contentcare.ai/llms-full.txt          <- guides, in plain text
 OpenAPI:   https://docs.contentcare.ai/api-reference/openapi.yaml  <- authoritative schemas
 Base URL:  https://api.bizmori.com
-Auth:      Authorization: Bearer $BIZMORI_API_KEY  (read from env; never hardcode or log it)
+Auth:      Authorization: Bearer $CONTENTCARE_API_KEY  (read from env; never hardcode or log it)
 Testing:   use an sk_test_ key for the order lifecycle and webhook contract; use a live key for actual processing results
 Service:   <Anti-AI | Watermark Embed | Watermark Extract | AI Detection>
 Stack:     <e.g. TypeScript + Express, Python + FastAPI>
@@ -59,21 +59,21 @@ If you could not run one of these, say so plainly instead of asserting it passed
   <Tab title="Claude Code">
     Paste the prompt straight into a session for a one-off task.
 
-    To load it in every session, save the prompt to `.claude/bizmori-api.md` and import it from your `CLAUDE.md`:
+    To load it in every session, save the prompt to `.claude/contentcare-api.md` and import it from your `CLAUDE.md`:
 
     ```markdown CLAUDE.md
-    @.claude/bizmori-api.md
+    @.claude/contentcare-api.md
     ```
 
     Claude Code reads imported files on startup, so the instructions are in context before you ask for anything.
   </Tab>
   <Tab title="Cursor">
-    Save the prompt as a project rule so Cursor applies it whenever you touch integration code. Create `.cursor/rules/bizmori-api.mdc`:
+    Save the prompt as a project rule so Cursor applies it whenever you touch integration code. Create `.cursor/rules/contentcare-api.mdc`:
 
     ```markdown
     ---
-    description: BIZ MORI API integration contract
-    globs: ["**/*bizmori*", "**/api/**"]
+    description: ContentCare API integration contract
+    globs: ["**/*contentcare*", "**/*ContentCare*", "**/api/**"]
     ---
 
     (paste the prompt here)
@@ -82,7 +82,7 @@ If you could not run one of these, say so plainly instead of asserting it passed
     For a one-off task, paste it into the chat panel with `Cmd/Ctrl + L` instead.
   </Tab>
   <Tab title="Codex / other agents">
-    Codex and most other coding agents read an `AGENTS.md` at the repo root. Paste the prompt there under a `## BIZ MORI API` heading and it is picked up automatically on every run.
+    Codex and most other coding agents read an `AGENTS.md` at the repo root. Paste the prompt there under a `## ContentCare API` heading and it is picked up automatically on every run.
 
     For agents with no convention file, paste the prompt as the first message of the conversation.
   </Tab>

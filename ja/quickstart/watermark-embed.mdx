@@ -13,7 +13,7 @@ description: "v3 API で画像と PDF に不可視 watermark を埋め込む"
 
 ## 事前準備
 
-- BIZ MORI API キー（[こちらから発行](https://app.contentcare.ai/keys)）
+- ContentCare API キー（[こちらから発行](https://app.contentcare.ai/keys)）
 - watermark を埋め込む画像または PDF ファイル（`jpg`、`jpeg`、`png`、`webp`、`bmp`、`tif`、`tiff`、`pdf`）
 
 <Info>
@@ -175,7 +175,7 @@ order = res.json()['data']
 - `expiresAt` は注文ファイルが削除される日時です。それまでに結果をダウンロードしてください。
 
 <Tip>
-  1 つの注文に最大 100 ファイルを含めることができ、画像と PDF を混在させることもできます。すでに公開されているファイルは、アップロードする代わりに `originalFileUrl` に HTTPS URL を指定できます。BIZ MORI がファイルを直接取得し（最大 32 MiB、リダイレクトは追跡しません）、そのファイルの `uploadUrl` は `null` になります。
+  1 つの注文に最大 100 ファイルを含めることができ、画像と PDF を混在させることもできます。すでに公開されているファイルは、アップロードする代わりに `originalFileUrl` に HTTPS URL を指定できます。ContentCare がファイルを直接取得し（最大 32 MiB、リダイレクトは追跡しません）、そのファイルの `uploadUrl` は `null` になります。
 </Tip>
 
 <Note>

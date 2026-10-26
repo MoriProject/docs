@@ -1,6 +1,6 @@
 ---
 title: "Authentication"
-description: "How to authenticate your BIZ MORI API requests"
+description: "How to authenticate your ContentCare API requests"
 ---
 
 All API endpoints require an **API key** in the `Authorization: Bearer` header. Create and store the key in the [ContentCare Dashboard](https://app.contentcare.ai/keys); it is shown only once.
@@ -18,7 +18,7 @@ All API endpoints require an **API key** in the `Authorization: Bearer` header. 
 
 ## Test API keys
 
-Use the automatically issued test API key with the `sk_test_` prefix when you need to verify an integration without running the underlying processing services. BIZ MORI issues one test key per account and organization, and you can retrieve it from the Dashboard API Keys page.
+Use the automatically issued test API key with the `sk_test_` prefix when you need to verify an integration without running the underlying processing services. ContentCare issues one test key per account and organization, and you can retrieve it from the Dashboard API Keys page.
 
 Test API keys:
 
@@ -29,7 +29,7 @@ Test API keys:
 - keep test orders separate from live orders; and
 - do not create downloadable result files.
 
-For persistent test orders, the returned upload URL points to a BIZ MORI test upload route. The server consumes the request stream, records upload completion, and discards the file contents. Anti-AI upload mode and AI Detection still require a confirm call; Watermark Embed and Watermark Extract start after their uploads finish.
+For persistent test orders, the returned upload URL points to a ContentCare test upload route. The server consumes the request stream, records upload completion, and discards the file contents. Anti-AI upload mode and AI Detection still require a confirm call; Watermark Embed and Watermark Extract start after their uploads finish.
 
 Test orders move through `pending`, `inProgress`, and `complete` or `failed` states. You can list, inspect, and aggregate your test orders with the normal order endpoints. A test download returns `404 PROCESSED_FILE_NOT_FOUND` because no result file is created. A test API key can manage only test webhook endpoints owned by the same owner; see [Test API keys](/test-api-keys) for the complete behavior and examples.
 
@@ -148,4 +148,4 @@ For live order API keys, plan usage quota is separate from the global request li
 
 ## Live and test API keys
 
-With a live key, `uploadUrl` is an S3 presigned URL. With a test key, it is an absolute BIZ MORI API URL under `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`. Both expire one hour after issuance; see [Quickstart](/quickstart) for upload and refresh behavior, and [Webhooks](/webhooks) for test-key webhook scope.
+With a live key, `uploadUrl` is an S3 presigned URL. With a test key, it is an absolute ContentCare API URL under `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`. Both expire one hour after issuance; see [Quickstart](/quickstart) for upload and refresh behavior, and [Webhooks](/webhooks) for test-key webhook scope.
