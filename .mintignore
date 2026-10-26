@@ -5,3 +5,7 @@
 # Draft content
 drafts/
 *.draft.mdx
+
+# Agent instruction files (internal, not public pages)
+AGENTS.md
+CLAUDE.md
