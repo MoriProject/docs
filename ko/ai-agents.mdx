@@ -12,9 +12,9 @@ description: 'Claude Code, Cursor, Codex에 붙여넣기만 하면 BIZ MORI API 
 ```text wrap
 Integrate the BIZ MORI API for me.
 
-Docs:      https://docs.bizmori.com
-Full docs: https://docs.bizmori.com/llms-full.txt          <- guides, in plain text
-OpenAPI:   https://docs.bizmori.com/api-reference/openapi.yaml  <- authoritative schemas
+Docs:      https://docs.contentcare.ai
+Full docs: https://docs.contentcare.ai/llms-full.txt          <- guides, in plain text
+OpenAPI:   https://docs.contentcare.ai/api-reference/openapi.yaml  <- authoritative schemas
 Base URL:  https://api.bizmori.com
 Auth:      Authorization: Bearer $BIZMORI_API_KEY  (read from env; never hardcode or log it)
 Testing:   use an sk_test_ key for the order lifecycle and webhook contract; use a live key for actual processing results
@@ -104,9 +104,9 @@ If you could not run one of these, say so plainly instead of asserting it passed
 
 | 리소스               | URL                                                   | 용도                                                                                   |
 | -------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| OpenAPI 스펙         | `https://docs.bizmori.com/api-reference/openapi.yaml` | 정확한 요청/응답 스키마 — 필드명, 타입, enum, 필수 여부. 타입 클라이언트 생성에도 사용 |
-| 전체 문서            | `https://docs.bizmori.com/llms-full.txt`              | 가이드 전체를 하나의 평문 파일로 — 흐름, 웹훅 검증, 에러 코드                          |
-| 문서 인덱스          | `https://docs.bizmori.com/llms.txt`                   | 전체를 통째로 넣지 않고 필요한 문서만 찾아가게 할 때                                   |
+| OpenAPI 스펙         | `https://docs.contentcare.ai/api-reference/openapi.yaml` | 정확한 요청/응답 스키마 — 필드명, 타입, enum, 필수 여부. 타입 클라이언트 생성에도 사용 |
+| 전체 문서            | `https://docs.contentcare.ai/llms-full.txt`              | 가이드 전체를 하나의 평문 파일로 — 흐름, 웹훅 검증, 에러 코드                          |
+| 문서 인덱스          | `https://docs.contentcare.ai/llms.txt`                   | 전체를 통째로 넣지 않고 필요한 문서만 찾아가게 할 때                                   |
 | 개별 페이지 Markdown | 페이지 URL 뒤에 `.md` 추가                            | 특정 가이드 하나만 컨텍스트에 넣을 때                                                  |
 
 <Warning>
