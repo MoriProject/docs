@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "BIZ MORI API Documentation",
+  "name": "ContentCare API Documentation",
   "colors": {
     "primary": "#6366F1",
     "light": "#818CF8",
@@ -427,13 +427,13 @@
     "global": {
       "anchors": [
         {
-          "anchor": "BIZ MORI Dashboard",
-          "href": "https://app.bizmori.com",
+          "anchor": "ContentCare Dashboard",
+          "href": "https://app.contentcare.ai",
           "icon": "code"
         },
         {
           "anchor": "Support",
-          "href": "mailto:support@bizmori.com",
+          "href": "mailto:support@contentcare.ai",
           "icon": "envelope"
         },
         {
@@ -452,18 +452,18 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:support@bizmori.com"
+        "href": "mailto:support@contentcare.ai"
       }
     ],
     "primary": {
       "type": "button",
       "label": "Dashboard",
-      "href": "https://app.bizmori.com"
+      "href": "https://app.contentcare.ai"
     }
   },
   "footer": {
     "socials": {
-      "website": "https://app.bizmori.com"
+      "website": "https://app.contentcare.ai"
     },
     "links": [
       {
@@ -471,7 +471,7 @@
         "items": [
           {
             "label": "Dashboard",
-            "href": "https://app.bizmori.com"
+            "href": "https://app.contentcare.ai"
           },
           {
             "label": "MORI Corp.",
@@ -479,7 +479,7 @@
           },
           {
             "label": "Contact Support",
-            "href": "mailto:support@bizmori.com"
+            "href": "mailto:support@contentcare.ai"
           },
           {
             "label": "Status",

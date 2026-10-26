@@ -15,7 +15,7 @@ info:
     - **テストAPIキー**: `sk_test_` プレフィックスのキーは同じBearer認証を使用し、実際の処理サービスの実行やクレジットの消費なしに注文ライフサイクルを検証できます。テストアップロードの内容は破棄され、結果ファイルは作成されません'
   contact:
     name: BIZ MORI サポート
-    email: support@bizmori.com
+    email: support@contentcare.ai
   license:
     name: Proprietary
     url: https://docs.bizmori.com/legal/terms
