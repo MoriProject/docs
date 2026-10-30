@@ -26,81 +26,126 @@ Claude runs the job on ContentCare and reports the result back in the chat. No c
     once.
   </Card>
   <Card title='Embed a watermark' icon='stamp'>
-    Add an invisible ownership watermark carrying your text.
+    Add an invisible ownership watermark to an image or PDF. Put up to 10
+    different texts in one request and get one file per text.
   </Card>
   <Card title='Extract a watermark' icon='magnifying-glass'>
-    Check whether a file carries a ContentCare watermark and read its text.
+    Compare a file against your original to check whether it carries your
+    watermark and read its text.
   </Card>
-  <Card title='Review your history' icon='clock-rotate-left'>
-    "Show me my jobs from this week" — list past jobs and check their results.
+  <Card title='Get an analysis report' icon='file-pdf'>
+    Turn a finished watermark extract or AI Detection job into a PDF report.
   </Card>
-  <Card title='Choose a billing account' icon='building'>
-    Run a job under your personal account or one of your organizations.
+  <Card title='Protect and export' icon='paper-plane'>
+    Apply Anti-AI and a separate watermark for each recipient in one request,
+    so you can trace which copy leaked.
+  </Card>
+  <Card title='Check history and usage' icon='chart-line'>
+    "Show me my jobs from this week" or "How many credits do I have left?" —
+    review past jobs, usage, your plan, and invoices.
+  </Card>
+  <Card title='Manage your team and integrations' icon='users'>
+    Create organizations, invite members, and manage API keys and webhooks.
   </Card>
 </Columns>
 
 ## Connect the connector
 
-<Steps>
-  <Step title="Open your connector settings">
-    In the Claude app (web or desktop), go to **Settings → Connectors → Add custom connector**.
-  </Step>
-  <Step title="Paste the connector URL">
+<Tabs>
+  <Tab title="Claude app">
+    <Steps>
+      <Step title="Open your connector settings">
+        In the Claude app (web or desktop), go to **Settings → Connectors → Add custom connector**.
+      </Step>
+      <Step title="Paste the connector URL">
+        ```
+        https://mcp.contentcare.ai/mcp
+        ```
+
+        Give it a name you will recognize, such as `ContentCare`.
+
+      </Step>
+      <Step title="Sign in with your ContentCare account">
+        A ContentCare login window opens. Sign in with the same account you use for [app.contentcare.ai](https://app.contentcare.ai) and approve the connection.
+
+        <Check>
+          You do **not** need an API key.
+        </Check>
+
+      </Step>
+      <Step title="Ask for something">
+        Start a new chat and try:
+
+        ```text
+        Use ContentCare to check if this image is AI-generated:
+        <image URL>
+        ```
+
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="Claude Code">
+    Add the connector from your terminal:
+
+    ```bash
+    claude mcp add --transport http contentcare https://mcp.contentcare.ai/mcp
     ```
-    https://mcp.bizmori.com/mcp
+
+    Then run `/mcp` inside Claude Code, select `contentcare`, and sign in with your ContentCare account in the browser window that opens.
+
+  </Tab>
+  <Tab title="Codex CLI">
+    Add the connector and sign in:
+
+    ```bash
+    codex mcp add contentcare --url https://mcp.contentcare.ai/mcp
+    codex mcp login contentcare
     ```
 
-    Give it a name you will recognize, such as `ContentCare`.
+    A browser window opens. Sign in with your ContentCare account and approve the connection.
 
-  </Step>
-  <Step title="Sign in with your ContentCare account">
-    A ContentCare login window opens. Sign in with the same account you use for [app.contentcare.ai](https://app.contentcare.ai) and approve the connection.
+  </Tab>
+</Tabs>
 
-    <Check>
-      You do **not** need an API key.
-    </Check>
+<Note>
+  If you added the connector earlier with `https://mcp.bizmori.com/mcp`, remove
+  it and add it again with the new URL above.
+</Note>
 
-  </Step>
-  <Step title="Ask for something">
-    Start a new chat and try:
-
-    ```text
-    Use ContentCare to check if this image is AI-generated:
-    <image URL>
-    ```
-
-  </Step>
-</Steps>
-
-## Image upload methods
+## File upload methods
 
 **Which upload methods you can use depends on the tool you are using.**
 
-|                                  | Image attached in chat | File on your computer | Image URL |
-| -------------------------------- | :--------------------: | :-------------------: | :-------: |
-| **Claude app** (web / desktop)   |           X            |           X           |     ✓     |
-| **Claude Code** (terminal / IDE) |           —            |           ✓           |     ✓     |
-| **Codex**                        |           —            |           ✓           |     ✓     |
+|                                  | File attached in chat | File on your computer | File URL |
+| -------------------------------- | :-------------------: | :-------------------: | :------: |
+| **Claude app** (web / desktop)   |           X           |  ✓ (upload window)    |    ✓     |
+| **Claude Code** (terminal / IDE) |           —           |           ✓           |    ✓     |
+| **Codex**                        |           —           |           ✓           |    ✓     |
 
 <AccordionGroup>
-  <Accordion title="Claude app — you must use an image URL" icon="browser">
-    An image you **attach to the chat cannot be used**. The attachment goes to Claude's eyes only; the connector never receives the actual file. This is a platform limitation, not something ContentCare can fix. The app also has no access to your computer's files.
+  <Accordion title="Claude app — use the upload window or a file URL" icon="browser">
+    A file you **attach to the chat cannot be used**. The attachment goes to Claude's eyes only; the connector never receives the actual file. This is a platform limitation, not something ContentCare can fix.
 
-    So upload the image somewhere that gives you a link — Google Drive, Dropbox, or Notion with link sharing turned on — and paste that link into the chat.
+    Instead, ask Claude to open the upload window:
 
-    <Warning>
-      Attaching a photo and asking for Anti-AI protection will not work. Claude will ask you for a link instead.
-    </Warning>
+    ```text
+    Open the ContentCare upload window so I can check an image for AI generation.
+    ```
+
+    An upload window appears in the chat. Drag your file into it, and the result shows up in the same window. If the window does not appear, Claude gives you a one-time upload link instead, valid for 10 minutes.
+
+    The upload window takes one file at a time. For watermark extract, it takes two: your original and the file to check. To process many images at once, upload them somewhere that gives you a link — Google Drive, Dropbox, or Notion with link sharing turned on — and paste the links or a ZIP link into the chat.
 
   </Accordion>
   <Accordion title="Claude Code — local file upload works" icon="terminal">
-    Claude Code can read your files, so just tell it where the image is:
+    Claude Code can read your files, so just tell it where the file is:
 
     ```text
     Apply Anti-AI protection to ~/Pictures/artwork.png
     ```
 
-    It uploads the file to ContentCare for you. An image URL works too.
+    It uploads the file to ContentCare for you. A file URL works too.
 
   </Accordion>
   <Accordion title="Codex CLI — local file upload works" icon="terminal">
@@ -112,16 +157,16 @@ Claude runs the job on ContentCare and reports the result back in the chat. No c
 
 Claude waits for the job to finish and gives you the result in the chat.
 
-| Service               | What you get back                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------- |
-| **AI Detection**      | A probability and verdict, plus a heatmap, an overlay, and a thumbnail image.                |
-| **Watermark Extract** | The detected watermark text.                                                                  |
-| **Anti-AI**           | A download link for the protected image. Several images come back as one ZIP.                |
-| **Watermark Embed**   | A download link for the result ZIP.                                                           |
+| Service               | What you get back                                                                                  |
+| --------------------- | -------------------------------------------------------------------------------------------------- |
+| **AI Detection**      | A probability and verdict, plus a heatmap, an overlay, and a thumbnail image.                       |
+| **Watermark Extract** | Whether your watermark was detected, and its text when it is one you embedded.                      |
+| **Anti-AI**           | A download link for the protected image. Several images come back as one ZIP.                       |
+| **Watermark Embed**   | One result file per watermark text. Several files come back as one ZIP, with a link for each file. |
 
 Every result also includes a link to open that job on your [dashboard](https://app.contentcare.ai), and the name of the account it was billed to.
 
-AI Detection produces all three images by default. They do not cost extra — one check counts as one job no matter how many images come back.
+AI Detection produces all three images by default. They do not cost extra — one check counts as one job no matter how many images come back. Watermark Embed counts one job per watermark text.
 
 <Warning>
   **A long job may come back as "still processing."** Claude only waits about
@@ -138,9 +183,89 @@ AI Detection produces all three images by default. They do not cost extra — on
   for a new link for that job, or download from the dashboard.
 </Note>
 
+### Watermark extract needs your original
+
+ContentCare finds a watermark by comparing the file you want to check against the original file you embedded the watermark into. **Always give Claude both files.**
+
+The result is one of these:
+
+| Result           | Meaning                                                                         |
+| ---------------- | ------------------------------------------------------------------------------- |
+| **Detected**     | A watermark was found. You see its text if your account embedded it.            |
+| **Undetected**   | No watermark was found.                                                         |
+| **Inconclusive** | A possible watermark was found, but not with enough confidence to call it.      |
+| **Unsupported**  | The file could not be processed. Your usage is restored.                        |
+| **Error**        | The check failed. This does not mean there is no watermark. Your usage is restored. |
+
+Embedding and extracting are separate jobs. Claude does not run an extract on its own to confirm an embed, so you are not charged twice.
+
+### Analysis reports
+
+After a watermark extract or AI Detection job finishes, ask Claude for a PDF report of that job:
+
+```text
+Make an English analysis report for that job.
+```
+
+Reports are available in English, Korean, and Japanese. A report on a PDF file is available in Korean only. The report link expires after five minutes; ask Claude again for a fresh link.
+
+## Protect and export
+
+Protect and export applies Anti-AI and a recipient-specific watermark in one request. Each recipient's name becomes the watermark text. If a copy leaks later, run a watermark extract on it, and the detected text tells you which recipient's copy it was.
+
+```text
+Protect these images and export a copy for each of Studio A, Studio B, and Studio C:
+<image URL 1>
+<image URL 2>
+```
+
+- **Packaging**: by default you get one file per recipient. Ask for a ZIP to get one ZIP per image with every recipient's copy inside.
+- **Limits**: up to 100 files per request. With recipients, up to 10 files and 10 recipients.
+- **Credits**: one per file for Anti-AI, plus one per file for each recipient. Two images for three recipients cost 2 + 6 = 8 credits.
+
+<Warning>
+  If some items fail, the successful ones are kept and Claude lists what failed.
+  Resend only the failed files or recipients — resending the whole request
+  creates the successful jobs again and charges you again.
+</Warning>
+
+## Account, team, and developer settings
+
+You can ask about and manage your account in the chat.
+
+| Area              | What you can do                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------------------- |
+| **Usage and plan** | Check your plan, credits used and remaining this cycle, top-up credits, credit history, and usage by day, week, or month. |
+| **Billing**       | View your subscription, invoices, and saved cards. This is read-only.                                  |
+| **History**       | List and search past jobs, open a job's result, and delete a job from your history.                   |
+| **Organizations** | Create an organization, rename it, invite or remove members, change member roles, and cancel invitations. |
+| **API keys**      | List keys and their usage, create a key, and deactivate a key.                                         |
+| **Webhooks**      | Create, update, and delete webhooks, view delivery history, and resend failed events.                 |
+| **Organization settings** | Check or change file retention (7 or 30 days) and view the activity log.                       |
+
+- **Admins only**: changing an organization, managing its API keys and webhooks, file retention, and the activity log require the owner or admin role in that organization.
+- **Shown once**: a new API key appears only in the reply that creates it. Save it right away.
+- **Dashboard only**: changing or canceling your plan, buying credits, refunds, adding or removing cards, deleting or leaving an organization, and accepting invitations. Claude gives you a dashboard link for these.
+- **Can't be undone**: deleting a job, removing a member, or deactivating an API key. Claude confirms with you before it does any of these.
+
+## Trace (pilot)
+
+<Note>
+  Trace is available only to accounts in the Trace pilot. Ask Claude "Can I use
+  Trace?" to check your account.
+</Note>
+
+With Trace, ContentCare watches the web for copies of your content. From the chat you can:
+
+- **Register content**: Claude asks up to three short questions, such as official sites and languages, then registers it for tracking.
+- **Upload originals**: add the original images or PDFs (up to 32 MB each) that copies are matched against.
+- **Review findings**: list confirmed copies by period, country, recipient, or status, and see how they spread.
+- **Read reports**: open the period reports the ContentCare team publishes.
+- **Request a response**: ask the ContentCare team to prepare a response to selected copies.
+
 ## Good things to ask
 
-Put your image link in `<image URL>`. If you use Claude Code or Codex CLI, a file path works too.
+Put your file link in `<image URL>`. If you use Claude Code or Codex CLI, a file path works too.
 
 ```text
 Check if this image is AI-generated:
@@ -153,17 +278,22 @@ Apply Anti-AI protection at high strength to all the images in this ZIP:
 ```
 
 ```text
-Embed the watermark "© 2026 MORI Corp" into this image:
+Embed the watermarks "Client A" and "Client B" into this image:
 <image URL>
 ```
 
 ```text
-Does this file have a ContentCare watermark in it?
-<image URL>
+Does this file have my ContentCare watermark? The original is the second link.
+<file to check URL>
+<original file URL>
 ```
 
 ```text
 Show me my ContentCare jobs from the last week and which ones failed.
+```
+
+```text
+How many credits do I have left this month?
 ```
 
 ## Billing account
@@ -185,9 +315,13 @@ If your personal account is the only one you have, nothing is asked and it is us
 ## Troubleshooting
 
 <AccordionGroup>
-  <Accordion title="Claude says it can't read my attached image">
-    That is the platform limitation described above, not a bug. Put the image
-    somewhere with a shareable link and paste the link instead.
+  <Accordion title="Claude says it can't read my attached file">
+    That is the platform limitation described above, not a bug. Ask Claude to
+    open the upload window, or paste a shareable link instead.
+  </Accordion>
+  <Accordion title="Watermark extract asks for an original file">
+    Extract compares your file against the original you embedded the watermark
+    into. Give Claude both files.
   </Accordion>
   <Accordion title='A job came back as "still processing" with no download link'>
     The job ran longer than Claude waits, which happens with large batches. It
@@ -200,6 +334,15 @@ If your personal account is the only one you have, nothing is asked and it is us
     caches the tool list, so newly added capabilities only appear after
     reconnecting. Until then it may split a batch into many separate jobs or
     attempt browser-based workarounds.
+  </Accordion>
+  <Accordion title="Claude says the connection lacks permission, or asks me to reconnect">
+    Your sign-in may have expired, or you may not have approved changes when you
+    connected. Disconnect and reconnect the connector, then approve the
+    connection again.
+  </Accordion>
+  <Accordion title="Claude says only organization admins can do this">
+    That action needs the owner or admin role in the organization. Ask an admin,
+    or run it under an account where you are an admin.
   </Accordion>
   <Accordion title='I hit a usage limit immediately'>
     You may be running jobs under your personal free account instead of your
