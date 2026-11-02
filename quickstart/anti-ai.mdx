@@ -17,7 +17,7 @@ Every endpoint here is plain HTTPS and JSON, so the same calls work from a serve
 - An image file to protect (`jpeg`, `jpg`, `png`, `webp`, `tiff`, or `bmp`)
 
 <Info>
-  Use the automatically issued [`sk_test_` key](/test-api-keys) to exercise the order lifecycle without running Anti-AI processing or consuming credits. Test uploads discard file contents and do not produce a downloadable result. Use a live API key when you need an actual protected image.
+  Use the automatically issued [`sk_test_` key](/test-api-keys) to exercise the order lifecycle without running Anti-AI processing or consuming credits. Test uploads discard file contents, and the download URLs point to a fixed sample ZIP instead of protected images. Use a live API key when you need an actual protected image.
 </Info>
 
 ## Step 1: Create an order
@@ -59,7 +59,7 @@ const { data } = await response.json();
 ```jsx React
 // One helper for every JSON call. The API returns `{ code: "ERROR_CODE" }`
 // on failure, so surface that code instead of a bare status number.
-const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_BASE = 'https://api.bizmori.com';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
@@ -80,7 +80,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
 }
 
 // `files` is the File[] the user picked
-const order = await api('/orders/anti-ai', {
+const order = await api('/api/v2/orders/anti-ai', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
   body: {
@@ -202,7 +202,7 @@ await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm', {
 ```
 
 ```jsx React
-await api('/orders/anti-ai/confirm', {
+await api('/api/v2/orders/anti-ai/confirm', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
   body: { orderId: order.orderId },
@@ -221,24 +221,21 @@ requests.post(
 
 ## Step 4: Check order status
 
-<Note>
-  Steps 4 and 5 use `GET /api/v2/orders/{orderId}` and `GET /api/v2/orders/{orderId}/download`, which are deprecated but unchanged. For new integrations, use [Get order details (v3)](/api-reference/orders/get-order-v3) and [Get order result download URLs (v3)](/api-reference/orders/download-order-v3). They return every order type in one shape, and the v3 download returns a URL for each output file plus a ZIP archive of all results.
-</Note>
-
-Poll the order or use [webhooks](/webhooks) to receive a push notification when processing completes.
+Poll [Get order details](/api-reference/orders/get-order-v3) or use [webhooks](/webhooks) to receive a push notification when processing completes.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789 \
+curl https://api.bizmori.com/api/v3/orders/123456789 \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
+const res = await fetch('https://api.bizmori.com/api/v3/orders/123456789', {
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.status: 'pending' | 'inProgress' | 'complete' | 'failed'
+// data.status: 'pending' | 'inProgress' | 'complete' | 'failed' | 'expired'
+// data.result: { outputFiles: [{ fileId, fileName, inputFileId }] } once complete, otherwise null
 ```
 
 ```jsx React
@@ -251,7 +248,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   let delay = 2000;
 
   while (Date.now() < deadline) {
-    const order = await api(`/orders/${orderId}`);
+    const order = await api(`/api/v3/orders/${orderId}`);
     onStatus?.(order.status);
     if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
@@ -264,12 +261,43 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
 
 ```python Python
 res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789',
+    'https://api.bizmori.com/api/v3/orders/123456789',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
-status = res.json()['data']['status']
+data = res.json()['data']
+status = data['status']
 ```
 </CodeGroup>
+
+**Response:**
+```json
+{
+  "data": {
+    "type": "antiAi",
+    "orderId": "123456789",
+    "orderName": "anti_ai_2026-02-19",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "1", "fileName": "photo.jpg" }
+    ],
+    "result": {
+      "outputFiles": [
+        { "fileId": "21", "fileName": "photo.jpg", "inputFileId": "1" }
+      ]
+    }
+  }
+}
+```
+
+`result` is an object only when `status` is `complete`, and `null` otherwise. `result.outputFiles[]` has one protected image for each input file. `inputFileId` points to `inputFiles[].fileId`.
 
 Order statuses:
 
@@ -278,38 +306,45 @@ Order statuses:
 | `pending` | Waiting for file upload |
 | `inProgress` | Processing |
 | `complete` | Ready for download |
-| `failed` | Processing failed |
+| `failed` | Processing failed. Read the reason from `errors` |
+| `expired` | The retention period ended and the files were deleted |
 
 ## Step 5: Download the result
 
-Once `status` is `complete`, fetch the download URL:
+Once `status` is `complete`, call [Get order result download URLs](/api-reference/orders/download-order-v3):
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789/download \
+curl https://api.bizmori.com/api/v3/orders/123456789/download \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789/download', {
+const res = await fetch('https://api.bizmori.com/api/v3/orders/123456789/download', {
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.url — valid for 7 days
+// data.archiveUrl — one ZIP of every protected image
+// data.files — [{ fileId, downloadUrl }], one URL per protected image
+// data.expiresInSeconds — URL lifetime, at most 3600
 ```
 
 ```jsx React
-const { url } = await api(`/orders/${order.orderId}/download`);
-// Hand it to an <a href={url} download> — the URL is valid for 7 days
-setDownloadUrl(url);
+const { archiveUrl, files: outputs } = await api(`/api/v3/orders/${order.orderId}/download`);
+// Hand archiveUrl to an <a href={archiveUrl} download> for a ZIP of every image,
+// or use outputs[i].downloadUrl for one image. The URLs expire within an hour,
+// so call this endpoint again instead of storing them.
+setDownload({ archiveUrl, files: outputs });
 ```
 
 ```python Python
 res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789/download',
+    'https://api.bizmori.com/api/v3/orders/123456789/download',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
-download_url = res.json()['data']['url']
+data = res.json()['data']
+archive_url = data['archiveUrl']
+file_urls = {f['fileId']: f['downloadUrl'] for f in data['files']}
 ```
 </CodeGroup>
 
@@ -317,12 +352,27 @@ download_url = res.json()['data']['url']
 ```json
 {
   "data": {
-    "url": "https://s3.amazonaws.com/..."
+    "archiveUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/zip/123456789/archive.zip?X-Amz-...",
+    "files": [
+      {
+        "fileId": "21",
+        "downloadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/out/photo.jpg?X-Amz-..."
+      }
+    ],
+    "expiresInSeconds": 3600
   }
 }
 ```
 
-The `url` is a presigned S3 URL valid for **7 days**. Download the protected file directly from this URL.
+- `archiveUrl` is a ZIP archive of every protected image in the order, even when the order has one image. Use it for a single **Download** button.
+- `files[]` has a URL for each protected image. It lists the same files in the same order as `result.outputFiles[]` from Step 4, with the same `fileId` values, so you can match each URL to its file name and `inputFileId`.
+- The URLs are valid for `expiresInSeconds` seconds: 3600 (1 hour), or less if the retention period (`expiresAt`) ends sooner. Don't store them. Call this endpoint again whenever you need to download.
+
+<Note>
+  With an `sk_test_` key, the download URLs point to fixed sample files, not to your protected images. A test Anti-AI order has no output files, so `result.outputFiles` and `files` are empty arrays and `archiveUrl` is a sample ZIP.
+</Note>
+
+For every option the Anti-AI API supports, see the [API reference](/api-reference/anti-ai/create-order).
 
 ## Full React example
 
@@ -331,7 +381,7 @@ Everything above, wired into one component: multiple files, per-file upload prog
 ```jsx AntiAiUploader.jsx
 import { useRef, useState } from 'react';
 
-const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_BASE = 'https://api.bizmori.com';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
 const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp';
@@ -390,7 +440,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   let delay = 2000;
 
   while (Date.now() < deadline) {
-    const order = await api(`/orders/${orderId}`);
+    const order = await api(`/api/v3/orders/${orderId}`);
     onStatus?.(order.status);
     if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
@@ -404,7 +454,7 @@ export default function AntiAiUploader() {
   const [files, setFiles] = useState([]);
   const [progress, setProgress] = useState({});
   const [status, setStatus] = useState('idle');
-  const [downloadUrl, setDownloadUrl] = useState(null);
+  const [download, setDownload] = useState(null);
   const [error, setError] = useState(null);
   const [orderId, setOrderId] = useState(null);
   const inFlight = useRef(false);
@@ -421,12 +471,12 @@ export default function AntiAiUploader() {
     const selected = files;
     setError(null);
     setOrderId(null);
-    setDownloadUrl(null);
+    setDownload(null);
     setProgress({});
 
     try {
       setStatus('creating order');
-      const order = await api('/orders/anti-ai', {
+      const order = await api('/api/v2/orders/anti-ai', {
         method: 'POST',
         idempotencyKey: crypto.randomUUID(),
         body: {
@@ -446,19 +496,24 @@ export default function AntiAiUploader() {
       );
 
       setStatus('confirming');
-      await api('/orders/anti-ai/confirm', {
+      await api('/api/v2/orders/anti-ai/confirm', {
         method: 'POST',
         idempotencyKey: crypto.randomUUID(),
         body: { orderId: order.orderId },
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired` is terminal too: the cleanup job drops the files after 7 days.
+      // `expired` is terminal too: the files are deleted when the retention period ends.
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setStatus('fetching download URL');
-      const { url } = await api(`/orders/${order.orderId}/download`);
-      setDownloadUrl(url);
+      const { archiveUrl, files: outputs } = await api(`/api/v3/orders/${order.orderId}/download`);
+      // files[] and result.outputFiles[] share fileId values and order.
+      const names = new Map(finished.result.outputFiles.map((file) => [file.fileId, file.fileName]));
+      setDownload({
+        archiveUrl,
+        files: outputs.map((file) => ({ ...file, fileName: names.get(file.fileId) })),
+      });
       setStatus('complete');
     } catch (caught) {
       setError(caught.message);
@@ -477,7 +532,7 @@ export default function AntiAiUploader() {
         disabled={busy}
         onChange={(event) => {
           setFiles([...event.target.files].slice(0, MAX_FILES));
-          setDownloadUrl(null);
+          setDownload(null);
           setError(null);
           setProgress({});
         }}
@@ -496,10 +551,21 @@ export default function AntiAiUploader() {
         ))}
       </ul>
 
-      {downloadUrl && (
-        <a href={downloadUrl} download>
-          Download protected images
-        </a>
+      {download && (
+        <div>
+          <a href={download.archiveUrl} download>
+            Download protected images
+          </a>
+          <ul>
+            {download.files.map((file) => (
+              <li key={file.fileId}>
+                <a href={file.downloadUrl} download>
+                  {file.fileName ?? `File ${file.fileId}`}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {error && <p role="alert">Failed: {error}{orderId && ` (orderId: ${orderId})`}</p>}
     </form>
@@ -509,10 +575,6 @@ export default function AntiAiUploader() {
 
 <Note>
   `import.meta.env.VITE_MORI_API_TOKEN` is Vite's syntax. Use `process.env.NEXT_PUBLIC_MORI_API_TOKEN` on Next.js, or whatever your bundler exposes to client code. `crypto.randomUUID()` needs a secure context: HTTPS and `localhost` are fine, a plain-HTTP LAN address is not.
-</Note>
-
-<Note>
-  Test orders do not produce a result file: their `downloadUrl` is `null`, and the download endpoint can return `PROCESSED_FILE_NOT_FOUND`.
 </Note>
 
 ## Error handling

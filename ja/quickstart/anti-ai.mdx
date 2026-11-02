@@ -12,6 +12,10 @@ description: "Anti-AI API で画像を AI から保護する"
 - ContentCare API キー（[こちらから発行](https://app.contentcare.ai/keys)）
 - 保護する画像ファイル（`jpeg`、`jpg`、`png`、`webp`、`tiff`、または `bmp`）
 
+<Info>
+  自動発行される [`sk_test_` キー](/ja/test-api-keys)を使うと、実際の Anti-AI 処理を実行したりクレジットを消費したりせずに注文の流れを検証できます。テストアップロードはファイルの内容を破棄し、ダウンロード URL は保護された画像ではなく固定のサンプル ZIP を指します。実際に保護された画像が必要な場合は、本番 API キーを使用してください。
+</Info>
+
 ## ステップ1: 注文の作成
 
 注文を作成し、S3 にファイルをアップロードするためのプリサインド URL を受け取ります。
@@ -51,7 +55,7 @@ const { data } = await response.json();
 ```jsx React
 // すべての JSON 呼び出しで使用する 1 つのヘルパー関数です。API は失敗時に
 // `{ code: "ERROR_CODE" }` を返すため、単純なステータスコードの代わりにこの code をそのまま公開します。
-const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_BASE = 'https://api.bizmori.com';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
@@ -72,7 +76,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
 }
 
 // `files` はユーザーが選択した File[] です。
-const order = await api('/orders/anti-ai', {
+const order = await api('/api/v2/orders/anti-ai', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
   body: {
@@ -190,7 +194,7 @@ await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm', {
 ```
 
 ```jsx React
-await api('/orders/anti-ai/confirm', {
+await api('/api/v2/orders/anti-ai/confirm', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
   body: { orderId: order.orderId },
@@ -208,24 +212,21 @@ requests.post(
 
 ## ステップ4: 注文ステータスの確認
 
-<Note>
-  ステップ 4 と 5 では、非推奨ですが動作は変わらない `GET /api/v2/orders/{orderId}` と `GET /api/v2/orders/{orderId}/download` を使用します。新しく連携する場合は、[注文詳細を取得（v3）](/ja/api-reference/orders/get-order-v3)と[注文結果のダウンロード URL を発行（v3）](/ja/api-reference/orders/download-order-v3)を使用してください。すべての注文の種類を 1 つの形式で返し、v3 のダウンロードは結果ファイルごとの URL と結果全体の ZIP をまとめて返します。
-</Note>
-
-注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して処理完了の通知を受け取ります。
+[注文詳細を取得](/ja/api-reference/orders/get-order-v3)で注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して処理完了の通知を受け取ります。
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789 \
+curl https://api.bizmori.com/api/v3/orders/123456789 \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
+const res = await fetch('https://api.bizmori.com/api/v3/orders/123456789', {
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.status: 'pending' | 'inProgress' | 'complete' | 'failed'
+// data.status: 'pending' | 'inProgress' | 'complete' | 'failed' | 'expired'
+// data.result: 完了後は { outputFiles: [{ fileId, fileName, inputFileId }] }、それ以前は null
 ```
 
 ```jsx React
@@ -238,7 +239,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   let delay = 2000;
 
   while (Date.now() < deadline) {
-    const order = await api(`/orders/${orderId}`);
+    const order = await api(`/api/v3/orders/${orderId}`);
     onStatus?.(order.status);
     if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
@@ -251,10 +252,11 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
 
 ```python Python
 res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789',
+    'https://api.bizmori.com/api/v3/orders/123456789',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
-status = res.json()['data']['status']
+data = res.json()['data']
+status = data['status']
 ```
 </CodeGroup>
 
@@ -264,17 +266,29 @@ status = res.json()['data']['status']
   "data": {
     "type": "antiAi",
     "orderId": "123456789",
+    "orderName": "anti_ai_2026-02-19",
     "channel": "api",
-    "thumbnailImageUrl": "https://s3.amazonaws.com/...",
     "status": "complete",
-    "orderName": "anti_ai_2026-03-18",
-    "fileCount": 1,
-    "createdAt": "2026-03-18T12:00:00.000Z",
-    "updatedAt": "2026-03-18T12:01:30.000Z",
-    "errors": null
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
+    "processingDelayed": false,
+    "errors": null,
+    "inputFiles": [
+      { "fileId": "1", "fileName": "photo.jpg" }
+    ],
+    "result": {
+      "outputFiles": [
+        { "fileId": "21", "fileName": "photo.jpg", "inputFileId": "1" }
+      ]
+    }
   }
 }
 ```
+
+`result` は `status` が `complete` のときだけオブジェクトで、それ以外は `null` です。`result.outputFiles[]` には入力ファイルごとに保護された画像が 1 つずつ含まれ、`inputFileId` は `inputFiles[].fileId` を指します。
 
 注文ステータスの流れ:
 
@@ -283,38 +297,44 @@ status = res.json()['data']['status']
 | `pending` | ファイルのアップロード待ち |
 | `inProgress` | 処理中 |
 | `complete` | 完了（ダウンロード可能） |
-| `failed` | 処理失敗 |
+| `failed` | 処理失敗。原因は `errors` で確認 |
+| `expired` | 保管期限が過ぎ、ファイルが削除済み |
 
 ## ステップ5: 結果のダウンロード
 
-ステータスが `complete` になったら、ダウンロード URL を取得します：
+ステータスが `complete` になったら、[注文結果のダウンロード URL を発行](/ja/api-reference/orders/download-order-v3)を呼び出します：
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789/download \
+curl https://api.bizmori.com/api/v3/orders/123456789/download \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789/download', {
+const res = await fetch('https://api.bizmori.com/api/v3/orders/123456789/download', {
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.url — 7日間有効
+// data.archiveUrl — 保護されたすべての画像をまとめた ZIP 1 つ
+// data.files — [{ fileId, downloadUrl }]、保護された画像ごとの URL
+// data.expiresInSeconds — URL の有効期間（最大 3600 秒）
 ```
 
 ```jsx React
-const { url } = await api(`/orders/${order.orderId}/download`);
-// <a href={url} download> 要素に渡してください — この URL は7日間有効です。
-setDownloadUrl(url);
+const { archiveUrl, files: outputs } = await api(`/api/v3/orders/${order.orderId}/download`);
+// すべての画像の ZIP は <a href={archiveUrl} download> 要素に、画像 1 枚は outputs[i].downloadUrl を
+// 使用してください。URL は 1 時間以内に失効するため、保存せずに必要なときにこのエンドポイントを再度呼び出します。
+setDownload({ archiveUrl, files: outputs });
 ```
 
 ```python Python
 res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789/download',
+    'https://api.bizmori.com/api/v3/orders/123456789/download',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
-download_url = res.json()['data']['url']
+data = res.json()['data']
+archive_url = data['archiveUrl']
+file_urls = {f['fileId']: f['downloadUrl'] for f in data['files']}
 ```
 </CodeGroup>
 
@@ -322,12 +342,25 @@ download_url = res.json()['data']['url']
 ```json
 {
   "data": {
-    "url": "https://s3.amazonaws.com/..."
+    "archiveUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/zip/123456789/archive.zip?X-Amz-...",
+    "files": [
+      {
+        "fileId": "21",
+        "downloadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/out/photo.jpg?X-Amz-..."
+      }
+    ],
+    "expiresInSeconds": 3600
   }
 }
 ```
 
-`url` は **7日間** 有効なプリサインド S3 URL です。この URL から保護されたファイルを直接ダウンロードしてください。
+- `archiveUrl` は、注文の保護されたすべての画像をまとめた ZIP ファイルです。画像が 1 枚だけの注文でも ZIP で受け取ります。**ダウンロード**ボタン 1 つにはこの URL を使用してください。
+- `files[]` には、保護された画像ごとの URL が含まれます。ステップ4 の `result.outputFiles[]` と同じファイルを同じ順序・同じ `fileId` で返すため、各 URL をファイル名と `inputFileId` に対応付けられます。
+- URL は `expiresInSeconds` 秒間有効です。既定は 3600 秒（1 時間）で、保管期限（`expiresAt`）が先に来る場合は残り時間に短縮されます。URL は保存せず、ダウンロードするたびにこのエンドポイントを再度呼び出してください。
+
+<Note>
+  `sk_test_` キーで取得したダウンロード URL は、保護された画像ではなく固定のサンプルファイルを指します。テスト用の Anti-AI 注文には結果ファイルがないため、`result.outputFiles` と `files` は空の配列で、`archiveUrl` はサンプル ZIP です。
+</Note>
 
 Anti-AI API でサポートされているオプションの詳細については、[API リファレンス](/ja/api-reference/anti-ai/create-order)を参照してください。
 
@@ -338,7 +371,7 @@ Anti-AI API でサポートされているオプションの詳細について�
 ```jsx AntiAiUploader.jsx
 import { useRef, useState } from 'react';
 
-const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_BASE = 'https://api.bizmori.com';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
 const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp';
@@ -397,7 +430,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   let delay = 2000;
 
   while (Date.now() < deadline) {
-    const order = await api(`/orders/${orderId}`);
+    const order = await api(`/api/v3/orders/${orderId}`);
     onStatus?.(order.status);
     if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
@@ -411,7 +444,7 @@ export default function AntiAiUploader() {
   const [files, setFiles] = useState([]);
   const [progress, setProgress] = useState({});
   const [status, setStatus] = useState('idle');
-  const [downloadUrl, setDownloadUrl] = useState(null);
+  const [download, setDownload] = useState(null);
   const [error, setError] = useState(null);
   const [orderId, setOrderId] = useState(null);
   const inFlight = useRef(false);
@@ -428,12 +461,12 @@ export default function AntiAiUploader() {
     const selected = files;
     setError(null);
     setOrderId(null);
-    setDownloadUrl(null);
+    setDownload(null);
     setProgress({});
 
     try {
       setStatus('creating order');
-      const order = await api('/orders/anti-ai', {
+      const order = await api('/api/v2/orders/anti-ai', {
         method: 'POST',
         idempotencyKey: crypto.randomUUID(),
         body: {
@@ -453,19 +486,24 @@ export default function AntiAiUploader() {
       );
 
       setStatus('confirming');
-      await api('/orders/anti-ai/confirm', {
+      await api('/api/v2/orders/anti-ai/confirm', {
         method: 'POST',
         idempotencyKey: crypto.randomUUID(),
         body: { orderId: order.orderId },
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired` も終了状態です。クリーンアップ処理が 7日後にファイルを削除します。
+      // `expired` も終了状態です。保管期限が過ぎるとファイルが削除されます。
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setStatus('fetching download URL');
-      const { url } = await api(`/orders/${order.orderId}/download`);
-      setDownloadUrl(url);
+      const { archiveUrl, files: outputs } = await api(`/api/v3/orders/${order.orderId}/download`);
+      // files[] と result.outputFiles[] は同じ fileId の値と順序を持ちます。
+      const names = new Map(finished.result.outputFiles.map((file) => [file.fileId, file.fileName]));
+      setDownload({
+        archiveUrl,
+        files: outputs.map((file) => ({ ...file, fileName: names.get(file.fileId) })),
+      });
       setStatus('complete');
     } catch (caught) {
       setError(caught.message);
@@ -484,7 +522,7 @@ export default function AntiAiUploader() {
         disabled={busy}
         onChange={(event) => {
           setFiles([...event.target.files].slice(0, MAX_FILES));
-          setDownloadUrl(null);
+          setDownload(null);
           setError(null);
           setProgress({});
         }}
@@ -503,10 +541,21 @@ export default function AntiAiUploader() {
         ))}
       </ul>
 
-      {downloadUrl && (
-        <a href={downloadUrl} download>
-          保護された画像をダウンロード
-        </a>
+      {download && (
+        <div>
+          <a href={download.archiveUrl} download>
+            保護された画像をダウンロード
+          </a>
+          <ul>
+            {download.files.map((file) => (
+              <li key={file.fileId}>
+                <a href={file.downloadUrl} download>
+                  {file.fileName ?? `ファイル ${file.fileId}`}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
       {error && <p role="alert">失敗: {error}{orderId && ` (orderId: ${orderId})`}</p>}
     </form>

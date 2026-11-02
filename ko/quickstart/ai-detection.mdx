@@ -53,7 +53,7 @@ const { data } = await response.json();
 ```jsx React
 // 모든 JSON 호출에 사용하는 헬퍼 함수입니다. 실패 시 API는 `{ code: "ERROR_CODE" }`를
 // 반환하므로, 단순한 상태 코드 대신 이 코드를 표면화합니다.
-const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_BASE = 'https://api.bizmori.com';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
@@ -74,7 +74,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
 }
 
 // `file`은 사용자가 선택한 단일 File 객체입니다
-const order = await api('/orders/ai-detection', {
+const order = await api('/api/v2/orders/ai-detection', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
   body: { fileName: file.name },
@@ -187,7 +187,7 @@ await fetch('https://api.bizmori.com/api/v2/orders/ai-detection/confirm', {
 ```
 
 ```jsx React
-await api('/orders/ai-detection/confirm', {
+await api('/api/v2/orders/ai-detection/confirm', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
   body: { orderId: order.orderId },
@@ -206,25 +206,22 @@ requests.post(
 
 ## 4단계: 결과 확인
 
-<Note>
-  이 단계는 deprecated되었지만 동작이 바뀌지 않은 `GET /api/v2/orders/{orderId}`를 사용합니다. 새로 연동한다면 [주문 상세 조회(v3)](/ko/api-reference/orders/get-order-v3)를 사용하세요. 결과를 최상위 `statusCode`, `probability` 대신 `result.verdict`, `result.probability`로 반환합니다.
-</Note>
-
-주문 상태를 폴링하거나 [웹훅](/ko/webhooks)을 설정하여 탐지 완료 알림을 받습니다. 탐지 결과는 주문 상세에 직접 포함되어 있으며, 별도의 다운로드 단계는 없습니다.
+[주문 상세 조회](/ko/api-reference/orders/get-order-v3)로 주문 상태를 폴링하거나 [웹훅](/ko/webhooks)을 설정하여 탐지 완료 알림을 받습니다. 탐지 결과는 주문 상세의 `result`에 포함되어 있으며, 별도의 다운로드 단계는 없습니다.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789 \
+curl https://api.bizmori.com/api/v3/orders/123456789 \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
+const res = await fetch('https://api.bizmori.com/api/v3/orders/123456789', {
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.probability: 0-1
-// data.statusCode: 'likely_ai' | 'uncertain_ai' | 'uncertain_real' | 'likely_real'
+// data.status: 'pending' | 'inProgress' | 'complete' | 'failed' | 'expired'
+// data.result.probability: 0-1
+// data.result.verdict: 'likely_ai' | 'uncertain_ai' | 'uncertain_real' | 'likely_real'
 ```
 
 ```jsx React
@@ -237,7 +234,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   let delay = 2000;
 
   while (Date.now() < deadline) {
-    const order = await api(`/orders/${orderId}`);
+    const order = await api(`/api/v3/orders/${orderId}`);
     onStatus?.(order.status);
     if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
@@ -250,12 +247,13 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
 
 ```python Python
 res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789',
+    'https://api.bizmori.com/api/v3/orders/123456789',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
 data = res.json()['data']
-probability = data['probability']
-status_code = data['statusCode']
+if data['status'] == 'complete':
+    probability = data['result']['probability']
+    verdict = data['result']['verdict']
 ```
 </CodeGroup>
 
@@ -265,41 +263,53 @@ status_code = data['statusCode']
   "data": {
     "type": "aiDetection",
     "orderId": "123456789",
-    "channel": "api",
-    "thumbnailImageUrl": "https://s3.amazonaws.com/...",
-    "status": "complete",
     "orderName": "ai_detection_2026-03-18",
-    "fileCount": 1,
-    "createdAt": "2026-03-18T12:00:00.000Z",
-    "updatedAt": "2026-03-18T12:01:30.000Z",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/ai/photo.jpg",
+    "processingDelayed": false,
     "errors": null,
-    "probability": 0.92,
-    "statusCode": "likely_ai",
-    "options": {
-      "generateHeatmap": false,
-      "generateOverlay": false,
-      "generateThumbnail": false
-    },
-    "originalImageUrl": "https://s3.amazonaws.com/..."
+    "inputFiles": [
+      { "fileId": "1", "fileName": "photo.jpg" }
+    ],
+    "result": {
+      "verdict": "likely_ai",
+      "probability": 0.92,
+      "options": {
+        "generateHeatmap": true,
+        "generateOverlay": true,
+        "generateThumbnail": false
+      },
+      "originalImageUrl": "https://cdn.bizmori.com/ai/photo.jpg",
+      "heatmapUrl": "https://cdn.bizmori.com/ai/heatmap.png",
+      "overlayUrl": "https://cdn.bizmori.com/ai/overlay.png"
+    }
   }
 }
 ```
 
+`result`는 `status`가 `complete`일 때만 객체이고, 그 외에는 `null`입니다.
+
 <Note>
-  `heatmapUrl`, `overlayUrl`은 주문 생성 시 각각 `options.generateHeatmap`, `options.generateOverlay`를 요청한 경우에만 응답에 포함됩니다.
-  결과 이미지는 보통 긴 변을 1600px 이내로 줄인 WebP입니다. `originalImageUrl`도 같은 방식으로 줄인 입력 이미지 사본이고, `thumbnailImageUrl`은 740×400 이내 썸네일이며 `options.generateThumbnail`과 관계없이 반환됩니다. 리사이즈 이미지가 준비되지 않았으면 원본 파일을 반환합니다.
+  `result.heatmapUrl`, `result.overlayUrl`은 1단계에서 각각 `options.generateHeatmap`, `options.generateOverlay`를 요청하지 않으면 `null`입니다. `result.originalImageUrl`, `result.heatmapUrl`, `result.overlayUrl`은 1시간 동안 유효하므로, 새 URL이 필요하면 주문 상세를 다시 조회하세요.
+  결과 이미지는 보통 긴 변을 1600px 이내로 줄인 WebP입니다. `result.originalImageUrl`도 같은 방식으로 줄인 입력 이미지 사본이고, `thumbnailImageUrl`은 740×400 이내 썸네일이며 `options.generateThumbnail`과 관계없이 반환됩니다. 리사이즈 이미지가 준비되지 않았으면 원본 파일을 반환합니다.
+  `sk_test_` 키로 만든 주문은 `result.originalImageUrl`, `result.heatmapUrl`, `result.overlayUrl`이 `null`입니다.
 </Note>
 
 ### 결과 해석
 
-`probability` 필드(0–1)는 이미지가 AI로 생성되었을 확률을 나타냅니다. `statusCode`는 이를 사람이 읽기 쉽게 해석한 값입니다:
+`result.probability`(0–1)는 이미지가 AI로 생성되었을 확률을 나타냅니다. `result.verdict`는 이 확률을 기준으로 한 판정입니다. `result.probability`가 `null`이면 `result.verdict`도 `null`입니다.
 
-| `statusCode` | 확률 구간 | 의미 |
+| `result.verdict` | 확률 구간 | 의미 |
 |---|---|---|
-| `likely_real` | < 0.25 | 사람 창작 가능성 매우 높음 |
-| `uncertain_real` | 0.25 – 0.5 | 사람 창작 가능성 높음 |
-| `uncertain_ai` | 0.5 – 0.75 | AI 생성 가능성 높음 |
-| `likely_ai` | ≥ 0.75 | AI 생성 가능성 매우 높음 |
+| `likely_real` | < 0.25 | AI 생성이 아닐 가능성이 높음 |
+| `uncertain_real` | 0.25 – 0.5 | AI 생성이 아닐 가능성이 있음 |
+| `uncertain_ai` | 0.5 – 0.75 | AI 생성일 가능성이 있음 |
+| `likely_ai` | ≥ 0.75 | AI 생성일 가능성이 높음 |
 
 ## 전체 React 예제
 
@@ -308,7 +318,7 @@ status_code = data['statusCode']
 ```jsx AiDetectionChecker.jsx
 import { useRef, useState } from 'react';
 
-const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_BASE = 'https://api.bizmori.com';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
 const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp';
@@ -366,7 +376,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   let delay = 2000;
 
   while (Date.now() < deadline) {
-    const order = await api(`/orders/${orderId}`);
+    const order = await api(`/api/v3/orders/${orderId}`);
     onStatus?.(order.status);
     if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
@@ -402,7 +412,7 @@ export default function AiDetectionChecker() {
 
     try {
       setStatus('creating order');
-      const order = await api('/orders/ai-detection', {
+      const order = await api('/api/v2/orders/ai-detection', {
         method: 'POST',
         idempotencyKey: crypto.randomUUID(),
         body: {
@@ -416,17 +426,17 @@ export default function AiDetectionChecker() {
       await putFile(selected, order.file.uploadUrl, setProgress);
 
       setStatus('confirming');
-      await api('/orders/ai-detection/confirm', {
+      await api('/api/v2/orders/ai-detection/confirm', {
         method: 'POST',
         idempotencyKey: crypto.randomUUID(),
         body: { orderId: order.orderId },
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired`도 종료 상태입니다. 정리 작업이 7일 후 파일을 삭제합니다.
+      // `expired`도 종료 상태입니다. 보관 기한이 지나면 파일이 삭제됩니다.
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
-      setResult(finished);
+      setResult(finished.result);
       setStatus('complete');
     } catch (caught) {
       setError(caught.message);
@@ -459,7 +469,7 @@ export default function AiDetectionChecker() {
       {result && (
         <div>
           <p>
-            확률: {Math.round(result.probability * 100)}% — {result.statusCode}
+            확률: {Math.round(result.probability * 100)}% — {result.verdict}
           </p>
           {result.heatmapUrl && <img src={result.heatmapUrl} alt="AI 탐지 히트맵" />}
           {result.overlayUrl && <img src={result.overlayUrl} alt="AI 탐지 오버레이" />}

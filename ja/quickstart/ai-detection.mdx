@@ -12,6 +12,10 @@ description: "確率スコアで AI 生成画像を検出する"
 - ContentCare API キー（[こちらから発行](https://app.contentcare.ai/keys)）
 - 分析する画像ファイル（`jpeg`、`jpg`、`png`、`webp`、`bmp`、または `tiff`）
 
+<Info>
+  自動発行される [`sk_test_` キー](/ja/test-api-keys)を使うと、実際の AI Detection 処理を実行したりクレジットを消費したりせずに注文の流れを検証できます。テストアップロードはファイルの内容を破棄し、決まった確率の値を返します。実際の検出結果が必要な場合は、本番 API キーを使用してください。
+</Info>
+
 ## ステップ1: 注文の作成
 
 画像ファイル名を指定して AI Detection 注文を作成します。
@@ -45,7 +49,7 @@ const { data } = await response.json();
 ```jsx React
 // すべての JSON 呼び出しで使用するヘルパー関数です。失敗時に API は `{ code: "ERROR_CODE" }` を
 // 返すため、単純なステータスコードの代わりにこの code を表面化します。
-const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_BASE = 'https://api.bizmori.com';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
 async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
@@ -66,7 +70,7 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
 }
 
 // `file` はユーザーが選択した単一の File オブジェクトです
-const order = await api('/orders/ai-detection', {
+const order = await api('/api/v2/orders/ai-detection', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
   body: { fileName: file.name },
@@ -175,7 +179,7 @@ await fetch('https://api.bizmori.com/api/v2/orders/ai-detection/confirm', {
 ```
 
 ```jsx React
-await api('/orders/ai-detection/confirm', {
+await api('/api/v2/orders/ai-detection/confirm', {
   method: 'POST',
   idempotencyKey: crypto.randomUUID(),
   body: { orderId: order.orderId },
@@ -193,25 +197,22 @@ requests.post(
 
 ## ステップ4: 結果の確認
 
-<Note>
-  このステップでは、非推奨ですが動作は変わらない `GET /api/v2/orders/{orderId}` を使用します。新しく連携する場合は[注文詳細を取得（v3）](/ja/api-reference/orders/get-order-v3)を使用してください。結果をトップレベルの `statusCode` と `probability` ではなく、`result.verdict` と `result.probability` で返します。
-</Note>
-
-注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して検出完了の通知を受け取ります。検出結果は注文の詳細に直接含まれており、別途ダウンロードのステップはありません。
+[注文詳細を取得](/ja/api-reference/orders/get-order-v3)で注文ステータスをポーリングするか、[Webhook](/ja/webhooks) を設定して検出完了の通知を受け取ります。検出結果は注文詳細の `result` に含まれており、別途ダウンロードのステップはありません。
 
 <CodeGroup>
 ```bash cURL
-curl https://api.bizmori.com/api/v2/orders/123456789 \
+curl https://api.bizmori.com/api/v3/orders/123456789 \
   -H "Authorization: Bearer YOUR_API_TOKEN"
 ```
 
 ```javascript Node.js
-const res = await fetch('https://api.bizmori.com/api/v2/orders/123456789', {
+const res = await fetch('https://api.bizmori.com/api/v3/orders/123456789', {
   headers: { 'Authorization': 'Bearer YOUR_API_TOKEN' },
 });
 const { data } = await res.json();
-// data.probability: 0-1
-// data.statusCode: 'likely_ai' | 'uncertain_ai' | 'uncertain_real' | 'likely_real'
+// data.status: 'pending' | 'inProgress' | 'complete' | 'failed' | 'expired'
+// data.result.probability: 0-1
+// data.result.verdict: 'likely_ai' | 'uncertain_ai' | 'uncertain_real' | 'likely_real'
 ```
 
 ```jsx React
@@ -224,7 +225,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   let delay = 2000;
 
   while (Date.now() < deadline) {
-    const order = await api(`/orders/${orderId}`);
+    const order = await api(`/api/v3/orders/${orderId}`);
     onStatus?.(order.status);
     if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
@@ -237,12 +238,13 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
 
 ```python Python
 res = requests.get(
-    'https://api.bizmori.com/api/v2/orders/123456789',
+    'https://api.bizmori.com/api/v3/orders/123456789',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
 )
 data = res.json()['data']
-probability = data['probability']
-status_code = data['statusCode']
+if data['status'] == 'complete':
+    probability = data['result']['probability']
+    verdict = data['result']['verdict']
 ```
 </CodeGroup>
 
@@ -252,41 +254,53 @@ status_code = data['statusCode']
   "data": {
     "type": "aiDetection",
     "orderId": "123456789",
-    "channel": "api",
-    "thumbnailImageUrl": "https://s3.amazonaws.com/...",
-    "status": "complete",
     "orderName": "ai_detection_2026-03-18",
-    "fileCount": 1,
-    "createdAt": "2026-03-18T12:00:00.000Z",
-    "updatedAt": "2026-03-18T12:01:30.000Z",
+    "channel": "api",
+    "status": "complete",
+    "createdAt": "2026-10-08T01:00:00.000Z",
+    "updatedAt": "2026-10-08T01:00:40.000Z",
+    "expiresAt": "2026-11-07T01:00:00.000Z",
+    "retentionDays": 30,
+    "thumbnailImageUrl": "https://cdn.bizmori.com/ai/photo.jpg",
+    "processingDelayed": false,
     "errors": null,
-    "probability": 0.92,
-    "statusCode": "likely_ai",
-    "options": {
-      "generateHeatmap": false,
-      "generateOverlay": false,
-      "generateThumbnail": false
-    },
-    "originalImageUrl": "https://s3.amazonaws.com/..."
+    "inputFiles": [
+      { "fileId": "1", "fileName": "photo.jpg" }
+    ],
+    "result": {
+      "verdict": "likely_ai",
+      "probability": 0.92,
+      "options": {
+        "generateHeatmap": true,
+        "generateOverlay": true,
+        "generateThumbnail": false
+      },
+      "originalImageUrl": "https://cdn.bizmori.com/ai/photo.jpg",
+      "heatmapUrl": "https://cdn.bizmori.com/ai/heatmap.png",
+      "overlayUrl": "https://cdn.bizmori.com/ai/overlay.png"
+    }
   }
 }
 ```
 
+`result` は `status` が `complete` のときだけオブジェクトで、それ以外は `null` です。
+
 <Note>
-  `heatmapUrl`、`overlayUrl` は、注文作成時にそれぞれ `options.generateHeatmap`、`options.generateOverlay` をリクエストした場合にのみレスポンスに含まれます。
-  結果画像は、通常、長辺を1600px以内に縮小したWebPです。`originalImageUrl` も同じ方法で縮小した入力画像のコピーで、`thumbnailImageUrl` は740×400以内のサムネイルであり、`options.generateThumbnail` に関係なく返されます。リサイズ画像が用意できていない場合は、元のファイルを返します。
+  `result.heatmapUrl`、`result.overlayUrl` は、ステップ1でそれぞれ `options.generateHeatmap`、`options.generateOverlay` をリクエストしなかった場合は `null` です。`result.originalImageUrl`、`result.heatmapUrl`、`result.overlayUrl` は 1 時間有効なため、新しい URL が必要な場合は注文詳細を再度取得してください。
+  結果画像は、通常、長辺を1600px以内に縮小したWebPです。`result.originalImageUrl` も同じ方法で縮小した入力画像のコピーで、`thumbnailImageUrl` は740×400以内のサムネイルであり、`options.generateThumbnail` に関係なく返されます。リサイズ画像が用意できていない場合は、元のファイルを返します。
+  `sk_test_` キーで作成した注文では、`result.originalImageUrl`、`result.heatmapUrl`、`result.overlayUrl` は `null` です。
 </Note>
 
 ### 結果の解釈
 
-`probability` フィールド（0〜1）は、画像が AI によって生成された確率を示します。`statusCode` はこれを人が読みやすい形で解釈した値です：
+`result.probability`（0〜1）は、画像が AI によって生成された確率を示します。`result.verdict` はこの確率に基づく判定です。`result.probability` が `null` の場合、`result.verdict` も `null` です。
 
-| `statusCode` | 確率の範囲 | 意味 |
+| `result.verdict` | 確率の範囲 | 意味 |
 |---|---|---|
-| `likely_real` | < 0.25 | 人間による作成の可能性が非常に高い |
-| `uncertain_real` | 0.25 – 0.5 | 人間による作成の可能性が高い |
-| `uncertain_ai` | 0.5 – 0.75 | AI 生成の可能性が高い |
-| `likely_ai` | ≥ 0.75 | AI 生成の可能性が非常に高い |
+| `likely_real` | < 0.25 | AI 生成ではない可能性が高い |
+| `uncertain_real` | 0.25 – 0.5 | AI 生成ではない可能性がある |
+| `uncertain_ai` | 0.5 – 0.75 | AI 生成の可能性がある |
+| `likely_ai` | ≥ 0.75 | AI 生成の可能性が高い |
 
 ## React 完全なサンプル
 
@@ -295,7 +309,7 @@ status_code = data['statusCode']
 ```jsx AiDetectionChecker.jsx
 import { useRef, useState } from 'react';
 
-const API_BASE = 'https://api.bizmori.com/api/v2';
+const API_BASE = 'https://api.bizmori.com';
 const API_TOKEN = import.meta.env.VITE_MORI_API_TOKEN;
 
 const ACCEPT_FORMATS = '.jpg,.jpeg,.png,.webp,.tiff,.bmp';
@@ -353,7 +367,7 @@ async function pollOrder(orderId, { onStatus, timeoutMs = 10 * 60 * 1000 } = {})
   let delay = 2000;
 
   while (Date.now() < deadline) {
-    const order = await api(`/orders/${orderId}`);
+    const order = await api(`/api/v3/orders/${orderId}`);
     onStatus?.(order.status);
     if (['complete', 'failed', 'expired'].includes(order.status)) return order;
 
@@ -389,7 +403,7 @@ export default function AiDetectionChecker() {
 
     try {
       setStatus('creating order');
-      const order = await api('/orders/ai-detection', {
+      const order = await api('/api/v2/orders/ai-detection', {
         method: 'POST',
         idempotencyKey: crypto.randomUUID(),
         body: {
@@ -403,17 +417,17 @@ export default function AiDetectionChecker() {
       await putFile(selected, order.file.uploadUrl, setProgress);
 
       setStatus('confirming');
-      await api('/orders/ai-detection/confirm', {
+      await api('/api/v2/orders/ai-detection/confirm', {
         method: 'POST',
         idempotencyKey: crypto.randomUUID(),
         body: { orderId: order.orderId },
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired` も終了状態です。クリーンアップ処理が 7日後にファイルを削除します。
+      // `expired` も終了状態です。保管期限が過ぎるとファイルが削除されます。
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
-      setResult(finished);
+      setResult(finished.result);
       setStatus('complete');
     } catch (caught) {
       setError(caught.message);
@@ -446,7 +460,7 @@ export default function AiDetectionChecker() {
       {result && (
         <div>
           <p>
-            確率: {Math.round(result.probability * 100)}% — {result.statusCode}
+            確率: {Math.round(result.probability * 100)}% — {result.verdict}
           </p>
           {result.heatmapUrl && <img src={result.heatmapUrl} alt="AI 検出ヒートマップ" />}
           {result.overlayUrl && <img src={result.overlayUrl} alt="AI 検出オーバーレイ" />}
