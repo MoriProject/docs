@@ -37,7 +37,7 @@ Test API keys use the same Bearer authentication as live keys, but they do not r
       --data-binary @sample.png
     ```
 
-    The default test upload limit is 50 MiB. Use [Refresh presigned URLs](/api-reference/orders/refresh-urls) when an upload URL expires and the order is still waiting for an upload.
+    The default test upload limit is 50 MiB. Use [Reissue upload URLs](/api-reference/orders/refresh-urls) when an upload URL expires and the order is still waiting for an upload.
   </Step>
   <Step title="Confirm when the service requires it">
     Call the confirm endpoint after the upload for Anti-AI upload mode and AI Detection. Watermark Embed and Watermark Extract start after their required uploads finish. Anti-AI URL mode starts when you create the order.

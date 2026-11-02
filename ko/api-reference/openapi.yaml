@@ -2979,7 +2979,7 @@ paths:
           \ contains the presigned download URL"
   /api/v2/orders/{orderId}/refresh-urls:
     post:
-      summary: 프리사인드 URL 갱신
+      summary: 업로드 URL 재발급
       operationId: refreshOrderUrls
       description: '만료된 업로드 URL을 재발급합니다. live 키는 S3 presigned URL을 받고, 테스트 키는 절대 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URL을 받습니다. 두 URL은 1시간 동안 유효합니다.
 
@@ -3001,7 +3001,7 @@ paths:
         description: 주문 ID
       responses:
         '200':
-          description: URL 갱신 성공
+          description: 업로드 URL 재발급 성공
           content:
             application/json:
               schema:
