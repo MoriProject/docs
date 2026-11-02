@@ -7,6 +7,10 @@ description: "Anti-AI API で画像を AI から保護する"
 
 このドキュメントのすべてのエンドポイントは純粋な HTTPS と JSON 通信であるため、サーバーだけでなくブラウザからも同じように呼び出せます。各ステップには **React** タブが含まれており、[コピー&ペーストしてそのまま使える完全なコンポーネント](#react-完全なサンプル)はページ下部で確認できます。
 
+<Tip>
+  ファイルをアップロードする代わりに、画像 URL を直接指定することもできます。URL モードの詳細については、[Anti-AI 注文作成 API](/ja/api-reference/anti-ai/create-order) を参照してください。
+</Tip>
+
 ## 事前準備
 
 - ContentCare API キー（[こちらから発行](https://app.contentcare.ai/keys)）
@@ -20,23 +24,23 @@ description: "Anti-AI API で画像を AI から保護する"
 
 注文を作成し、S3 にファイルをアップロードするためのプリサインド URL を受け取ります。
 
-<Tip>
-  ファイルをアップロードする代わりに、画像 URL を直接指定することもできます。URL モードの詳細については、[Anti-AI 注文作成 API](/ja/api-reference/anti-ai/create-order) を参照してください。
-</Tip>
-
 <CodeGroup>
 ```bash cURL
+ORDER_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
 curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
-    "idempotencyKey": "2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40",
+    "idempotencyKey": "'$ORDER_IDEMPOTENCY_KEY'",
     "files": [{ "fileName": "photo.jpg" }],
     "options": { "strength": "high" }
   }'
 ```
 
 ```javascript Node.js
+import { randomUUID } from 'node:crypto';
+
+const orderIdempotencyKey = randomUUID();
 const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai', {
   method: 'POST',
   headers: {
@@ -44,7 +48,7 @@ const response = await fetch('https://api.bizmori.com/api/v2/orders/anti-ai', {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    idempotencyKey: '2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40',
+    idempotencyKey: orderIdempotencyKey,
     files: [{ fileName: 'photo.jpg' }],
     options: { strength: 'high' },
   }),
@@ -87,13 +91,15 @@ const order = await api('/api/v2/orders/anti-ai', {
 ```
 
 ```python Python
+import uuid
 import requests
 
+order_idempotency_key = str(uuid.uuid4())
 res = requests.post(
     'https://api.bizmori.com/api/v2/orders/anti-ai',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
     json={
-        'idempotencyKey': '2f4b6c82-8a6e-4f39-9f8a-7d3b5c1e2a40',
+        'idempotencyKey': order_idempotency_key,
         'files': [{'fileName': 'photo.jpg'}],
         'options': {'strength': 'high'},
     },
@@ -164,7 +170,7 @@ await Promise.all(
 </CodeGroup>
 
 <Note>
-  プリサインド URL は **1時間** 後に失効します。失効した場合は、[URL の再発行](/ja/api-reference/orders/refresh-urls) エンドポイントを使用して新しい URL を取得してください。
+  本番 API キーでは S3 のプリサインド URL を、テストキーでは `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` を受け取ります。どちらの URL も **1時間** 後に失効し、同じように Authorization ヘッダーなしで PUT します。テストアップロードはストリームとして読み取られるだけで、保存も処理もされません。失効した場合は [URL の再発行](/ja/api-reference/orders/refresh-urls)を使用してください。
 </Note>
 
 ## ステップ3: 注文の確認
@@ -173,13 +179,15 @@ await Promise.all(
 
 <CodeGroup>
 ```bash cURL
+CONFIRM_IDEMPOTENCY_KEY=$(uuidgen | tr '[:upper:]' '[:lower:]')
 curl -X POST https://api.bizmori.com/api/v2/orders/anti-ai/confirm \
   -H "Authorization: Bearer YOUR_API_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"idempotencyKey": "1b7e3c90-6d2a-4f58-a9c1-8e4b7d0f2a63", "orderId": "123456789"}'
+  -d "{\"idempotencyKey\": \"$CONFIRM_IDEMPOTENCY_KEY\", \"orderId\": \"123456789\"}"
 ```
 
 ```javascript Node.js
+const confirmIdempotencyKey = randomUUID();
 await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm', {
   method: 'POST',
   headers: {
@@ -187,7 +195,7 @@ await fetch('https://api.bizmori.com/api/v2/orders/anti-ai/confirm', {
     'Content-Type': 'application/json',
   },
   body: JSON.stringify({
-    idempotencyKey: '1b7e3c90-6d2a-4f58-a9c1-8e4b7d0f2a63',
+    idempotencyKey: confirmIdempotencyKey,
     orderId: '123456789',
   }),
 });
@@ -202,10 +210,11 @@ await api('/api/v2/orders/anti-ai/confirm', {
 ```
 
 ```python Python
+confirm_idempotency_key = str(uuid.uuid4())
 requests.post(
     'https://api.bizmori.com/api/v2/orders/anti-ai/confirm',
     headers={'Authorization': 'Bearer YOUR_API_TOKEN'},
-    json={'idempotencyKey': '1b7e3c90-6d2a-4f58-a9c1-8e4b7d0f2a63', 'orderId': '123456789'},
+    json={'idempotencyKey': confirm_idempotency_key, 'orderId': '123456789'},
 )
 ```
 </CodeGroup>
