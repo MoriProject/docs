@@ -2867,12 +2867,13 @@ paths:
     post:
       summary: アップロードURLを再発行
       operationId: refreshOrderUrls
-      description: '期限切れのアップロードURLを再発行します。
+      description: |
+        注文の入力ファイルのアップロードURLを再発行します。
 
-        - `pending` ステータスの注文でのみ利用可能
-
-        - 注意: `watermarkExtract` タイプの注文では、実際のレスポンスは本スキーマの `data.files[]` 形式とは異なり、`{ orderId, orderName,
-        orderType, originalFiles, watermarkedFile }` の形式で返却されます。'
+        - 本番キー: `pending` または `inProgress` ステータスの注文で利用できます。`uploadUrl` でアップロードする入力ファイルごとに、アップロード済みかどうかにかかわらず、1時間有効な新しい S3 presigned PUT URL を発行します。外部URLで指定したファイルは含まれません。
+        - テストキー: `pending` の注文で、まだアップロードしていないファイルに対してのみ利用できます。各ファイルには S3 presigned URL ではなく ContentCare のテスト用アップロードURL（`https://api.bizmori.com/api/v2/test-uploads/{signedToken}`）が発行され、1時間有効です。
+        - 呼び出すたびに新しい URL に署名します。以前に発行した URL は無効化されず、有効期限まで使用できます。
+        - 本番キーの watermark 抽出注文では、レスポンスに `files` の代わりに `originalFiles` と `watermarkedFile` が含まれます。
       tags:
       - Orders
       security:
@@ -2899,10 +2900,61 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/OrderFile'
+        '400':
+          description: '注文のステータスが再発行を許可していない（`ORDER_STATUS_INVALID`）、注文ファイルの保管期限が過ぎている（`ORDER_EXPIRED`）、または本番キーの注文の入力がすべて外部URLである（`VALIDATION_FAILED`）。'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                orderStatusInvalid:
+                  value:
+                    code: ORDER_STATUS_INVALID
+                orderExpired:
+                  value:
+                    code: ORDER_EXPIRED
+                validationFailed:
+                  value:
+                    code: VALIDATION_FAILED
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: 他のアカウントの注文です。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_OWNER
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: '注文が存在しない（`ORDER_NOT_FOUND`）、または再発行できる入力ファイルがない（`ORDER_FILE_NOT_FOUND`）。テストキーでは、アップロード待ちのファイルが残っていないことを意味します。'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                orderNotFound:
+                  value:
+                    code: ORDER_NOT_FOUND
+                orderFileNotFound:
+                  value:
+                    code: ORDER_FILE_NOT_FOUND
+        '409':
+          description: 注文ファイルの保管期限を確認できません。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: FILE_RETENTION_UNKNOWN
+        '410':
+          description: 'サポートが終了した旧画像専用の watermark 抽出注文は、入力ストレージがないためアップロードURLを再発行できません。`POST /api/v3/orders/wtr-extract` で新しい抽出注文を作成してください。'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_API_SUNSET
       x-codeSamples:
       - lang: curl
         label: cURL
