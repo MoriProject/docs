@@ -35,6 +35,10 @@ description: 'ContentCare API を始める — サービスを選択してくだ
 - ContentCare API キー（[こちらから発行](https://app.contentcare.ai/keys)）
 - 画像ファイル — `jpg`、`jpeg`、`png`、`webp`、`tiff`、`bmp` はすべてのサービスでサポートされています。不可視 watermark の埋め込みまたは抽出サービスでは、`pdf` も追加でサポートされます。
 
+<Info>
+  自動発行された [`sk_test_` キー](/ja/test-api-keys)を使うと、テストのライフサイクルを試せます。本番キーは S3 のプリサインド `uploadUrl` を、テストキーは `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` を受け取ります。どちらも 1 時間有効です。`Content-Type` を指定し、Authorization ヘッダーなしでバイナリ本文を PUT してください。期限が切れた場合は [アップロードURLを再発行](/ja/api-reference/orders/refresh-urls)のエンドポイントを使用してください。テストアップロードはストリームとして読み取られるだけで、ContentCare は保存も使用量の消費も S3/GPU 処理も行いません。新しい論理リクエストごとに UUIDv4 の冪等性キーを使用し、そのリクエストのネットワーク再試行でだけ再利用してください。
+</Info>
+
 ## 開発者ではありませんか？
 
 <Card title='MCP コネクタ' icon='plug' href='/ja/mcp-connector' horizontal>

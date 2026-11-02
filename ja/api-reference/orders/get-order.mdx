@@ -7,3 +7,5 @@ openapi: "/ja/api-reference/openapi.yaml GET /api/v2/orders/{orderId}"
 <Warning>
   このエンドポイントは非推奨（deprecated）です。すべての注文の種類を 1 つの形式で返す [注文詳細を取得（v3）](/ja/api-reference/orders/get-order-v3) を使用してください。このエンドポイントのレスポンスと動作は変わりません。
 </Warning>
+
+`sk_test_` キーを使用すると、このエンドポイントはキーのアカウントが所有するテスト注文だけを返します。テスト注文は本番注文と同じ `pending`、`inProgress`、`complete`、`failed` のステータス値を使用します。
