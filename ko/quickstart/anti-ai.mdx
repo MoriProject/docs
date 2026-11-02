@@ -7,6 +7,10 @@ description: "Anti-AI API로 이미지를 AI로부터 보호하기"
 
 이 문서의 모든 엔드포인트는 순수 HTTPS와 JSON 통신이므로, 서버뿐 아니라 브라우저에서도 동일하게 호출할 수 있습니다. 각 단계에는 **React** 탭이 포함되어 있으며, [전체 복사-붙여넣기용 컴포넌트](#전체-react-예제)는 페이지 하단에서 확인할 수 있습니다.
 
+<Tip>
+  파일을 업로드하는 대신 이미지 URL을 직접 제공할 수도 있습니다. URL 모드에 대한 자세한 내용은 [Anti-AI 주문 생성 API](/ko/api-reference/anti-ai/create-order)를 참고하세요.
+</Tip>
+
 ## 사전 준비
 
 - ContentCare API 키 ([여기서 발급](https://app.contentcare.ai/keys))
@@ -19,10 +23,6 @@ description: "Anti-AI API로 이미지를 AI로부터 보호하기"
 ## 1단계: 주문 생성
 
 주문을 생성하고 S3에 파일을 업로드하기 위한 Presigned URL을 받습니다.
-
-<Tip>
-  파일을 업로드하는 대신 이미지 URL을 직접 제공할 수도 있습니다. URL 모드에 대한 자세한 내용은 [Anti-AI 주문 생성 API](/ko/api-reference/anti-ai/create-order)를 참고하세요.
-</Tip>
 
 <CodeGroup>
 ```bash cURL

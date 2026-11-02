@@ -116,7 +116,7 @@ data = res.json()['data']
 ```
 
 <Tip>
-  ダッシュボードでの識別用にサムネイル、ヒートマップ、オーバーレイ画像を生成するには、[AI Detection API リファレンス](/ja/api-reference/ai-detection/create-order)を参照してください。
+  リクエストボディに `"options": { "generateHeatmap": true, "generateOverlay": true }` を追加すると、ヒートマップとオーバーレイ画像を任意でリクエストできます。処理が完了すると、注文詳細の `result` に含まれます。
 </Tip>
 
 ## ステップ2: ファイルのアップロード

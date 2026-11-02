@@ -7,6 +7,10 @@ description: "Anti-AI API で画像を AI から保護する"
 
 このドキュメントのすべてのエンドポイントは純粋な HTTPS と JSON 通信であるため、サーバーだけでなくブラウザからも同じように呼び出せます。各ステップには **React** タブが含まれており、[コピー&ペーストしてそのまま使える完全なコンポーネント](#react-完全なサンプル)はページ下部で確認できます。
 
+<Tip>
+  ファイルをアップロードする代わりに、画像 URL を直接指定することもできます。URL モードの詳細については、[Anti-AI 注文作成 API](/ja/api-reference/anti-ai/create-order) を参照してください。
+</Tip>
+
 ## 事前準備
 
 - ContentCare API キー（[こちらから発行](https://app.contentcare.ai/keys)）
@@ -19,10 +23,6 @@ description: "Anti-AI API で画像を AI から保護する"
 ## ステップ1: 注文の作成
 
 注文を作成し、S3 にファイルをアップロードするためのプリサインド URL を受け取ります。
-
-<Tip>
-  ファイルをアップロードする代わりに、画像 URL を直接指定することもできます。URL モードの詳細については、[Anti-AI 注文作成 API](/ja/api-reference/anti-ai/create-order) を参照してください。
-</Tip>
 
 <CodeGroup>
 ```bash cURL
