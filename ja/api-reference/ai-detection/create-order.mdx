@@ -2,3 +2,61 @@
 title: "AI Detection注文を作成"
 openapi: "/ja/api-reference/openapi.yaml POST /api/v2/orders/ai-detection"
 ---
+
+## 画像のアップロード方法
+
+レスポンスで受け取った `uploadUrl` に、`PUT` リクエストで画像をアップロードします。本番キーではストレージのプリサインド URL が返されます。テストキーでは、リクエスト本文を受け取って破棄する ContentCare のテストアップロード URL が返されます:
+
+```bash
+curl -X PUT "UPLOAD_URL" \
+  -H "Content-Type: image/jpeg" \
+  --data-binary @photo.jpg
+```
+
+<Note>
+  本番のプリサインドアップロード URL は **1 時間** で失効します。テストアップロード URL には独自の認証情報が含まれているため、Bearer ヘッダーは不要です。URL が失効する前にファイルをアップロードし、[注文の確認](/ja/api-reference/ai-detection/confirm-order) エンドポイントを呼び出してください。
+</Note>
+
+## 検出結果の取得
+
+アップロードを確認すると、注文のステータスは `inProgress` に変わります。検出が完了すると、次の方法で結果を取得できます:
+
+1. **Webhook** — `order.aiDetection.completed` または `order.aiDetection.failed` イベントを購読します
+2. **ポーリング** — `status` が `complete` または `failed` になるまで [注文詳細を取得](/ja/api-reference/orders/get-order-v3) を呼び出します
+
+注文が `complete` になると、検出結果は `result` に含まれます。以下の例では注文の共通フィールドを省略しています。レスポンス全体は [注文詳細を取得](/ja/api-reference/orders/get-order-v3) を参照してください。
+
+```json
+{
+  "data": {
+    "type": "aiDetection",
+    "orderId": "...",
+    "status": "complete",
+    "result": {
+      "verdict": "likely_ai",
+      "probability": 0.97,
+      "options": {
+        "generateHeatmap": true,
+        "generateOverlay": false,
+        "generateThumbnail": true
+      },
+      "originalImageUrl": "https://...",
+      "heatmapUrl": "https://...",
+      "overlayUrl": null
+    }
+  }
+}
+```
+
+<Info>
+  テスト注文は、入力ファイル名から決まった検出結果を返します。`_ai` を使うと確率 `0.98`、`_human` を使うと確率 `0.02` が返されます。テスト注文では、ダウンロード可能なヒートマップやオーバーレイのファイルは作成されません。
+</Info>
+
+### 判定
+
+| `result.verdict` | 確率の範囲 | 意味 |
+|---|---|---|
+| `likely_ai` | ≥ 0.75 | AI 生成の可能性が高い |
+| `uncertain_ai` | 0.5 – 0.75 | AI 生成の可能性がある |
+| `uncertain_real` | 0.25 – 0.5 | AI 生成ではない可能性がある |
+| `likely_real` | < 0.25 | AI 生成ではない可能性が高い |

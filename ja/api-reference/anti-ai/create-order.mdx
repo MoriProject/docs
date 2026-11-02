@@ -2,3 +2,20 @@
 title: "Anti-AI注文を作成"
 openapi: "/ja/api-reference/openapi.yaml POST /api/v2/orders/anti-ai"
 ---
+
+<Note>
+  `sk_test_` キーで認証すると、注文は [テスト API キー](/ja/test-api-keys) で説明しているテストのライフサイクルに従います。テストアップロードにはレスポンスで返される ContentCare のアップロード URL を使用し、結果ファイルは作成されません。
+</Note>
+
+## 注文結果のダウンロード
+
+注文が `complete` ステータスになったら、[注文結果のダウンロード URL を発行](/ja/api-reference/orders/download-order-v3) を呼び出します。1 回の呼び出しで、`files[]` に出力ファイルごとの URL が、`archiveUrl` にすべての結果をまとめた ZIP アーカイブが返されます:
+
+```bash
+curl -X GET https://api.bizmori.com/api/v3/orders/{orderId}/download \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+<Warning>
+  URL の有効期間は最大 1 時間なので、ダウンロードのたびに新しくリクエストしてください。ファイルは注文の `expiresAt` までダウンロードでき、それを過ぎるとエンドポイントは `400 ORDER_EXPIRED` を返します。`sk_test_` 注文の URL は、実際の結果ではなく固定のサンプルファイルを指します。
+</Warning>
