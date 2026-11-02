@@ -2995,14 +2995,13 @@ paths:
     post:
       summary: Reissue upload URLs
       operationId: refreshOrderUrls
-      description: 'Reissue expired upload URLs. Live keys receive S3 presigned URLs; test keys receive absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URLs. Both are valid for one hour.
+      description: |
+        Reissue upload URLs for an order's input files.
 
-        - Only available for orders with `pending` status
-
-        - For test orders, the response contains a ContentCare test upload URL instead of
-        a storage presigned URL
-
-        '
+        - Live keys: available for orders in `pending` or `inProgress` status. Every input file that uses `uploadUrl` receives a new S3 presigned PUT URL valid for one hour, whether or not it has already been uploaded. Files supplied by external URL are not included.
+        - Test keys: available only for `pending` orders, and only for files that have not been uploaded yet. Each receives a ContentCare test upload URL (`https://api.bizmori.com/api/v2/test-uploads/{signedToken}`), not an S3 presigned URL, valid for one hour.
+        - Each call signs new URLs. Previously issued URLs are not revoked and stay valid until they expire.
+        - For live watermark extract orders, the response contains `originalFiles` and `watermarkedFile` instead of `files`.
       tags:
       - Orders
       security:
@@ -3029,10 +3028,61 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/OrderFile'
+        '400':
+          description: 'The order status does not allow reissue (`ORDER_STATUS_INVALID`), the order''s file retention period has ended (`ORDER_EXPIRED`), or every input of a live-key order was supplied by external URL (`VALIDATION_FAILED`).'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                orderStatusInvalid:
+                  value:
+                    code: ORDER_STATUS_INVALID
+                orderExpired:
+                  value:
+                    code: ORDER_EXPIRED
+                validationFailed:
+                  value:
+                    code: VALIDATION_FAILED
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: The order belongs to another account.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_OWNER
         '404':
-          $ref: '#/components/responses/WebhookNotFound'
+          description: 'The order does not exist (`ORDER_NOT_FOUND`), or there is no input file to reissue (`ORDER_FILE_NOT_FOUND`). For test keys, this means no file is still waiting for upload.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                orderNotFound:
+                  value:
+                    code: ORDER_NOT_FOUND
+                orderFileNotFound:
+                  value:
+                    code: ORDER_FILE_NOT_FOUND
+        '409':
+          description: 'The order''s file retention period cannot be determined.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: FILE_RETENTION_UNKNOWN
+        '410':
+          description: 'Legacy image-only watermark extract orders cannot receive new upload URLs because their input storage no longer exists. Create a new extract order with `POST /api/v3/orders/wtr-extract`.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: WATERMARK_V2_API_SUNSET
       x-codeSamples:
       - lang: curl
         label: cURL
