@@ -74,11 +74,11 @@ Every language registers API pages the same way: one **MDX wrapper file** per en
 }
 ```
 
-Each MDX file contains only frontmatter:
+Each MDX file starts with frontmatter (minimal example):
 
 ```mdx
 ---
-title: "프리사인드 URL 갱신"
+title: "업로드 URL 재발급"
 openapi: "/ko/api-reference/openapi.yaml POST /api/v2/orders/{orderId}/refresh-urls"
 ---
 ```
@@ -88,7 +88,7 @@ openapi: "/ko/api-reference/openapi.yaml POST /api/v2/orders/{orderId}/refresh-u
 - Add documentation below the frontmatter (code snippets, warnings, notes) as needed.
 - Wrapper filenames are identical across languages, so URLs stay parallel: `api-reference/orders/refresh-urls`, `ko/api-reference/orders/refresh-urls`, `ja/api-reference/orders/refresh-urls`.
 
-**Do not register endpoints as `"METHOD /path"` strings.** That form makes Mintlify auto-generate the page URL by slugifying the localized `summary` (e.g. `/api-reference/orders/프리사인드-url-갱신`), which produces unstable non-ASCII paths, drops the language prefix, and cannot be linked to — `mint broken-links` reports every such link as broken.
+**Do not register endpoints as `"METHOD /path"` strings.** That form makes Mintlify auto-generate the page URL by slugifying the localized `summary` (e.g. `/api-reference/orders/업로드-url-재발급`), which produces unstable non-ASCII paths, drops the language prefix, and cannot be linked to — `mint broken-links` reports every such link as broken.
 
 ### Linking to API Reference pages
 
