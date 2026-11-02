@@ -15,6 +15,7 @@
 - Use "Anti-AI" (hyphenated, capitalized) for the image protection service
 - Use "watermark embed" / "watermark extract" for watermark services
 - Use "presigned URL" not "pre-signed URL" or "signed URL"
+- Use "upload URL" when a statement covers both live keys (S3 presigned URL) and test keys (ContentCare test upload URL); reserve "presigned URL" for S3 URLs
 - Use "API key" not "API token" or "access key"
 
 ## Style preferences
