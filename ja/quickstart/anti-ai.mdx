@@ -170,7 +170,7 @@ await Promise.all(
 </CodeGroup>
 
 <Note>
-  プリサインド URL は **1時間** 後に失効します。失効した場合は、[URL の再発行](/ja/api-reference/orders/refresh-urls) エンドポイントを使用して新しい URL を取得してください。
+  本番 API キーでは S3 のプリサインド URL を、テストキーでは `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` を受け取ります。どちらの URL も **1時間** 後に失効し、同じように Authorization ヘッダーなしで PUT します。テストアップロードはストリームとして読み取られるだけで、保存も処理もされません。失効した場合は [URL の再発行](/ja/api-reference/orders/refresh-urls)を使用してください。
 </Note>
 
 ## ステップ3: 注文の確認
