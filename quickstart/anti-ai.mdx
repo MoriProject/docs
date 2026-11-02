@@ -170,7 +170,7 @@ await Promise.all(
 </CodeGroup>
 
 <Note>
-  Live keys receive S3 presigned URLs. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`; both expire after **1 hour** and accept the same unauthenticated PUT. Test uploads are streamed only, not stored or processed. Use [Refresh URLs](/api-reference/orders/refresh-urls) if a URL expires.
+  Live keys receive S3 presigned URLs. Test keys receive `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`; both expire after **1 hour** and accept the same unauthenticated PUT. Test uploads are streamed only, not stored or processed. Use [Reissue upload URLs](/api-reference/orders/refresh-urls) if a URL expires.
 </Note>
 
 ## Step 3: Confirm the order

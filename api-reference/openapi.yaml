@@ -2993,7 +2993,7 @@ paths:
           \ contains the presigned download URL"
   /api/v2/orders/{orderId}/refresh-urls:
     post:
-      summary: Refresh presigned URLs
+      summary: Reissue upload URLs
       operationId: refreshOrderUrls
       description: 'Reissue expired upload URLs. Live keys receive S3 presigned URLs; test keys receive absolute `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` URLs. Both are valid for one hour.
 
@@ -3016,7 +3016,7 @@ paths:
         description: Order ID
       responses:
         '200':
-          description: URLs refreshed successfully
+          description: Upload URLs reissued successfully
           content:
             application/json:
               schema:

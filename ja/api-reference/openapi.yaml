@@ -2865,7 +2865,7 @@ paths:
           \ contains the presigned download URL"
   /api/v2/orders/{orderId}/refresh-urls:
     post:
-      summary: プリサインドURLを再発行
+      summary: アップロードURLを再発行
       operationId: refreshOrderUrls
       description: '期限切れのアップロードURLを再発行します。
 
