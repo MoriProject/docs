@@ -231,7 +231,7 @@ components:
 
             * failed - 失敗
 
-            * expired - 期限切れ（注文作成から7日経過するとファイルはダウンロードできません）'
+            * expired - 注文に固定された保管期間（7 日または 30 日）が終わり、ファイルを受け取れなくなった状態'
         fileCount:
           type: integer
           description: ファイル数。v3 watermark 注文は、埋め込みなら元ファイルの数、抽出なら検査ファイルだけを数えます
@@ -240,7 +240,7 @@ components:
           format: uri
           nullable: true
           description: |
-            サムネイル画像 URL(presigned URL、1 時間有効)。aiDetection 注文は generateThumbnail オプションを使用した場合のみ返します。失効すると null です。
+            サムネイル画像 URL。保存済みのサムネイルは presigned URL で、発行から最大 7 日間有効で、注文の保管期限を超えません。aiDetection 注文は generateThumbnail オプションを使用した場合のみ返します。失効すると null です。
             v3 watermark 注文は、処理完了後に最大 100×100 の WebP サムネイル(PDF は 1 ページ目)を返します。処理前・失敗・サムネイルがない注文はステータス画像を返します。
         createdAt:
           type: string
@@ -284,6 +284,30 @@ components:
             * `uncertain_real` - 不確実、実際のコンテンツ寄り
             * `uncertain_ai` - 不確実、AI 生成寄り
             * `likely_ai` - AI 生成の可能性が高い
+    OrderErrors:
+      description: |-
+        注文の処理失敗の情報（注文詳細の `errors`）。API のエラーレスポンス本文 `{ code }` とは別のものです。
+        - 失敗していない注文は `null` です。失敗したあとに保管期限が過ぎて `expired` になった注文は、失敗時に保存した値をそのまま返します
+        - v3 で作成した watermark 注文は、公開の `errorCode` と固定の `errorMessage` を持つオブジェクトを常に返します。以前の注文が文字列で保存した値も、このオブジェクトに変換します
+        - その他の注文（Anti-AI、AI Detection、v2 で作成した watermark 注文）は、保存された値をそのまま返します。通常はオブジェクトで、`errorCode` がなく `errorMessage` だけの場合があります。古い注文では文字列の場合もあります
+
+        `null`、オブジェクト、文字列のどれでも処理できるようにしてください。
+      oneOf:
+      - $ref: '#/components/schemas/OrderErrorObject'
+      - type: string
+        description: 古い注文が文字列で保存したエラー情報。v3 で作成した watermark 注文では返しません。保存された値をそのまま返し、決まった形式はありません
+    OrderErrorObject:
+      type: object
+      nullable: true
+      description: オブジェクト形式の失敗情報。v3 で作成した watermark 注文は 2 つのフィールドを常に持ち、その他の注文は保存されたフィールドだけを持ちます
+      properties:
+        errorCode:
+          type: string
+          description: エラーコード。v3 で作成した watermark 注文は `WATERMARK_FILE_CORRUPTED`、`ORDER_TIMEOUT`、`PROCESSING_ERROR` などの公開コードを返します。公開コードを保存する AI Detection 注文は `AI_DETECTION_INVALID_IMAGE`、`AI_DETECTION_TIMEOUT`、`AI_DETECTION_SERVICE_ERROR`、`AI_DETECTION_FAILED` のいずれかです。その他の注文にはない場合があります
+          example: WATERMARK_FILE_CORRUPTED
+        errorMessage:
+          type: string
+          description: 失敗の案内文（韓国語）。v3 で作成した watermark 注文では、エラーコードごとの固定の文で、処理系の出力をそのまま含みません。その他の注文では保存された文です
     OrderDetail:
       type: object
       description: 注文詳細情報
@@ -325,7 +349,7 @@ components:
           format: uri
           nullable: true
           description: |
-            サムネイル画像URL（プリサインドURL、有効期限1時間）。期限切れの場合はnullです。
+            サムネイル画像URL。保存済みのサムネイルはプリサインドURLで、発行から最大 7 日間（604,800 秒）有効で、`expiresAt` を超えません。この URL の有効期間はファイルの保管期間とは別です。新しい URL が必要な場合は注文を取得し直してください。期限切れの場合はnullです。
             Anti-AI注文は、縦横比を保った幅740×高さ400以内のWebP詳細サムネイルを返します。この変更より前に作成された注文や、詳細サムネイルを作成できなかった注文は200×200のサムネイルを返します。
             AI Detection注文は、処理完了後に `generateThumbnail` オプションに関係なく詳細サムネイル（WebP、740×400以内）を返します。リサイズ画像が用意できていない場合は、元の入力画像のURLを返します。
         originalImageUrl:
@@ -333,7 +357,7 @@ components:
           format: uri
           nullable: true
           description: |
-            元の入力画像のダウンロードURL（プリサインドURL、有効期限1時間）。aiDetection注文専用。期限切れの場合はnullです。
+            元の入力画像のダウンロードURL（プリサインドURL。発行から最大 7 日間有効で、`expiresAt` を超えません）。aiDetection注文専用。期限切れの場合はnullです。
             処理完了後は、通常、長辺を1600px以内に縮小したコピー（WebP）を返します。リサイズしたコピーが用意できていない場合は、元の入力画像を返します。
         createdAt:
           type: string
@@ -343,10 +367,17 @@ components:
           type: string
           format: date-time
           description: 更新日時
-        errors:
-          type: string
+        retentionDays:
+          type: integer
           nullable: true
-          description: エラーメッセージ（失敗時）
+          description: ファイルの保管期間（日、7 または 30）。注文の作成時にアカウントのファイル保管設定から取り込み、その注文に固定します。データの例外でのみ `null` です
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 注文ファイルを受け取れる期限（UTC、ISO 8601）。注文が初めて完了したときに、完了日時に `retentionDays` を足した日時に決まり、`pending`・`inProgress` の間は仮の値です。データの例外でのみ `null` です。`null` は無期限の保管を意味せず、このときダウンロードは `409 FILE_RETENTION_UNKNOWN` を返します
+        errors:
+          $ref: '#/components/schemas/OrderErrors'
         watermarks:
           type: array
           items:
@@ -371,15 +402,17 @@ components:
 
             * undetected - watermark 未検出
 
-            **aiDetection 注文**（probabilityから自動計算）:
+            **aiDetection 注文**（サーバーが probability から決めた判定）:
 
-            * likely_real - probability < 0.25
+            * likely_real - AI 生成ではない可能性が高い
 
-            * uncertain_real - 0.25 <= probability < 0.5
+            * uncertain_real - AI 生成ではない可能性がある
 
-            * uncertain_ai - 0.5 <= probability < 0.75
+            * uncertain_ai - AI 生成の可能性がある
 
-            * likely_ai - probability >= 0.75
+            * likely_ai - AI 生成の可能性が高い
+
+            判定は AI 生成である可能性の程度を表し、AI 生成かどうかを確定するものではありません。まだ `probability` がない場合は、`probability` と `statusCode` のどちらも返しません。
 
             他の注文タイプでは返却されません。'
         options:
@@ -404,14 +437,14 @@ components:
           format: uri
           nullable: true
           description: |
-            AI検知ヒートマップ画像のダウンロードURL（aiDetection注文専用、generateHeatmapオプション使用時に返却）。
+            AI検知ヒートマップ画像のダウンロードURL（aiDetection注文専用、generateHeatmapオプション使用時に返却）。プリサインドURLで、発行から最大 7 日間有効で、`expiresAt` を超えません。
             通常、長辺を1600px以内に縮小したWebPです。リサイズ画像が用意できていない場合は、元のサイズのPNGを返します。
         overlayUrl:
           type: string
           format: uri
           nullable: true
           description: |
-            元画像にヒートマップを重ねたオーバーレイ画像のダウンロードURL（aiDetection注文専用、generateOverlayオプション使用時に返却）。
+            元画像にヒートマップを重ねたオーバーレイ画像のダウンロードURL（aiDetection注文専用、generateOverlayオプション使用時に返却）。プリサインドURLで、発行から最大 7 日間有効で、`expiresAt` を超えません。
             通常、長辺を1600px以内に縮小したWebPです。リサイズ画像が用意できていない場合は、元のサイズのPNGを返します。
     UsageStats:
       type: object
@@ -624,7 +657,7 @@ components:
             * `inProgress` - 処理中
             * `complete` - 処理完了。抽出注文は `result` で結果を確認します
             * `failed` - 処理失敗、または 12 時間以内にアップロードされなかった
-            * `expired` - 保管期限を過ぎ、ファイルが削除された
+            * `expired` - 注文に固定された保管期間（7 日または 30 日）が終わり、ファイルを受け取れなくなった状態
         processingDelayed:
           type: boolean
           description: 自動再試行をすべて使い切り、手動復旧を待っている場合は `true`。注文は `inProgress` のままです
@@ -632,7 +665,7 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: 注文ファイルが削除される日時。以降のダウンロードとレポートは `ORDER_EXPIRED` を返します
+          description: 注文ファイルを受け取れる期限。注文が初めて完了したときに、完了日時に注文の保管期間を足した日時に決まり、それまでは仮の値です。以降のダウンロードとレポートは `ORDER_EXPIRED` を返します
         files:
           type: array
           description: リクエスト順の入力ファイル。抽出注文は元ファイル、検査ファイルの順です
@@ -908,7 +941,7 @@ components:
           - error
           - null
           description: |-
-            判定。検出記録のない v2 の注文（データ異常）だけ `null` です。
+            判定。検出記録がないか不明な値が残っている v2 の注文（過去データの例外）だけ `null` です。`error` と `unsupported` は、注文が `complete` で終わったあとの検出結果です。注文そのものが失敗した場合は `status` が `failed`、`result` が `null` で、理由は `errors` にあります。
             * `detected` - watermark が見つかった
             * `undetected` - 最後まで検査したが watermark はなかった。v3 エンジンの `not_detected` と、保存されたステータスが `undetected` の v2 注文を含みます
             * `inconclusive` - 候補はあるが確信度の基準に届かず判断できない
@@ -967,11 +1000,13 @@ components:
           - likely_ai
           - null
           description: |-
-            `probability` に基づく判定。`probability` が `null` なら `null` です。
-            * `likely_real` - AI 生成ではない可能性が高い、probability < 0.25
-            * `uncertain_real` - AI 生成ではない可能性がある、0.25 <= probability < 0.5
-            * `uncertain_ai` - AI 生成の可能性がある、0.5 <= probability < 0.75
-            * `likely_ai` - AI 生成の可能性が高い、probability >= 0.75
+            サーバーが `probability` から決めた判定。`probability` が `null` なら `null` です。
+            * `likely_real` - AI 生成ではない可能性が高い
+            * `uncertain_real` - AI 生成ではない可能性がある
+            * `uncertain_ai` - AI 生成の可能性がある
+            * `likely_ai` - AI 生成の可能性が高い
+
+            判定は AI 生成である可能性の程度を表し、AI 生成かどうかを確定するものではありません。
         probability:
           type: number
           format: float
@@ -995,17 +1030,17 @@ components:
           type: string
           format: uri
           nullable: true
-          description: 元の入力画像の URL（presigned、1 時間有効）。リサイズ画像がすべて用意された注文では、長辺 1600px 以内の WebP です
+          description: 元の入力画像の URL（presigned。発行から最大 7 日間有効で、`expiresAt` を超えません。新しい URL が必要な場合は注文を取得し直してください）。リサイズ画像がすべて用意された注文では、長辺 1600px 以内の WebP です
         heatmapUrl:
           type: string
           format: uri
           nullable: true
-          description: ヒートマップ画像の URL（presigned、1 時間有効）。`generateHeatmap` オプションを使った注文だけで返し、それ以外は `null` です
+          description: ヒートマップ画像の URL（presigned。発行から最大 7 日間有効で、`expiresAt` を超えません。新しい URL が必要な場合は注文を取得し直してください）。`generateHeatmap` オプションを使った注文だけで返し、それ以外は `null` です
         overlayUrl:
           type: string
           format: uri
           nullable: true
-          description: 元の画像にヒートマップを重ねた画像の URL（presigned、1 時間有効）。`generateOverlay` オプションを使った注文だけで返し、それ以外は `null` です
+          description: 元の画像にヒートマップを重ねた画像の URL（presigned。発行から最大 7 日間有効で、`expiresAt` を超えません。新しい URL が必要な場合は注文を取得し直してください）。`generateOverlay` オプションを使った注文だけで返し、それ以外は `null` です
     PublicOrderV3DetailCommon:
       type: object
       description: v3 の注文詳細の共通フィールド。すべての注文の種類・watermark エンジンでトップレベルのキーは同じで、種類による違いは `result` の中だけです。以前のレスポンスのトップレベルの `fileCount`、`statusCode`、`files`、`outputs`、`reports`、`watermarks` は返しません
@@ -1076,11 +1111,11 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: ファイルの保管期限（UTC、ISO 8601）。整合性の例外でのみ `null` です
+          description: ファイルを受け取れる期限（UTC、ISO 8601）。注文が初めて完了したときに、完了日時に `retentionDays` を足した日時に決まり、`pending`・`inProgress` の間は仮の値です。整合性の例外でのみ `null` で、無期限の保管を意味しません
         retentionDays:
           type: integer
           nullable: true
-          description: 注文作成時に固定されたファイルの保管期間（日、7 または 30）。整合性の例外でのみ `null` です
+          description: ファイルの保管期間（日、7 または 30）。注文の作成時にアカウントのファイル保管設定から取り込み、その注文に固定します。あとで設定を変えても既存の注文は変わりません。整合性の例外でのみ `null` です
           example: 30
         thumbnailImageUrl:
           type: string
@@ -1091,17 +1126,7 @@ components:
           type: boolean
           description: v3 で作成した watermark 注文が自動リトライを使い切り、手動復旧を待っているときに `true` です。注文は `inProgress` のままです。それ以外の注文では常に `false` です
         errors:
-          type: object
-          nullable: true
-          description: 失敗した注文のエラー情報で、それ以外は `null` です。v3 で作成した watermark 注文は公開用の `errorCode` と固定の案内文 `errorMessage` を返します。それ以外の注文は保存されたエラー情報をそのまま返し、`errorCode` がない場合があります
-          properties:
-            errorCode:
-              type: string
-              description: 'エラーコード。例: `WATERMARK_FILE_CORRUPTED`、`ORDER_TIMEOUT`、`PROCESSING_ERROR`'
-              example: WATERMARK_FILE_CORRUPTED
-            errorMessage:
-              type: string
-              description: エラーコードごとの固定の案内文（韓国語）。処理系の生の出力は含みません
+          $ref: '#/components/schemas/OrderErrors'
         inputFiles:
           type: array
           description: 入力ファイルの一覧（リクエストの順）。ファイル数は `inputFiles.length` です。`watermarkExtract` の注文は `PublicExtractInputFile`（`role` あり）、それ以外の注文は `PublicInputFile` です
@@ -1386,7 +1411,7 @@ paths:
     post:
       summary: Anti-AI注文を作成
       operationId: createAntiAiOrder
-      description: 'AI検知防止処理のための注文を作成します。
+      description: 'Anti-AI の注文を作成します。Anti-AI は、画像が AI の学習に使われないように AI の学習を妨げ、画像を保護します。AI 生成画像の判定（AI Detection）を避けるための機能ではありません。
 
 
         ## 入力モード（アップロード / URL / 混合）
@@ -1413,7 +1438,7 @@ paths:
 
         ## Zero Copy モード
 
-        `mode.zeroCopy: true` の場合、処理結果は顧客が提供したプリサインドURLへ直接アップロードされます。
+        `mode.zeroCopy: true` の場合、処理結果は顧客が提供したプリサインドURLへ直接アップロードされます。結果は指定したアップロード先で確認してください。注文のダウンロードエンドポイントで同じ結果を受け取れることは保証しません。
 
         この場合、`outputTargets` 配列が必須であり、`files` 配列と同じ長さである必要があります。'
       tags:
@@ -1682,7 +1707,7 @@ paths:
 
         ## Zero Copy モード
 
-        `mode.zeroCopy: true` の場合、処理結果は顧客が提供したプリサインドURLへ直接アップロードされます。'
+        `mode.zeroCopy: true` の場合、処理結果は顧客が提供したプリサインドURLへ直接アップロードされます。結果は指定したアップロード先で確認してください。注文のダウンロードエンドポイントで同じ結果を受け取れることは保証しません。'
       tags:
       - Anti-AI
       security:
@@ -2332,19 +2357,22 @@ paths:
     post:
       summary: AI Detection注文を作成
       operationId: createAiDetectionOrder
-      description: 'AI Detection注文を作成し、画像用のプリサインドS3アップロードURLを発行します。
+      description: 'AI Detection注文を作成し、画像のアップロード URL を発行します。本番キーには S3 の presigned URL を、テストキーには ContentCare のテスト用アップロード URL（絶対 URL）を発行します。
 
 
         ## フロー
 
 
-        1. このエンドポイントを呼び出し、プリサインドアップロードURLを受け取ります
+        1. このエンドポイントを呼び出し、アップロード URL（`file.uploadUrl`）とファイルキー（`file.fileKey`）を受け取ります
 
-        2. プリサインドURLを使用して画像を直接S3にアップロードします
+        2. API キーのヘッダーを付けずに、`file.uploadUrl` へ画像を PUT します。URL 自体に認可情報が含まれ、1 時間有効です。本番キーでは S3 の presigned URL で、`fileKey` はその S3 オブジェクトキーです。テストキーでは ContentCare のテスト用アップロード URL（絶対 URL）で、`fileKey` は分離された論理キーです。テスト用のアップロードは保存されません。リクエスト本文を受け取って破棄し、アップロードが終わったことだけを記録します
 
-        3. `POST /api/v2/orders/ai-detection/confirm` を呼び出して非同期の検知処理を開始します
+        3. `orderId` を指定して `POST /api/v2/orders/ai-detection/confirm` を呼び出し、非同期の判定を開始します。その前にアップロード URL の有効期限が切れた場合は、`POST /api/v2/orders/{orderId}/refresh-urls` を呼び出します
 
-        4. Webhookまたは注文詳細エンドポイントのポーリングで結果を確認します
+        4. Webhook を受け取るか、`GET /api/v3/orders/{orderId}` を取得して `result.verdict` と `result.probability` を確認します
+
+
+        永続テスト注文が無効な環境では、テストキーには保存されない固定のモックレスポンスが返ります。`status` は `complete` で、`uploadUrl` はアップロードを受け付けない `https://test.invalid/` のアドレスです。この注文はあとから取得できません。
 
 
         ## 注文ステータス
@@ -2396,7 +2424,7 @@ paths:
                   example: photo.jpg
                 options:
                   type: object
-                  description: 出力オプション（任意）。生成されたファイルは注文詳細レスポンスに含まれます。
+                  description: 出力オプション（任意）。生成された画像は注文詳細の `heatmapUrl`・`overlayUrl`（v3 では `result.heatmapUrl`・`result.overlayUrl`）で受け取ります。
                   properties:
                     generateHeatmap:
                       type: boolean
@@ -2431,7 +2459,8 @@ paths:
                         type: string
                         enum:
                         - pending
-                        description: 注文ステータス
+                        - complete
+                        description: 注文ステータス。作成直後は `pending` です。永続テスト注文が無効な環境でテストキーが受け取る固定のモックレスポンスだけ `complete` です
                       file:
                         type: object
                         properties:
@@ -2444,10 +2473,10 @@ paths:
                           uploadUrl:
                             type: string
                             format: uri
-                            description: ファイル直接アップロード用のプリサインドS3 URL。liveキーのプリサインドアップロードURLは発行後1時間有効です。
+                            description: 'アップロード URL。本番キーには S3 の presigned URL を、テストキーには絶対 URL の `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` を発行します。どちらも発行から 1 時間で期限が切れ、`POST /api/v2/orders/{orderId}/refresh-urls` で再発行できます。署名付きトークン自体がアップロードを認可するため、PUT に Authorization ヘッダーは不要です。テスト用のリクエスト本文は保存されず、テスト注文は使用量の消費や実際の外部処理なしでシミュレーション結果に進みます。'
                           fileKey:
                             type: string
-                            description: S3ファイルキー
+                            description: ファイルの識別子。本番キーでは S3 オブジェクトキー、テストキーでは分離された論理キーです
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2696,7 +2725,21 @@ paths:
       summary: 注文詳細を取得
       operationId: getOrder
       deprecated: true
-      description: '**非推奨（Deprecated）**: すべての注文の種類を 1 つの形式で返す [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) を使用してください。このエンドポイントのレスポンスと動作は変わりません。'
+      description: |-
+        **非推奨（Deprecated）**: すべての注文の種類を 1 つの形式で返す [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) を使用してください。このエンドポイントのレスポンスと動作は変わりません。
+
+        **`errors`**: 注文の処理失敗の情報（`OrderErrors`）で、API のエラーレスポンス `{ code }` とは別のものです。失敗していない注文は `null` で、失敗したあとに期限切れになった注文は保存された値をそのまま返します。v3 で作成した watermark 注文は常に `{ errorCode, errorMessage }` です。その他の注文は保存された値をそのまま返すため、`errorCode` のないオブジェクトの場合や、一部の古い注文では文字列の場合があります。
+
+        **AI Detection の `statusCode`**: `likely_real`（AI 生成ではない可能性が高い）、`uncertain_real`（AI 生成ではない可能性がある）、`uncertain_ai`（AI 生成の可能性がある）、`likely_ai`（AI 生成の可能性が高い）のいずれかです。判定は AI 生成かどうかを確定するものではありません。`probability` がない注文は、`probability` と `statusCode` のどちらも返しません。
+
+        **保管期間と URL の有効期間**
+        - `retentionDays`（7 または 30）は、注文の作成時にアカウントのファイル保管設定から取り込み、その注文に固定します。`expiresAt` は、注文が初めて完了したときに完了日時に `retentionDays` を足した日時に決まります。結果ファイルは `expiresAt` まで受け取れます
+        - `retentionDays` と `expiresAt` はデータの例外でのみ `null` です。`retentionDays` が `null` の注文は記録されている `expiresAt` に従います。`expiresAt` が `null` でも無期限の保管ではなく、ダウンロードは `409 FILE_RETENTION_UNKNOWN` を返します
+        - 画像の URL（`thumbnailImageUrl`、`originalImageUrl`、`heatmapUrl`、`overlayUrl`）はプリサインドURLで、発行から最大 7 日間（604,800 秒）有効で、`expiresAt` を超えません。URL の有効期間はファイルの保管期間とは別です。新しい URL が必要な場合は注文を取得し直してください
+
+        **テストキー（`sk_test_`）**: キーが属するアカウントが所有するテスト注文を同じ形式で返し、S3 の画像 URL は返しません。この取得は読み取り専用ではありません。同じアカウントの `inProgress` のテスト注文は 5 秒たつと `complete` または `failed` になり、テスト用 Webhook を登録している場合はイベントが送信されます。永続テスト注文が無効な環境では `404 ORDER_NOT_FOUND` を返します。
+
+        **エラー**: 注文が存在しないか、他のアカウントの注文である場合は `404 ORDER_NOT_FOUND` です。
       tags:
       - Orders
       security:
@@ -2788,7 +2831,13 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: 注文が存在しないか、他のアカウントの注文
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_FOUND
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2807,17 +2856,27 @@ paths:
       summary: ダウンロードURLを取得
       operationId: downloadOrderFiles
       deprecated: true
-      description: '**非推奨（Deprecated）**: 結果ファイルごとの URL と結果全体の URL をまとめて返す [`GET /api/v3/orders/{orderId}/download`](/ja/api-reference/orders/download-order-v3) を使用してください。このエンドポイントのレスポンスと動作は変わりません。
+      description: |-
+        **非推奨（Deprecated）**: 結果ファイルごとの URL と結果全体の URL をまとめて返す [`GET /api/v3/orders/{orderId}/download`](/ja/api-reference/orders/download-order-v3) を使用してください。このエンドポイントのレスポンスと動作は変わりません。
 
-        完了した注文ファイルのダウンロードURLを発行します。
+        完了した Anti-AI・watermark 埋め込み注文の結果のダウンロード URL を発行します。watermark 検出と AI Detection の注文には、ダウンロードする結果ファイルがありません。
 
-        - `complete` ステータスの注文でのみ利用可能
+        - `complete` ステータスの注文でのみ利用できます
+        - 結果ファイルは、注文に固定された保管期間（7 日または 30 日、`retentionDays`）が終わる `expiresAt` まで受け取れます。保管期間は注文の完了日時から数えます
+        - URL の有効期間は保管期間とは別です。Anti-AI の注文と v2 で作成した watermark 埋め込み注文の URL は、発行から最大 7 日間（604,800 秒）有効で、`expiresAt` を超えません。v3 で作成した watermark 埋め込み注文の URL は 300 秒有効です。注文が期限切れになる前であれば、再度呼び出して新しい URL を受け取れます
+        - Zero Copy（`mode.zeroCopy: true`）で作成した Anti-AI の注文は、指定したアップロード先に結果を保存します。このエンドポイントで同じ結果を受け取れることは保証しません
 
-        - URLの有効期限は1時間
+        **エラーの確認順序**（最初に当てはまったエラーを返します）
+        1. 注文が存在しない → `404 ORDER_NOT_FOUND`
+        2. 他のアカウントの注文 → `403 ORDER_NOT_OWNER`。v3 のダウンロードではこの場合 `404 ORDER_NOT_FOUND` です
+        3. 保管期限を確認できない → `409 FILE_RETENTION_UNKNOWN`。保管期限切れ → `400 ORDER_EXPIRED`
+        4. `status` が `complete` ではない → `400 ORDER_NOT_COMPLETED`
+        5. watermark 検出・AI Detection の注文 → `400 ORDER_TYPE_CANT_DOWNLOAD`
+        6. v2 で作成した watermark 埋め込み注文に結果の記録がない → `404 PROCESSED_FILE_NOT_FOUND`
 
-        - 注文ファイルは注文作成から最大7日間ダウンロード可能
+        期限切れまたは未完了の watermark 検出・AI Detection の注文では、3 番か 4 番のエラーが先に返ります。v3 のダウンロードは注文の種類を保管期限やステータスより先に確認します。
 
-        - 7日経過後、注文は `expired` ステータスに移行し、ファイルはダウンロードできなくなります'
+        **テストキー（`sk_test_`）**: テスト注文は結果ファイルを作成しないため、どの注文でも `404 PROCESSED_FILE_NOT_FOUND` を返します。永続テスト注文が無効な環境では `404 ORDER_NOT_FOUND` です。サンプル結果の URL は v3 のダウンロードで受け取ってください。
       tags:
       - Orders
       security:
@@ -2846,8 +2905,56 @@ paths:
                         description: ダウンロードURL（プリサインド）
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '400':
+          description: 保管期限切れ、未完了の注文、または結果ファイルのない注文の種類
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired:
+                  summary: 保管期限切れ
+                  value:
+                    code: ORDER_EXPIRED
+                notCompleted:
+                  summary: pending・inProgress・failed の注文
+                  value:
+                    code: ORDER_NOT_COMPLETED
+                typeCantDownload:
+                  summary: watermark 検出・AI Detection の注文
+                  value:
+                    code: ORDER_TYPE_CANT_DOWNLOAD
+        '403':
+          description: 他のアカウントの注文
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_OWNER
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: 注文が存在しない、結果の記録がない、またはテストキーでのリクエスト
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  summary: 注文が存在しない（永続テスト注文が無効な環境のテストキーを含む）
+                  value:
+                    code: ORDER_NOT_FOUND
+                processedFileNotFound:
+                  summary: 結果の記録がない、または永続テスト注文
+                  value:
+                    code: PROCESSED_FILE_NOT_FOUND
+        '409':
+          description: 注文の保管期限を確認できない（`expiresAt` が `null`）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: FILE_RETENTION_UNKNOWN
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -4018,7 +4125,10 @@ paths:
         - `type` は `antiAi`、`aiDetection`、`watermarkEmbed`、`watermarkExtract` のいずれかです。v3 で作成した watermark 注文も、エンジンのバージョン接尾辞なしで同じ値を使います
         - `status` は `pending`、`inProgress`、`complete`、`failed`、`expired` の 5 つだけです。保存されたステータスが `detected` / `undetected` の v2 watermark 検出注文は `complete` を返し、判定は `result.detectionStatus` に入ります
         - `processingDelayed` は v3 で作成した watermark 注文だけで計算します。それ以外の注文では常に `false` です
-        - `errors` は失敗した注文の `{ errorCode, errorMessage }` で、それ以外は `null` です
+        - `errors` は注文の処理失敗の情報（`OrderErrors`）で、API のエラーレスポンス `{ code }` とは別のものです。失敗していない注文は `null` で、失敗したあとに期限切れになった注文は保存された値をそのまま返します。v3 で作成した watermark 注文は常に `{ errorCode, errorMessage }` です。その他の注文は保存された値をそのまま返すため、`errorCode` のないオブジェクトの場合や、一部の古い注文では文字列の場合があります
+        - `retentionDays`（7 または 30）は、注文の作成時にアカウントのファイル保管設定から取り込み、その注文に固定します。あとで設定を変えても既存の注文は変わりません。`expiresAt` は、注文が初めて完了したときに完了日時に `retentionDays` を足した日時に決まり、処理中は仮の値です。結果ファイルは `expiresAt` まで受け取れます
+        - `retentionDays` と `expiresAt` はデータの例外でのみ `null` です。`expiresAt` が `null` でも無期限の保管ではなく、ダウンロードは `409 FILE_RETENTION_UNKNOWN` を返します
+        - 画像の URL（`thumbnailImageUrl`、`result.originalImageUrl`、`result.heatmapUrl`、`result.overlayUrl`）は presigned URL で、有効期間は保管期間とは別です。Anti-AI・AI Detection・v2 の watermark の画像は発行から最大 7 日間、v3 で作成した watermark 注文のサムネイルは 15 分で、どちらも `expiresAt` を超えません。新しい URL が必要な場合は取得し直してください
 
         **`inputFiles[]`**: 入力ファイルごとの `{ fileId, fileName }` をリクエストの順に返します。ファイル数は `inputFiles.length` で確認してください。
         - `role`（`original` / `query`）は `watermarkExtract` の注文にだけ含まれます。v2 注文の `watermarked` ロールは `query` として返します
@@ -4027,20 +4137,20 @@ paths:
         **`result`**: キーは常にあります。`status` が `complete` のときだけオブジェクトで、`pending`、`inProgress`、`failed`、`expired` では `null` です。
         - `antiAi`: `{ outputFiles: [{ fileId, fileName, inputFileId }] }`
         - `watermarkEmbed`: `{ outputFiles: [{ fileId, fileName, inputFileId, watermarkText }] }`。v3 の注文で 1 つの入力ファイルに複数の watermark テキストを埋め込むと、テキストごとに結果ファイルが 1 つずつ作成されます
-        - `watermarkExtract`: `{ detectionStatus, watermarkText, reportSupported, reports }`。`detectionStatus` は `detected`、`undetected`、`inconclusive`、`unsupported`、`error` のいずれかです。`detectionStatus` が `detected` でなければ `watermarkText` は `null` です。v2 の注文は `reportSupported: false`、`reports: []` です
-        - `aiDetection`: `{ verdict, probability, options, originalImageUrl, heatmapUrl, overlayUrl }`。`verdict` は `likely_real`、`uncertain_real`、`uncertain_ai`、`likely_ai` のいずれかで、`probability` が `null` なら `verdict` も `null` です。保存されたオプションがなければ `options` は `null` です
+        - `watermarkExtract`: `{ detectionStatus, watermarkText, reportSupported, reports }`。`detectionStatus` は `detected`、`undetected`、`inconclusive`、`unsupported`、`error` のいずれかで、検出記録がないか不明な値が残っている v2 の注文だけ `null` です。`error` と `unsupported` は完了した注文の検出結果で、注文の失敗（`status: failed`、`result: null`、理由は `errors`）とは異なります。`detectionStatus` が `detected` でなければ `watermarkText` は `null` です。v2 の注文は `reportSupported: false`、`reports: []` です
+        - `aiDetection`: `{ verdict, probability, options, originalImageUrl, heatmapUrl, overlayUrl }`。`verdict` は `likely_real`（AI 生成ではない可能性が高い）、`uncertain_real`（AI 生成ではない可能性がある）、`uncertain_ai`（AI 生成の可能性がある）、`likely_ai`（AI 生成の可能性が高い）のいずれかで、`probability` が `null` なら `verdict` も `null` です。判定は AI 生成かどうかを確定するものではありません。保存されたオプションがなければ `options` は `null` です
 
         **`fileId`**: すべての `fileId` と `inputFileId` は数字だけの文字列です（`-` などの区切り文字はありません）。`result.outputFiles[].fileId` は注文内で一意で、[`GET /api/v3/orders/{orderId}/download`](/ja/api-reference/orders/download-order-v3) の `files[].fileId` と値・順序が一致します。
 
         **期限切れの注文**: `expired` の注文も取得できますが、`result` は `null` で、URL は発行しません。
 
-        **以前の v3 レスポンスからの変更（破壊的変更、2026-10-08）**
+        **以前の v3 レスポンスからの変更（後方互換性のない変更、2026-10-08）**
         - v3 で作成した watermark 注文の `files[]`、`outputs[]`、トップレベルの `reports[]` は、`inputFiles[]`、`result.outputFiles[]`、`result.reports[]` に移りました。結果の `fileId` は `{inputFileId}-{n}` 形式から数字の文字列に変わりました
         - `detectionStatus` の値 `not_detected` は `undetected` に変わりました
         - v2 の詳細と同じ形式だったそれ以外の注文では、トップレベルの `fileCount`、`statusCode`、`watermarks`、`watermarkText`、`probability`、`options`、`originalImageUrl`、`heatmapUrl`、`overlayUrl` が `inputFiles` と `result` に移りました。AI Detection の `statusCode` は `result.verdict` に変わりました
         - 非推奨（deprecated）の [`GET /api/v2/orders/{orderId}`](/ja/api-reference/orders/get-order) のレスポンスは変わりません
 
-        **テストキー（`sk_test_`）**: 同じキーで作成したテスト注文だけを取得します。本番注文と他のアカウントの注文は `404 ORDER_NOT_FOUND` を返し、本番キーでテスト注文を取得した場合も同じです。v2・v3 で作成したすべてのテスト注文をこの形式で返します。`inProgress` のテスト注文は、アップロード完了から 5 秒以上たってから取得すると `complete` または `failed` になります。pending のテスト注文の `uploadUrl` は `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` です。検出テスト注文の `result.reports` は常に空の配列で、`reportSupported` は v3 で作成した検出テスト注文の `detectionStatus` が `detected` のときだけ `true` です。`expiresAt` は注文作成の 7 日後です。
+        **テストキー（`sk_test_`）**: キーが属するアカウントが所有するテスト注文だけを取得します。本番注文と他のアカウントの注文は `404 ORDER_NOT_FOUND` を返し、本番キーでテスト注文を取得した場合も同じです。v2・v3 で作成したすべてのテスト注文をこの形式で返します。この取得は読み取り専用ではありません。同じアカウントの `inProgress` のテスト注文は、アップロード完了から 5 秒以上たってから取得すると `complete` または `failed` になり、テスト用 Webhook を登録している場合はイベントが送信されます。pending のテスト注文の `uploadUrl` は `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` です。検出テスト注文の `result.reports` は常に空の配列で、`reportSupported` は v3 で作成した検出テスト注文の `detectionStatus` が `detected` のときだけ `true` です。`expiresAt` は本番注文と同じ規則（完了日時にアカウントの保管期間を足した日時）に従います。
       tags:
       - Orders
       security:
@@ -4324,7 +4434,7 @@ paths:
                       processingDelayed: false
                       errors:
                         errorCode: WATERMARK_FILE_CORRUPTED
-                        errorMessage: 파일이 손상되어 처리할 수 없습니다.
+                        errorMessage: 파일이 손상됐거나 읽을 수 없습니다. 원본 파일을 확인한 뒤 다시 시도해주세요.
                       inputFiles:
                       - fileId: '33'
                         fileName: logo.png
@@ -4338,9 +4448,9 @@ paths:
                       orderName: cat.png
                       channel: api
                       status: expired
-                      createdAt: '2026-10-08T01:00:00.000Z'
-                      updatedAt: '2026-10-08T01:00:40.000Z'
-                      expiresAt: '2026-10-01T00:00:00.000Z'
+                      createdAt: '2026-09-01T01:00:00.000Z'
+                      updatedAt: '2026-09-01T01:00:40.000Z'
+                      expiresAt: '2026-10-01T01:00:40.000Z'
                       retentionDays: 30
                       thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
                       processingDelayed: false
@@ -4405,7 +4515,9 @@ paths:
         - `archiveUrl`: この URL 1 つで結果全体を受け取れます。常に文字列です
           - Anti-AI の注文、v2 で作成した watermark 埋め込み注文: 結果の ZIP
           - v3 で作成した watermark 埋め込み注文: 結果ファイルが 2 件以上なら ZIP、1 件ならその結果ファイルの URL（`files[0].downloadUrl` と同じファイル）
-        - `expiresInSeconds`: URL の有効期間。既定は 3600 秒（1 時間）で、保管期限（`expiresAt`）までの残り時間のほうが短い場合はその時間に短縮します。新しい URL が必要な場合は再度呼び出してください
+        - `expiresInSeconds`: URL の有効期間。既定は 3600 秒（1 時間）で、保管期限（`expiresAt`）までの残り時間のほうが短い場合はその時間に短縮します。URL の有効期間は注文に固定された保管期間（7 日または 30 日）とは別です。新しい URL が必要な場合は、`expiresAt` まで何度でも呼び出せます
+        - Zero Copy（`mode.zeroCopy: true`）で作成した Anti-AI の注文は、指定したアップロード先（`outputTargets`）に結果を保存します。このエンドポイントが発行する URL で同じ結果を受け取れることは保証しません
+        - 結果の記録がない完了済みの注文は `404 PROCESSED_FILE_NOT_FOUND` です
 
         **エラーの確認順序**（最初に該当したエラーを返します）
         1. 注文が存在しないか、他のアカウントの注文 → `404 ORDER_NOT_FOUND`
@@ -4413,9 +4525,9 @@ paths:
         3. 保管期限切れ → `400 ORDER_EXPIRED`。保管期限を確認できない場合は `409 FILE_RETENTION_UNKNOWN`
         4. `status` が `complete` ではない（`pending`、`inProgress`、`failed`） → `400 ORDER_NOT_COMPLETED`
 
-        **以前の v3 レスポンスからの変更（破壊的変更、2026-10-08）**: レスポンスは `{ downloadUrl, expiresInSeconds: 300 }` から `{ archiveUrl, files, expiresInSeconds }` に変わり、Anti-AI の注文と v2 で作成した watermark 埋め込み注文にも対応しました。URL の有効期間は 300 秒から最大 3600 秒に延びました。未完了の注文は `VALIDATION_FAILED` の代わりに `ORDER_NOT_COMPLETED` を、検出注文は `ORDER_TYPE_CANT_DOWNLOAD` を返します。結果ファイルを 1 つ受け取る `GET /api/v3/orders/{orderId}/files/{fileId}/download` は削除されました。`files[]` を使用してください。
+        **以前の v3 レスポンスからの変更（後方互換性のない変更、2026-10-08）**: レスポンスは `{ downloadUrl, expiresInSeconds: 300 }` から `{ archiveUrl, files, expiresInSeconds }` に変わり、Anti-AI の注文と v2 で作成した watermark 埋め込み注文にも対応しました。URL の有効期間は 300 秒から最大 3600 秒に延びました。未完了の注文は `VALIDATION_FAILED` の代わりに `ORDER_NOT_COMPLETED` を、検出注文は `ORDER_TYPE_CANT_DOWNLOAD` を返します。結果ファイルを 1 つ受け取る `GET /api/v3/orders/{orderId}/files/{fileId}/download` は削除されました。`files[]` を使用してください。
 
-        **テストキー（`sk_test_`）**: 同じキーで作成した、完了済みの Anti-AI・watermark 埋め込みテスト注文（v2・v3）で動作します。URL は処理結果ではなく、`https://api.bizmori.com/api/v2/test-samples/{signedToken}` で提供されるサンプルファイルを指します。結果ファイルのない Anti-AI テスト注文は `files: []` とサンプル ZIP の `archiveUrl` を返します。結果が 1 件の v3 埋め込みテスト注文はそのサンプルファイルを、それ以外のテスト注文はサンプル ZIP を `archiveUrl` として返します。`expiresInSeconds`、エラーコード、確認順序は本番注文と同じです。
+        **テストキー（`sk_test_`）**: キーが属するアカウントが所有する、完了済みの Anti-AI・watermark 埋め込みテスト注文（v2・v3）で動作します。URL は処理結果ではなく、`https://api.bizmori.com/api/v2/test-samples/{signedToken}` で提供されるサンプルファイルを指します。結果ファイルのない Anti-AI テスト注文は `files: []` とサンプル ZIP の `archiveUrl` を返します。結果が 1 件の v3 埋め込みテスト注文はそのサンプルファイルを、それ以外のテスト注文はサンプル ZIP を `archiveUrl` として返します。`expiresInSeconds`、エラーコード、確認順序は本番注文と同じです。
       tags:
       - Orders
       security:
@@ -4497,13 +4609,20 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          description: 注文が存在しないか、他のアカウントの注文です
+          description: 注文が存在しないか他のアカウントの注文（`ORDER_NOT_FOUND`）、または完了済みの注文に結果の記録がない（`PROCESSED_FILE_NOT_FOUND`）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: ORDER_NOT_FOUND
+              examples:
+                notFound:
+                  summary: 注文が存在しないか他のアカウントの注文
+                  value:
+                    code: ORDER_NOT_FOUND
+                processedFileNotFound:
+                  summary: 完了済みの注文に結果の記録がない
+                  value:
+                    code: PROCESSED_FILE_NOT_FOUND
         '409':
           description: 注文の保管期限を確認できません
           content:

@@ -35,6 +35,12 @@ You can always hand `archiveUrl` to a single Download button: it is either the o
 
 The URLs are valid for 3600 seconds (1 hour). If the order's retention period ends sooner (`expiresAt`), the lifetime is shortened to the time left, and `expiresInSeconds` reports the shorter value. Don't store the URLs. Call this endpoint again whenever you need to download.
 
+The URL lifetime is separate from the retention period. Each order keeps the retention period (7 or 30 days) that was fixed when the order was created, counted from completion. You can get fresh URLs until `expiresAt`.
+
+### Zero Copy orders
+
+If you created an Anti-AI order with Zero Copy (`mode.zeroCopy: true`), the results are stored in the upload targets you specified. Check the results there. The URLs from this endpoint are not guaranteed to return the same results.
+
 ## Examples
 
 <CodeGroup>
@@ -141,6 +147,9 @@ The endpoint checks for errors in this order and returns the first one that appl
 | 3 | The retention period has ended | 400 | `ORDER_EXPIRED` |
 | 3 | The retention period cannot be determined | 409 | `FILE_RETENTION_UNKNOWN` |
 | 4 | `status` is `pending`, `inProgress`, or `failed` | 400 | `ORDER_NOT_COMPLETED` |
+| 5 | A completed order has no result record | 404 | `PROCESSED_FILE_NOT_FOUND` |
+
+The deprecated [v2 download](/api-reference/orders/download-order) differs: it returns `403 ORDER_NOT_OWNER` for an order of another account, and it checks the retention period and status before the order type.
 
 An invalid `orderId` format returns `400 VALIDATION_FAILED`.
 
@@ -161,4 +170,4 @@ The deprecated [`GET /api/v2/orders/{orderId}/download`](/api-reference/orders/d
 
 ## Test keys
 
-With an `sk_test_` key, this endpoint works for completed Anti-AI and watermark embed test orders created with the same key. The URLs point to fixed sample files, not to your processed files. See [Test API keys](/test-api-keys).
+With an `sk_test_` key, this endpoint works for completed Anti-AI and watermark embed test orders owned by the account of the key. The URLs point to fixed sample files, not to your processed files. See [Test API keys](/test-api-keys).

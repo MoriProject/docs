@@ -295,21 +295,21 @@ if data['status'] == 'complete':
 `result` is an object only when `status` is `complete`, and `null` otherwise.
 
 <Note>
-  `result.heatmapUrl` and `result.overlayUrl` are `null` unless you requested them via `options.generateHeatmap` and `options.generateOverlay` in Step 1. `result.originalImageUrl`, `result.heatmapUrl`, and `result.overlayUrl` are valid for 1 hour, so get the order again for fresh URLs.
+  `result.heatmapUrl` and `result.overlayUrl` are `null` unless you requested them via `options.generateHeatmap` and `options.generateOverlay` in Step 1. `result.originalImageUrl`, `result.heatmapUrl`, and `result.overlayUrl` are valid for up to 7 days after they are issued and never past `expiresAt`, so get the order again for fresh URLs.
   The result images are usually WebP files resized so that the longer side is at most 1600 px. `result.originalImageUrl` is a resized copy of your input in the same way, and `thumbnailImageUrl` is a thumbnail up to 740×400. If the resized images are not ready, you get the original files instead.
   With an `sk_test_` key, `result.originalImageUrl`, `result.heatmapUrl`, and `result.overlayUrl` are `null`.
 </Note>
 
 ### Reading the result
 
-`result.probability` (0–1) indicates how likely the image is AI-generated. `result.verdict` is the verdict based on that probability. It is `null` when `result.probability` is `null`.
+`result.probability` (0–1) indicates how likely the image is AI-generated. `result.verdict` is the verdict that the server determines from that probability. It is `null` when `result.probability` is `null`. A verdict expresses how likely the image is to be AI-generated and does not confirm whether it is.
 
-| `result.verdict` | Probability range | Meaning |
-|---|---|---|
-| `likely_real` | < 0.25 | Likely not AI-generated |
-| `uncertain_real` | 0.25 – 0.5 | Possibly not AI-generated |
-| `uncertain_ai` | 0.5 – 0.75 | Possibly AI-generated |
-| `likely_ai` | ≥ 0.75 | Likely AI-generated |
+| `result.verdict` | Meaning |
+|---|---|
+| `likely_real` | Likely not AI-generated |
+| `uncertain_real` | Possibly not AI-generated |
+| `uncertain_ai` | Possibly AI-generated |
+| `likely_ai` | Likely AI-generated |
 
 ## Full React example
 
@@ -433,7 +433,7 @@ export default function AiDetectionChecker() {
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired` is terminal too: the files are deleted when the retention period ends.
+      // `expired` is terminal too: the files are no longer available after the retention period ends.
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setResult(finished.result);

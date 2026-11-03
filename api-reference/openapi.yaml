@@ -242,7 +242,7 @@ components:
 
             * failed - Failed
 
-            * expired - Expired (order files unavailable after 7 days)
+            * expired - The retention period fixed for the order (7 or 30 days) has ended. Files are no longer available
 
             '
         fileCount:
@@ -254,7 +254,7 @@ components:
           format: uri
           nullable: true
           description: |
-            Thumbnail image URL (presigned URL, 1-hour expiry). For aiDetection orders, only returned when generateThumbnail option is used. null when expired.
+            Thumbnail image URL. A stored thumbnail is a presigned URL valid for up to 7 days after it is issued and never past the order's retention period. For aiDetection orders, only returned when generateThumbnail option is used. null when expired.
             For v3 watermark orders, a thumbnail up to 100×100 WebP (the first page for PDFs) is returned after processing completes. Before completion, after a failure, or when no thumbnail exists, a status image is returned.
         createdAt:
           type: string
@@ -298,6 +298,30 @@ components:
             * `uncertain_real` - Uncertain, leaning real
             * `uncertain_ai` - Uncertain, leaning AI
             * `likely_ai` - Likely AI-generated content
+    OrderErrors:
+      description: |-
+        Failure details of an order (`errors` in order details). This is not the API error response body `{ code }`.
+        - `null` when the order has not failed. An order that failed and later reached the end of its retention period (`expired`) keeps the value stored when it failed
+        - Watermark orders created with v3 always return an object with a public `errorCode` and a fixed `errorMessage`, even when an older order stored a string
+        - Other orders (Anti-AI, AI Detection, and watermark orders created with v2) return the stored value as is. It is usually an object and may have only `errorMessage` without `errorCode`. Older orders may return a string
+
+        Handle `null`, an object, and a string.
+      oneOf:
+      - $ref: '#/components/schemas/OrderErrorObject'
+      - type: string
+        description: Error details that an older order stored as a string. Not returned for watermark orders created with v3. The value is returned as stored and has no fixed format
+    OrderErrorObject:
+      type: object
+      nullable: true
+      description: Failure details as an object. Watermark orders created with v3 always include both fields; other orders include only the stored fields
+      properties:
+        errorCode:
+          type: string
+          description: Error code. Watermark orders created with v3 return a public code such as `WATERMARK_FILE_CORRUPTED`, `ORDER_TIMEOUT`, or `PROCESSING_ERROR`. AI Detection orders that store a public code use `AI_DETECTION_INVALID_IMAGE`, `AI_DETECTION_TIMEOUT`, `AI_DETECTION_SERVICE_ERROR`, or `AI_DETECTION_FAILED`. May be absent for other orders
+          example: WATERMARK_FILE_CORRUPTED
+        errorMessage:
+          type: string
+          description: Failure message (Korean). For watermark orders created with v3, a fixed message for the error code that never contains raw processor output. For other orders, the stored message
     OrderDetail:
       type: object
       description: Order detail info
@@ -339,7 +363,7 @@ components:
           format: uri
           nullable: true
           description: |
-            Thumbnail image URL (presigned URL, 1-hour expiry). null when expired.
+            Thumbnail image URL. A stored thumbnail is a presigned URL valid for up to 7 days (604,800 seconds) after it is issued and never past `expiresAt`. This URL lifetime is separate from the file retention period; get the order again for a fresh URL. null when expired.
             Anti-AI orders return a detail thumbnail: a WebP up to 740×400 that keeps the aspect ratio. Orders created before this change, or orders where the detail thumbnail could not be created, return the 200×200 thumbnail instead.
             AI Detection orders return a detail thumbnail (WebP, up to 740×400) after processing completes, whether or not you set `generateThumbnail`. If the resized images are not ready, the original input image URL is returned.
         originalImageUrl:
@@ -347,7 +371,7 @@ components:
           format: uri
           nullable: true
           description: |
-            Original input image download URL (presigned URL, 1-hour expiry). aiDetection orders only. null when expired.
+            Original input image download URL (presigned URL valid for up to 7 days after it is issued and never past `expiresAt`). aiDetection orders only. null when expired.
             After processing completes, this is usually a copy resized so that the longer side is at most 1600 px (WebP). If the resized copy is not ready, the original input image is returned.
         createdAt:
           type: string
@@ -357,20 +381,17 @@ components:
           type: string
           format: date-time
           description: Updated at
-        errors:
-          type: object
+        retentionDays:
+          type: integer
           nullable: true
-          description: Failure details. null unless the order failed. Watermark orders always return a public
-            errorCode and a fixed errorMessage; see the failed webhook event error codes for the list.
-          properties:
-            errorCode:
-              type: string
-              description: Public error code, for example WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED, ORDER_TIMEOUT, or
-                PROCESSING_ERROR
-              example: WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED
-            errorMessage:
-              type: string
-              description: Fixed guidance message for the error code (Korean). It never contains raw processor output
+          description: File retention period in days (7 or 30). It is taken from the account's file retention setting when the order is created and stays fixed for the order. `null` only in data exceptions
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Date until which the order files are available (UTC, ISO 8601). Set to the completion time plus `retentionDays` when the order first completes, and provisional while the order is `pending` or `inProgress`. `null` only in data exceptions. `null` does not mean the files are kept indefinitely, and downloads then return `409 FILE_RETENTION_UNKNOWN`
+        errors:
+          $ref: '#/components/schemas/OrderErrors'
         watermarks:
           type: array
           items:
@@ -395,15 +416,17 @@ components:
 
             * undetected - Watermark not detected
 
-            **aiDetection orders** (computed from probability):
+            **aiDetection orders** (verdict determined by the server from probability):
 
-            * likely_real - probability < 0.25
+            * likely_real - Likely not AI-generated
 
-            * uncertain_real - 0.25 <= probability < 0.5
+            * uncertain_real - Possibly not AI-generated
 
-            * uncertain_ai - 0.5 <= probability < 0.75
+            * uncertain_ai - Possibly AI-generated
 
-            * likely_ai - probability >= 0.75
+            * likely_ai - Likely AI-generated
+
+            A verdict expresses how likely the image is to be AI-generated; it does not confirm whether the image is AI-generated. If `probability` is not available yet, neither `probability` nor `statusCode` is returned.
 
             Not returned for other order types.
 
@@ -430,14 +453,14 @@ components:
           format: uri
           nullable: true
           description: |
-            AI detection heatmap image download URL (aiDetection orders only, when generateHeatmap option is used).
+            AI detection heatmap image download URL (aiDetection orders only, when generateHeatmap option is used). Presigned URL valid for up to 7 days after it is issued and never past `expiresAt`.
             Usually a WebP resized so that the longer side is at most 1600 px. If the resized image is not ready, the full-size PNG is returned.
         overlayUrl:
           type: string
           format: uri
           nullable: true
           description: |
-            Heatmap overlay on original image download URL (aiDetection orders only, when generateOverlay option is used).
+            Heatmap overlay on original image download URL (aiDetection orders only, when generateOverlay option is used). Presigned URL valid for up to 7 days after it is issued and never past `expiresAt`.
             Usually a WebP resized so that the longer side is at most 1600 px. If the resized image is not ready, the full-size PNG is returned.
     UsageStats:
       type: object
@@ -667,7 +690,7 @@ components:
             * `inProgress` - Processing
             * `complete` - Processing finished. For extract orders, read the outcome from `result`
             * `failed` - Processing failed, or files were not uploaded within 12 hours
-            * `expired` - The retention period has ended and files were deleted
+            * `expired` - The retention period fixed for the order (7 or 30 days) has ended. Files are no longer available
         processingDelayed:
           type: boolean
           description: '`true` when automatic retries are exhausted and the order is waiting for manual recovery.
@@ -676,7 +699,7 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: When the order files are deleted. Downloads and reports return `ORDER_EXPIRED` afterwards
+          description: Date until which the order files are available. Set to the completion time plus the retention period fixed for the order when the order first completes, and provisional before that. Downloads and reports return `ORDER_EXPIRED` afterwards
         files:
           type: array
           description: Uploaded input files, in request order. Extract orders return the original first and
@@ -955,7 +978,7 @@ components:
           - error
           - null
           description: |-
-            Outcome. `null` only for a v2 order that has no detection record (a data anomaly).
+            Outcome. `null` only for a v2 order whose detection record is missing or holds an unknown value (a past-data exception). `error` and `unsupported` are detection outcomes of an order that finished as `complete`; when the order itself fails, `status` is `failed`, `result` is `null`, and the reason is in `errors`.
             * `detected` - A watermark was found
             * `undetected` - The file was fully checked and no watermark was found. Includes `not_detected` from the v3 engine and v2 orders stored as `undetected`
             * `inconclusive` - A candidate was found but did not meet the confidence threshold
@@ -1014,11 +1037,13 @@ components:
           - likely_ai
           - null
           description: |-
-            Verdict based on `probability`. `null` when `probability` is `null`.
-            * `likely_real` - Likely not AI-generated, probability < 0.25
-            * `uncertain_real` - Possibly not AI-generated, 0.25 <= probability < 0.5
-            * `uncertain_ai` - Possibly AI-generated, 0.5 <= probability < 0.75
-            * `likely_ai` - Likely AI-generated, probability >= 0.75
+            Verdict that the server determines from `probability`. `null` when `probability` is `null`.
+            * `likely_real` - Likely not AI-generated
+            * `uncertain_real` - Possibly not AI-generated
+            * `uncertain_ai` - Possibly AI-generated
+            * `likely_ai` - Likely AI-generated
+
+            A verdict expresses how likely the image is to be AI-generated; it does not confirm whether the image is AI-generated.
         probability:
           type: number
           format: float
@@ -1042,17 +1067,17 @@ components:
           type: string
           format: uri
           nullable: true
-          description: Original input image URL (presigned, valid for 1 hour). When all resized images are ready, it is a WebP image whose longer side is at most 1600 px
+          description: Original input image URL (presigned, valid for up to 7 days after it is issued and never past `expiresAt`; get the order again for a fresh URL). When all resized images are ready, it is a WebP image whose longer side is at most 1600 px
         heatmapUrl:
           type: string
           format: uri
           nullable: true
-          description: Heatmap image URL (presigned, valid for 1 hour). Returned only for orders created with `generateHeatmap`; otherwise `null`
+          description: Heatmap image URL (presigned, valid for up to 7 days after it is issued and never past `expiresAt`; get the order again for a fresh URL). Returned only for orders created with `generateHeatmap`; otherwise `null`
         overlayUrl:
           type: string
           format: uri
           nullable: true
-          description: URL of the heatmap overlaid on the original image (presigned, valid for 1 hour). Returned only for orders created with `generateOverlay`; otherwise `null`
+          description: URL of the heatmap overlaid on the original image (presigned, valid for up to 7 days after it is issued and never past `expiresAt`; get the order again for a fresh URL). Returned only for orders created with `generateOverlay`; otherwise `null`
     PublicOrderV3DetailCommon:
       type: object
       description: Common fields of the v3 order detail. Every order type and watermark engine returns the same set of top-level keys; only `result` differs by type. The top-level `fileCount`, `statusCode`, `files`, `outputs`, `reports`, and `watermarks` fields of earlier responses are not returned
@@ -1123,11 +1148,11 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: When the order files are deleted (UTC, ISO 8601). `null` only in data integrity exceptions
+          description: Date until which the order files are available (UTC, ISO 8601). Set to the completion time plus `retentionDays` when the order first completes, and provisional while the order is `pending` or `inProgress`. `null` only in data integrity exceptions; it does not mean the files are kept indefinitely
         retentionDays:
           type: integer
           nullable: true
-          description: File retention period fixed at order creation, in days (7 or 30). `null` only in data integrity exceptions
+          description: File retention period in days (7 or 30), taken from the account's file retention setting when the order is created and fixed for the order. Changing the setting later does not change existing orders. `null` only in data integrity exceptions
           example: 30
         thumbnailImageUrl:
           type: string
@@ -1138,17 +1163,7 @@ components:
           type: boolean
           description: '`true` when a watermark order created with v3 has exhausted automatic retries and is waiting for manual recovery. The order stays `inProgress`. Always `false` for other orders'
         errors:
-          type: object
-          nullable: true
-          description: Failure details of a failed order; otherwise `null`. Watermark orders created with v3 return a public `errorCode` and a fixed `errorMessage`. Other orders return the stored error information as is, which may omit `errorCode`
-          properties:
-            errorCode:
-              type: string
-              description: Error code, for example `WATERMARK_FILE_CORRUPTED`, `ORDER_TIMEOUT`, or `PROCESSING_ERROR`
-              example: WATERMARK_FILE_CORRUPTED
-            errorMessage:
-              type: string
-              description: Fixed guidance message for the error code (Korean). It never contains raw processor output
+          $ref: '#/components/schemas/OrderErrors'
         inputFiles:
           type: array
           description: Input files in request order. Use `inputFiles.length` for the file count. `watermarkExtract` orders use `PublicExtractInputFile` (with `role`); other orders use `PublicInputFile`
@@ -1450,7 +1465,7 @@ paths:
     post:
       summary: Create Anti-AI order
       operationId: createAntiAiOrder
-      description: 'Create an order for AI detection protection processing.
+      description: 'Create an Anti-AI order. Anti-AI protects images by disrupting AI training on them. It does not help images avoid AI-generated image detection (AI Detection).
 
 
         ## Input Modes (Upload / URL / Mixed)
@@ -1478,7 +1493,8 @@ paths:
         ## Zero Copy Mode
 
         When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided presigned
-        URLs.
+        URLs. Check the results in those upload targets. The order download endpoints do not guarantee
+        that you can download the same results.
 
         In this case, `outputTargets` array is required and must match the length of `files` array.
 
@@ -1762,7 +1778,8 @@ paths:
         ## Zero Copy Mode
 
         When `mode.zeroCopy: true`, processed results are uploaded directly to customer-provided presigned
-        URLs.
+        URLs. Check the results in those upload targets. The order download endpoints do not guarantee
+        that you can download the same results.
 
         '
       tags:
@@ -2442,13 +2459,16 @@ paths:
         ## Flow
 
 
-        1. Call this endpoint to receive an upload URL
+        1. Call this endpoint to receive an upload URL (`file.uploadUrl`) and a file key (`file.fileKey`)
 
-        2. Upload the image using the live S3 URL or test ContentCare URL
+        2. PUT the image to `file.uploadUrl` without an API key header. The URL carries its own authorization and is valid for 1 hour. A live key receives an S3 presigned URL, and `fileKey` is its S3 object key. A test key receives an absolute ContentCare test upload URL, and `fileKey` is an isolated logical key. Test uploads are not stored: ContentCare consumes the request body, discards it, and records only that the upload finished
 
-        3. Call `POST /api/v2/orders/ai-detection/confirm` to start async detection
+        3. Call `POST /api/v2/orders/ai-detection/confirm` with the `orderId` to start async detection. If the upload URL expires first, call `POST /api/v2/orders/{orderId}/refresh-urls`
 
-        4. Use webhooks or poll the order detail endpoint for the result
+        4. Use webhooks or poll `GET /api/v3/orders/{orderId}` and read `result.verdict` and `result.probability`
+
+
+        In environments where persistent test orders are disabled, a test key receives a fixed mock response that is not stored: `status` is `complete` and `uploadUrl` is a placeholder on `https://test.invalid/` that cannot accept uploads. You cannot get that order later.
 
 
         ## Order Status
@@ -2503,8 +2523,8 @@ paths:
                   example: photo.jpg
                 options:
                   type: object
-                  description: Output options (optional). Generated files are included in the order detail
-                    response.
+                  description: Output options (optional). Generated images are returned as `heatmapUrl` and `overlayUrl`
+                    in the order details (`result.heatmapUrl` and `result.overlayUrl` in v3).
                   properties:
                     generateHeatmap:
                       type: boolean
@@ -2539,7 +2559,8 @@ paths:
                         type: string
                         enum:
                         - pending
-                        description: Order status
+                        - complete
+                        description: Order status. `pending` after creation. Only the fixed mock response for test keys in environments where persistent test orders are disabled returns `complete`
                       file:
                         type: object
                         properties:
@@ -2817,7 +2838,21 @@ paths:
       summary: Get order details
       operationId: getOrder
       deprecated: true
-      description: '**Deprecated**: use [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3), which returns every order type in one shape. The response and behavior of this endpoint are unchanged.'
+      description: |-
+        **Deprecated**: use [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3), which returns every order type in one shape. The response and behavior of this endpoint are unchanged.
+
+        **`errors`**: failure details (`OrderErrors`), not the API error response `{ code }`. `null` when the order has not failed; an order that failed and then expired keeps the stored value. Watermark orders created with v3 always return `{ errorCode, errorMessage }`. Other orders return the stored value as is: an object that may lack `errorCode`, or a string for some older orders.
+
+        **AI Detection `statusCode`**: `likely_real` (likely not AI-generated), `uncertain_real` (possibly not AI-generated), `uncertain_ai` (possibly AI-generated), or `likely_ai` (likely AI-generated). A verdict does not confirm whether the image is AI-generated. Orders without a `probability` return neither `probability` nor `statusCode`.
+
+        **Retention and URL lifetime**
+        - `retentionDays` (7 or 30) is taken from the account's file retention setting when the order is created and stays fixed for the order. `expiresAt` is set to the completion time plus `retentionDays` when the order first completes. You can download the result files until `expiresAt`
+        - `retentionDays` and `expiresAt` are `null` only in data exceptions. An order with `retentionDays: null` follows its recorded `expiresAt`. `expiresAt: null` does not mean the files are kept indefinitely; downloads return `409 FILE_RETENTION_UNKNOWN`
+        - Image URLs (`thumbnailImageUrl`, `originalImageUrl`, `heatmapUrl`, `overlayUrl`) are presigned URLs valid for up to 7 days (604,800 seconds) after they are issued and never past `expiresAt`. This URL lifetime is separate from the file retention period. Get the order again for fresh URLs
+
+        **Test keys (`sk_test_`)**: returns test orders owned by the account of the key, in the same shape, without S3 image URLs. This call is not read-only: an `inProgress` test order of the same account becomes `complete` or `failed` once five seconds have passed, and a test webhook event is sent if you registered one. In environments where persistent test orders are disabled, this endpoint returns `404 ORDER_NOT_FOUND`.
+
+        **Errors**: `404 ORDER_NOT_FOUND` when the order does not exist or belongs to another account.
       tags:
       - Orders
       security:
@@ -2909,7 +2944,13 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/WebhookNotFound'
+          description: The order does not exist or belongs to another account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_FOUND
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2928,22 +2969,27 @@ paths:
       summary: Get download URL
       operationId: downloadOrderFiles
       deprecated: true
-      description: '**Deprecated**: use [`GET /api/v3/orders/{orderId}/download`](/api-reference/orders/download-order-v3), which returns a URL for each output file and one URL for all results. The response and behavior of this endpoint are unchanged.
+      description: |-
+        **Deprecated**: use [`GET /api/v3/orders/{orderId}/download`](/api-reference/orders/download-order-v3), which returns a URL for each output file and one URL for all results. The response and behavior of this endpoint are unchanged.
 
-        Issue a download URL for completed order files.
+        Issue a download URL for the results of a completed Anti-AI or watermark embed order. Watermark extract and AI Detection orders have no result files to download.
 
         - Only available for orders with `complete` status
+        - You can download the result files until `expiresAt`, the end of the retention period (7 or 30 days, `retentionDays`) fixed for the order. The period starts when the order completes
+        - The URL lifetime is separate from the retention period. For Anti-AI orders and watermark embed orders created with v2, the URL is valid for up to 7 days (604,800 seconds) after it is issued and never past `expiresAt`. For watermark embed orders created with v3, the URL is valid for 300 seconds. Call this endpoint again for a fresh URL while the order has not expired
+        - For an Anti-AI order created with Zero Copy (`mode.zeroCopy: true`), the results are stored in the upload targets you specified. This endpoint does not guarantee that you can download the same results
 
-        - URL is valid for 1 hour
+        **Error check order** (the first matching error is returned)
+        1. The order does not exist → `404 ORDER_NOT_FOUND`
+        2. The order belongs to another account → `403 ORDER_NOT_OWNER`. The v3 download returns `404 ORDER_NOT_FOUND` in this case
+        3. The retention period cannot be determined → `409 FILE_RETENTION_UNKNOWN`. The retention period has ended → `400 ORDER_EXPIRED`
+        4. `status` is not `complete` → `400 ORDER_NOT_COMPLETED`
+        5. Watermark extract or AI Detection order → `400 ORDER_TYPE_CANT_DOWNLOAD`
+        6. A watermark embed order created with v2 has no result record → `404 PROCESSED_FILE_NOT_FOUND`
 
-        - Order files are available for download for up to 7 days after order creation
+        An expired or incomplete watermark extract or AI Detection order returns error 3 or 4 first. The v3 download checks the order type before the retention period and status.
 
-        - After 7 days, the order transitions to `expired` status and files can no longer be downloaded
-
-        - Test orders do not create result files; this endpoint returns `404` with
-        `PROCESSED_FILE_NOT_FOUND` for a test order
-
-        '
+        **Test keys (`sk_test_`)**: test orders do not create result files, so this endpoint returns `404 PROCESSED_FILE_NOT_FOUND` for any order. In environments where persistent test orders are disabled, it returns `404 ORDER_NOT_FOUND`. Use the v3 download to get sample result URLs.
       tags:
       - Orders
       security:
@@ -2969,13 +3015,59 @@ paths:
                       url:
                         type: string
                         format: uri
-                        description: Download URL (presigned)
+                        description: Presigned download URL. Its lifetime follows the rules above (up to 604,800 seconds and never past `expiresAt`, or 300 seconds for watermark embed orders created with v3)
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '400':
+          description: The retention period has ended, the order is not complete, or the order type has no result files
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired:
+                  summary: The retention period has ended
+                  value:
+                    code: ORDER_EXPIRED
+                notCompleted:
+                  summary: A pending, inProgress, or failed order
+                  value:
+                    code: ORDER_NOT_COMPLETED
+                typeCantDownload:
+                  summary: A watermark extract or AI Detection order
+                  value:
+                    code: ORDER_TYPE_CANT_DOWNLOAD
         '403':
-          $ref: '#/components/responses/Forbidden'
+          description: The order belongs to another account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_OWNER
         '404':
-          $ref: '#/components/responses/WebhookNotFound'
+          description: The order does not exist, has no result record, or was requested with a test key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  summary: The order does not exist (including test keys when persistent test orders are disabled)
+                  value:
+                    code: ORDER_NOT_FOUND
+                processedFileNotFound:
+                  summary: No result record, or a persistent test order
+                  value:
+                    code: PROCESSED_FILE_NOT_FOUND
+        '409':
+          description: The retention period of the order cannot be determined (`expiresAt` is `null`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: FILE_RETENTION_UNKNOWN
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -4222,7 +4314,10 @@ paths:
         - `type` is `antiAi`, `aiDetection`, `watermarkEmbed`, or `watermarkExtract`. Watermark orders created with v3 use the same values, without an engine suffix
         - `status` is one of `pending`, `inProgress`, `complete`, `failed`, and `expired`. v2 watermark extract orders stored as `detected` or `undetected` return `complete`, with the outcome in `result.detectionStatus`
         - `processingDelayed` is calculated only for watermark orders created with v3. It is always `false` for other orders
-        - `errors` is `{ errorCode, errorMessage }` for a failed order, otherwise `null`
+        - `errors` is the failure details (`OrderErrors`), not the API error response `{ code }`. It is `null` when the order has not failed, and an order that failed and then expired keeps the stored value. Watermark orders created with v3 always return `{ errorCode, errorMessage }`. Other orders return the stored value as is: an object that may lack `errorCode`, or a string for some older orders
+        - `retentionDays` (7 or 30) is taken from the account's file retention setting when the order is created and stays fixed for the order. Changing the setting later does not change existing orders. `expiresAt` is set to the completion time plus `retentionDays` when the order first completes and is provisional while the order is processing. You can download the result files until `expiresAt`
+        - `retentionDays` and `expiresAt` are `null` only in data exceptions. `expiresAt: null` does not mean the files are kept indefinitely; downloads return `409 FILE_RETENTION_UNKNOWN`
+        - Image URLs (`thumbnailImageUrl`, `result.originalImageUrl`, `result.heatmapUrl`, `result.overlayUrl`) are presigned URLs whose lifetime is separate from the retention period: up to 7 days for Anti-AI, AI Detection, and v2 watermark images, and 15 minutes for thumbnails of watermark orders created with v3, never past `expiresAt` in either case. Get the order again for fresh URLs
 
         **`inputFiles[]`**: `{ fileId, fileName }` for each input file, in request order. Use `inputFiles.length` for the file count.
         - `role` (`original` or `query`) appears only on `watermarkExtract` orders. The `watermarked` role of v2 orders is returned as `query`
@@ -4231,8 +4326,8 @@ paths:
         **`result`**: the key is always present. It is an object only when `status` is `complete`, and `null` for `pending`, `inProgress`, `failed`, and `expired`.
         - `antiAi`: `{ outputFiles: [{ fileId, fileName, inputFileId }] }`
         - `watermarkEmbed`: `{ outputFiles: [{ fileId, fileName, inputFileId, watermarkText }] }`. A v3 order that embeds several watermark texts in one input file returns one output file per text
-        - `watermarkExtract`: `{ detectionStatus, watermarkText, reportSupported, reports }`. `detectionStatus` is `detected`, `undetected`, `inconclusive`, `unsupported`, or `error`. `watermarkText` is `null` unless `detectionStatus` is `detected`. v2 orders return `reportSupported: false` and `reports: []`
-        - `aiDetection`: `{ verdict, probability, options, originalImageUrl, heatmapUrl, overlayUrl }`. `verdict` is `likely_real`, `uncertain_real`, `uncertain_ai`, or `likely_ai`, and is `null` when `probability` is `null`. `options` is `null` when no options were stored
+        - `watermarkExtract`: `{ detectionStatus, watermarkText, reportSupported, reports }`. `detectionStatus` is `detected`, `undetected`, `inconclusive`, `unsupported`, or `error`, or `null` for a v2 order whose detection record is missing or holds an unknown value. `error` and `unsupported` are outcomes of a completed order and differ from an order failure (`status: failed`, `result: null`, reason in `errors`). `watermarkText` is `null` unless `detectionStatus` is `detected`. v2 orders return `reportSupported: false` and `reports: []`
+        - `aiDetection`: `{ verdict, probability, options, originalImageUrl, heatmapUrl, overlayUrl }`. `verdict` is `likely_real` (likely not AI-generated), `uncertain_real` (possibly not AI-generated), `uncertain_ai` (possibly AI-generated), or `likely_ai` (likely AI-generated), and is `null` when `probability` is `null`. A verdict does not confirm whether the image is AI-generated. `options` is `null` when no options were stored
 
         **`fileId`**: every `fileId` and `inputFileId` is a numeric string with no separator such as `-`. `result.outputFiles[].fileId` is unique within the order and matches `files[].fileId` from [`GET /api/v3/orders/{orderId}/download`](/api-reference/orders/download-order-v3) in value and order.
 
@@ -4244,7 +4339,7 @@ paths:
         - For other orders, which used the v2 detail format, the top-level `fileCount`, `statusCode`, `watermarks`, `watermarkText`, `probability`, `options`, `originalImageUrl`, `heatmapUrl`, and `overlayUrl` fields moved to `inputFiles` and `result`. The AI Detection `statusCode` is now `result.verdict`
         - The response of the deprecated [`GET /api/v2/orders/{orderId}`](/api-reference/orders/get-order) is unchanged
 
-        **Test keys (`sk_test_`)**: returns only test orders created with the same key. Live orders and other accounts' orders return `404 ORDER_NOT_FOUND`, as do test orders requested with a live key. Every test order, created with v2 or v3, uses this shape. An `inProgress` test order becomes `complete` or `failed` when you get it more than five seconds after the uploads finish. The `uploadUrl` of a pending test order is `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`. `result.reports` of a test extract order is always empty, and `reportSupported` is `true` only for a v3 test extract order whose `detectionStatus` is `detected`. `expiresAt` is seven days after the order was created.
+        **Test keys (`sk_test_`)**: returns only test orders owned by the account of the key. Live orders and other accounts' orders return `404 ORDER_NOT_FOUND`, as do test orders requested with a live key. Every test order, created with v2 or v3, uses this shape. This call is not read-only: an `inProgress` test order of the same account becomes `complete` or `failed` when you get it more than five seconds after the uploads finish, and a test webhook event is sent if you registered one. The `uploadUrl` of a pending test order is `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`. `result.reports` of a test extract order is always empty, and `reportSupported` is `true` only for a v3 test extract order whose `detectionStatus` is `detected`. `expiresAt` follows the same rule as live orders: the completion time plus the retention period of the account.
       tags:
       - Orders
       security:
@@ -4528,7 +4623,7 @@ paths:
                       processingDelayed: false
                       errors:
                         errorCode: WATERMARK_FILE_CORRUPTED
-                        errorMessage: 파일이 손상되어 처리할 수 없습니다.
+                        errorMessage: 파일이 손상됐거나 읽을 수 없습니다. 원본 파일을 확인한 뒤 다시 시도해주세요.
                       inputFiles:
                       - fileId: '33'
                         fileName: logo.png
@@ -4542,9 +4637,9 @@ paths:
                       orderName: cat.png
                       channel: api
                       status: expired
-                      createdAt: '2026-10-08T01:00:00.000Z'
-                      updatedAt: '2026-10-08T01:00:40.000Z'
-                      expiresAt: '2026-10-01T00:00:00.000Z'
+                      createdAt: '2026-09-01T01:00:00.000Z'
+                      updatedAt: '2026-09-01T01:00:40.000Z'
+                      expiresAt: '2026-10-01T01:00:40.000Z'
                       retentionDays: 30
                       thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
                       processingDelayed: false
@@ -4609,7 +4704,9 @@ paths:
         - `archiveUrl`: one URL for all results. Always a string
           - Anti-AI orders and watermark embed orders created with v2: a ZIP archive of the results
           - Watermark embed orders created with v3: a ZIP archive with two or more output files. With one output file, the URL of that file (the same file as `files[0].downloadUrl`)
-        - `expiresInSeconds`: how long the URLs are valid. 3600 seconds (1 hour) by default, shortened to the time left until the retention period ends (`expiresAt`) if that is sooner. Call this endpoint again for fresh URLs
+        - `expiresInSeconds`: how long the URLs are valid. 3600 seconds (1 hour) by default, shortened to the time left until the retention period ends (`expiresAt`) if that is sooner. The URL lifetime is separate from the retention period (7 or 30 days) fixed for the order. Call this endpoint again for fresh URLs until `expiresAt`
+        - For an Anti-AI order created with Zero Copy (`mode.zeroCopy: true`), the results are stored in the upload targets you specified (`outputTargets`). The URLs from this endpoint are not guaranteed to return the same results
+        - A completed order without a result record returns `404 PROCESSED_FILE_NOT_FOUND`
 
         **Error check order** (the first matching error is returned)
         1. The order does not exist or belongs to another account → `404 ORDER_NOT_FOUND`
@@ -4619,7 +4716,7 @@ paths:
 
         **Changes from the previous v3 response (breaking change, 2026-10-08)**: the response changed from `{ downloadUrl, expiresInSeconds: 300 }` to `{ archiveUrl, files, expiresInSeconds }`, and Anti-AI orders and v2 watermark embed orders are now supported. URLs are valid for up to 3600 seconds instead of 300. An incomplete order returns `ORDER_NOT_COMPLETED` instead of `VALIDATION_FAILED`, and an extract order returns `ORDER_TYPE_CANT_DOWNLOAD`. The per-file endpoint `GET /api/v3/orders/{orderId}/files/{fileId}/download` was removed; use `files[]` instead.
 
-        **Test keys (`sk_test_`)**: works for completed Anti-AI and watermark embed test orders created with the same key, whether with v2 or v3. The URLs point to sample files served from `https://api.bizmori.com/api/v2/test-samples/{signedToken}`, not to your processed files. An Anti-AI test order without output files returns `files: []` and a sample ZIP as `archiveUrl`. A v3 embed test order with one output file returns that sample file as `archiveUrl`; other test orders return a sample ZIP. `expiresInSeconds`, the error codes, and the check order follow the same rules as live orders.
+        **Test keys (`sk_test_`)**: works for completed Anti-AI and watermark embed test orders owned by the account of the key, whether created with v2 or v3. The URLs point to sample files served from `https://api.bizmori.com/api/v2/test-samples/{signedToken}`, not to your processed files. An Anti-AI test order without output files returns `files: []` and a sample ZIP as `archiveUrl`. A v3 embed test order with one output file returns that sample file as `archiveUrl`; other test orders return a sample ZIP. `expiresInSeconds`, the error codes, and the check order follow the same rules as live orders.
       tags:
       - Orders
       security:
@@ -4701,13 +4798,20 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          description: The order does not exist or belongs to another account
+          description: The order does not exist or belongs to another account (`ORDER_NOT_FOUND`), or a completed order has no result record (`PROCESSED_FILE_NOT_FOUND`)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: ORDER_NOT_FOUND
+              examples:
+                notFound:
+                  summary: The order does not exist or belongs to another account
+                  value:
+                    code: ORDER_NOT_FOUND
+                processedFileNotFound:
+                  summary: A completed order has no result record
+                  value:
+                    code: PROCESSED_FILE_NOT_FOUND
         '409':
           description: The retention period of the order cannot be determined
           content:

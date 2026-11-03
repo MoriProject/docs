@@ -307,7 +307,7 @@ status = data['status']
 | `inProgress` | 처리 중 |
 | `complete` | 완료 (다운로드 가능) |
 | `failed` | 처리 실패. 원인은 `errors`에서 확인 |
-| `expired` | 보관 기한이 지나 파일이 삭제됨 |
+| `expired` | 주문에 고정된 보관 기간이 끝나 파일을 더 이상 받을 수 없음 |
 
 ## 5단계: 결과 다운로드
 
@@ -502,7 +502,7 @@ export default function AntiAiUploader() {
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired`도 종료 상태입니다. 보관 기한이 지나면 파일이 삭제됩니다.
+      // `expired`도 종료 상태입니다. 보관 기한이 지나면 파일을 더 이상 받을 수 없습니다.
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setStatus('fetching download URL');

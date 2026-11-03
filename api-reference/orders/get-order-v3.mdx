@@ -20,11 +20,11 @@ Use this endpoint to check an order's status and read its result. It works for e
 | `channel` | string | `api` or `web` |
 | `status` | string | One of the five values in [Status](#status) |
 | `createdAt`, `updatedAt` | string | ISO 8601 timestamps |
-| `expiresAt` | string \| null | When the order files are deleted |
-| `retentionDays` | integer \| null | File retention period in days (7 or 30) |
+| `expiresAt` | string \| null | Date until which the order files are available. Set to the completion time plus `retentionDays` when the order first completes, and provisional before that. See [Retention and URL lifetime](#retention-and-url-lifetime) |
+| `retentionDays` | integer \| null | File retention period in days (7 or 30), taken from the account's file retention setting when the order is created and fixed for the order |
 | `thumbnailImageUrl` | string \| null | Thumbnail image URL |
 | `processingDelayed` | boolean | `true` when a watermark order created with v3 is waiting for manual recovery. Always `false` for other orders |
-| `errors` | object \| null | `{ errorCode, errorMessage }` for a failed order, otherwise `null` |
+| `errors` | object \| string \| null | Failure details. `null` when the order has not failed. See [Failure details](#failure-details) |
 | `inputFiles` | array | Input files. See [Input files](#input-files) |
 | `result` | object \| null | Result for the order type. See [Result by order type](#result-by-order-type) |
 
@@ -36,7 +36,7 @@ Use this endpoint to check an order's status and read its result. It works for e
 | `inProgress` | Processing | `null` |
 | `complete` | Finished | Object |
 | `failed` | Processing failed. Read the reason from `errors` | `null` |
-| `expired` | The retention period ended and the files were deleted. No URLs are issued | `null` |
+| `expired` | The retention period fixed for the order ended. The files are no longer available, and no URLs are issued | `null` |
 
 Watermark extract orders created with v2 that are stored as `detected` or `undetected` return `complete`. Read the outcome from `result.detectionStatus`.
 
@@ -76,7 +76,7 @@ Every `fileId` in this response and in the [download response](/api-reference/or
   <Tab title="Watermark extract">
     | Field | Type | Description |
     |-------|------|-------------|
-    | `detectionStatus` | string | Outcome. See the table below |
+    | `detectionStatus` | string \| null | Outcome. See the table below. `null` only for a v2 order whose detection record is missing or holds an unknown value |
     | `watermarkText` | string \| null | Embedded text of the detected watermark. `null` unless `detectionStatus` is `detected`. For v3 orders, it is returned only when your account embedded the watermark and exactly one issuance record matches |
     | `reportSupported` | boolean | Whether you can [create a report](/api-reference/reports/create-report) from this result. `false` for v2 orders and for images captured from a PDF |
     | `reports` | array | `{ locale, status }` for each report requested for this order. Always empty for v2 orders |
@@ -88,25 +88,46 @@ Every `fileId` in this response and in the [download response](/api-reference/or
     | `inconclusive` | A candidate was found, but it did not meet the confidence threshold |
     | `unsupported` | The input cannot be processed. The credit is refunded |
     | `error` | Detection failed. This is not the same as no watermark |
+
+    `error` and `unsupported` are outcomes of an order that finished as `complete`. If the order itself fails, `status` is `failed`, `result` is `null`, and the reason is in `errors`.
   </Tab>
   <Tab title="AI Detection">
     | Field | Type | Description |
     |-------|------|-------------|
-    | `verdict` | string \| null | Verdict based on `probability`. See the table below. `null` when `probability` is `null` |
+    | `verdict` | string \| null | Verdict that the server determines from `probability`. See the table below. `null` when `probability` is `null` |
     | `probability` | number \| null | Probability that the image is AI-generated, from 0 to 1 |
     | `options` | object \| null | `generateHeatmap`, `generateOverlay`, and `generateThumbnail` as set when the order was created |
-    | `originalImageUrl` | string \| null | Original image URL, valid for 1 hour |
-    | `heatmapUrl` | string \| null | Heatmap image URL, valid for 1 hour. `null` unless the order used `generateHeatmap` |
-    | `overlayUrl` | string \| null | Heatmap overlay URL, valid for 1 hour. `null` unless the order used `generateOverlay` |
+    | `originalImageUrl` | string \| null | Original image URL, valid for up to 7 days after it is issued and never past `expiresAt` |
+    | `heatmapUrl` | string \| null | Heatmap image URL, valid for up to 7 days after it is issued and never past `expiresAt`. `null` unless the order used `generateHeatmap` |
+    | `overlayUrl` | string \| null | Heatmap overlay URL, valid for up to 7 days after it is issued and never past `expiresAt`. `null` unless the order used `generateOverlay` |
 
-    | `verdict` | Probability range | Meaning |
-    |-----------|-------------------|---------|
-    | `likely_real` | < 0.25 | Likely not AI-generated |
-    | `uncertain_real` | 0.25 – 0.5 | Possibly not AI-generated |
-    | `uncertain_ai` | 0.5 – 0.75 | Possibly AI-generated |
-    | `likely_ai` | ≥ 0.75 | Likely AI-generated |
+    | `verdict` | Meaning |
+    |-----------|---------|
+    | `likely_real` | Likely not AI-generated |
+    | `uncertain_real` | Possibly not AI-generated |
+    | `uncertain_ai` | Possibly AI-generated |
+    | `likely_ai` | Likely AI-generated |
+
+    A verdict expresses how likely the image is to be AI-generated. It does not confirm whether the image is AI-generated.
   </Tab>
 </Tabs>
+
+## Failure details
+
+`errors` holds the failure details of the order. It is not the API error response body `{ code }`.
+
+- It is `null` when the order has not failed. An order that failed and later reached the end of its retention period (`expired`) keeps the value stored when it failed.
+- Watermark orders created with v3 always return `{ errorCode, errorMessage }`.
+- Other orders (Anti-AI, AI Detection, and watermark orders created with v2) return the stored value as is. It is usually an object and may have only `errorMessage` without `errorCode`. Some older orders return a string.
+
+Handle `null`, an object, and a string.
+
+## Retention and URL lifetime
+
+- `retentionDays` (7 or 30) is taken from the account's file retention setting when the order is created and stays fixed for the order. Changing the setting later does not change existing orders.
+- `expiresAt` is set to the completion time plus `retentionDays` when the order first completes. While the order is `pending` or `inProgress`, it is provisional. You can download the result files until `expiresAt`.
+- `retentionDays` and `expiresAt` are `null` only in data exceptions. `expiresAt: null` does not mean the files are kept indefinitely, and [downloads](/api-reference/orders/download-order-v3) return `409 FILE_RETENTION_UNKNOWN`.
+- URLs in this response are signed and have their own lifetime, separate from the retention period. Images of Anti-AI, AI Detection, and v2 watermark orders are valid for up to 7 days, and thumbnails of watermark orders created with v3 for 15 minutes. Neither goes past `expiresAt`. Get the order again for fresh URLs.
 
 ## Examples
 
@@ -289,7 +310,7 @@ Orders that are not complete return `result: null`:
     "processingDelayed": false,
     "errors": {
       "errorCode": "WATERMARK_FILE_CORRUPTED",
-      "errorMessage": "파일이 손상되어 처리할 수 없습니다."
+      "errorMessage": "파일이 손상됐거나 읽을 수 없습니다. 원본 파일을 확인한 뒤 다시 시도해주세요."
     },
     "inputFiles": [
       { "fileId": "33", "fileName": "logo.png" }
@@ -307,9 +328,9 @@ Orders that are not complete return `result: null`:
     "orderName": "cat.png",
     "channel": "api",
     "status": "expired",
-    "createdAt": "2026-10-08T01:00:00.000Z",
-    "updatedAt": "2026-10-08T01:00:40.000Z",
-    "expiresAt": "2026-10-01T00:00:00.000Z",
+    "createdAt": "2026-09-01T01:00:00.000Z",
+    "updatedAt": "2026-09-01T01:00:40.000Z",
+    "expiresAt": "2026-10-01T01:00:40.000Z",
     "retentionDays": 30,
     "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
     "processingDelayed": false,
@@ -325,7 +346,7 @@ Orders that are not complete return `result: null`:
 
 - **Pending**: only files that are still waiting for upload have `uploadUrl`. Watermark embed, Anti-AI, and AI Detection orders have no `role`.
 - **Failed**: `errors` has the reason, and `result` is `null`. `errorMessage` is a fixed Korean message for the error code.
-- **Expired**: you can still get the order after the retention period ends, but `result` is `null` and no URLs are issued. [Downloads](/api-reference/orders/download-order-v3) return `400 ORDER_EXPIRED`.
+- **Expired**: you can still get the order after the retention period ends, but `result` is `null` and no URLs are issued. For Anti-AI and watermark embed orders, [downloads](/api-reference/orders/download-order-v3) return `400 ORDER_EXPIRED`.
 
 ## Changes from the previous response
 
@@ -348,4 +369,4 @@ The deprecated [`GET /api/v2/orders/{orderId}`](/api-reference/orders/get-order)
 
 ## Test keys
 
-With an `sk_test_` key, this endpoint returns only test orders created with the same key, in the shape above. See [Test API keys](/test-api-keys) for how test orders move through each status.
+With an `sk_test_` key, this endpoint returns only test orders owned by the account of the key, in the shape above. This call is not read-only: it can move an `inProgress` test order to `complete` or `failed` and send a test webhook event. See [Test API keys](/test-api-keys) for how test orders move through each status.

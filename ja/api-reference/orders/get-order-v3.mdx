@@ -20,11 +20,11 @@ openapi: "/ja/api-reference/openapi.yaml GET /api/v3/orders/{orderId}"
 | `channel` | string | `api` または `web` |
 | `status` | string | [ステータス](#ステータス)の 5 つの値のいずれか |
 | `createdAt`, `updatedAt` | string | ISO 8601 の日時 |
-| `expiresAt` | string \| null | 注文ファイルが削除される日時 |
-| `retentionDays` | integer \| null | ファイルの保管期間（日、7 または 30） |
+| `expiresAt` | string \| null | 注文ファイルを受け取れる期限。注文が初めて完了したときに、完了日時に `retentionDays` を足した日時に決まり、それまでは仮の値です。[保管期間と URL の有効期間](#保管期間と-url-の有効期間)を参照 |
+| `retentionDays` | integer \| null | ファイルの保管期間（日、7 または 30）。注文の作成時にアカウントのファイル保管設定から取り込み、その注文に固定します |
 | `thumbnailImageUrl` | string \| null | サムネイル画像の URL |
 | `processingDelayed` | boolean | v3 で作成した watermark 注文が手動復旧を待っているときに `true`。それ以外の注文では常に `false` |
-| `errors` | object \| null | 失敗した注文の `{ errorCode, errorMessage }`。それ以外は `null` |
+| `errors` | object \| string \| null | 失敗の情報。失敗していない注文は `null`。[失敗の情報](#失敗の情報)を参照 |
 | `inputFiles` | array | 入力ファイル。[入力ファイル](#入力ファイル)を参照 |
 | `result` | object \| null | 注文の種類ごとの結果。[注文の種類ごとの結果](#注文の種類ごとの結果)を参照 |
 
@@ -36,13 +36,13 @@ openapi: "/ja/api-reference/openapi.yaml GET /api/v3/orders/{orderId}"
 | `inProgress` | 処理中 | `null` |
 | `complete` | 完了 | オブジェクト |
 | `failed` | 処理に失敗。理由は `errors` にあります | `null` |
-| `expired` | 保管期限が過ぎ、ファイルは削除済み。URL は発行しません | `null` |
+| `expired` | 注文に固定された保管期間が終わり、ファイルを受け取れなくなった状態。URL は発行しません | `null` |
 
 v2 で作成した watermark 検出注文のうち、保存されたステータスが `detected` または `undetected` の注文は `complete` を返します。判定は `result.detectionStatus` から読み取ってください。
 
 ## 入力ファイル
 
-`inputFiles[]` の各項目には `fileId` と `fileName` があり、注文作成リクエストの順に並びます。次の 2 つのキーは該当する場合だけ含まれます。該当しない場合は `null` ではなく、キー自体がありません。
+`inputFiles[]` の各項目には `fileId` と `fileName` があり、注文作成リクエストの順に並びます。次の 2 つのキーは該当する場合だけ含まれます。該当しない場合は `null` ではなく、キー自体が含まれません。
 
 - `role` は `watermarkExtract` の注文にだけ含まれます。`original` は watermark を埋め込んだ元のファイル、`query` は検査するファイルです。
 - `uploadUrl` は `status` が `pending` で、そのファイルがまだアップロード待ちのときだけ含まれます。この URL にファイルを PUT してください。アップロード URL の期限が切れた場合は、このエンドポイントを再度呼び出すと新しい URL を取得できます。
@@ -76,41 +76,62 @@ v2 で作成した watermark 検出注文のうち、保存されたステータ
   <Tab title="watermark 検出">
     | フィールド | 型 | 説明 |
     |------------|----|------|
-    | `detectionStatus` | string | 判定。下の表を参照 |
-    | `watermarkText` | string \| null | 検出された watermark の埋め込みテキスト。`detectionStatus` が `detected` でなければ `null`。v3 の注文では、呼び出し元のアカウントが埋め込み、発行記録がちょうど 1 件のときだけ返します |
+    | `detectionStatus` | string \| null | 判定。下の表を参照。検出記録がないか不明な値が残っている v2 の注文だけ `null` |
+    | `watermarkText` | string \| null | 検出された watermark の埋め込みテキスト。`detectionStatus` が `detected` でなければ `null`。v3 の注文では、呼び出し元のアカウントが埋め込み、一致する発行記録がちょうど 1 件のときだけ返します |
     | `reportSupported` | boolean | この結果から[レポートを作成](/ja/api-reference/reports/create-report)できるかどうか。v2 の注文と PDF からキャプチャした画像は `false` |
     | `reports` | array | この注文で依頼したレポートごとの `{ locale, status }`。v2 の注文では常に空の配列 |
 
     | `detectionStatus` | 意味 |
     |-------------------|------|
     | `detected` | watermark が見つかった |
-    | `undetected` | 最後まで検査したが watermark はなかった |
+    | `undetected` | 最後まで検査したが watermark は見つからなかった |
     | `inconclusive` | 候補はあるが、確信度の基準に届かなかった |
     | `unsupported` | 処理できない入力。クレジットは返却されます |
     | `error` | 検出処理に失敗。watermark なしとは異なります |
+
+    `error` と `unsupported` は、注文が `complete` で終わったあとの検出結果です。注文そのものが失敗した場合は `status` が `failed`、`result` が `null` で、理由は `errors` にあります。
   </Tab>
   <Tab title="AI Detection">
     | フィールド | 型 | 説明 |
     |------------|----|------|
-    | `verdict` | string \| null | `probability` に基づく判定。下の表を参照。`probability` が `null` なら `null` |
+    | `verdict` | string \| null | サーバーが `probability` から決めた判定。下の表を参照。`probability` が `null` なら `null` |
     | `probability` | number \| null | 画像が AI で生成された確率（0〜1） |
     | `options` | object \| null | 注文作成時に設定した `generateHeatmap`、`generateOverlay`、`generateThumbnail` |
-    | `originalImageUrl` | string \| null | 元の画像の URL（1 時間有効） |
-    | `heatmapUrl` | string \| null | ヒートマップ画像の URL（1 時間有効）。`generateHeatmap` を使わなかった注文では `null` |
-    | `overlayUrl` | string \| null | ヒートマップのオーバーレイ画像の URL（1 時間有効）。`generateOverlay` を使わなかった注文では `null` |
+    | `originalImageUrl` | string \| null | 元の画像の URL。発行から最大 7 日間有効で、`expiresAt` を超えません |
+    | `heatmapUrl` | string \| null | ヒートマップ画像の URL。発行から最大 7 日間有効で、`expiresAt` を超えません。`generateHeatmap` を使わなかった注文では `null` |
+    | `overlayUrl` | string \| null | ヒートマップのオーバーレイ画像の URL。発行から最大 7 日間有効で、`expiresAt` を超えません。`generateOverlay` を使わなかった注文では `null` |
 
-    | `verdict` | 確率の範囲 | 意味 |
-    |-----------|------------|------|
-    | `likely_real` | < 0.25 | AI 生成ではない可能性が高い |
-    | `uncertain_real` | 0.25 – 0.5 | AI 生成ではない可能性がある |
-    | `uncertain_ai` | 0.5 – 0.75 | AI 生成の可能性がある |
-    | `likely_ai` | ≥ 0.75 | AI 生成の可能性が高い |
+    | `verdict` | 意味 |
+    |-----------|------|
+    | `likely_real` | AI 生成ではない可能性が高い |
+    | `uncertain_real` | AI 生成ではない可能性がある |
+    | `uncertain_ai` | AI 生成の可能性がある |
+    | `likely_ai` | AI 生成の可能性が高い |
+
+    判定は AI 生成である可能性の程度を表し、AI 生成かどうかを確定するものではありません。
   </Tab>
 </Tabs>
 
+## 失敗の情報
+
+`errors` は注文の処理失敗の情報です。API のエラーレスポンス本文 `{ code }` とは別のものです。
+
+- 失敗していない注文は `null` です。失敗したあとに保管期限が過ぎて `expired` になった注文は、失敗時に保存した値をそのまま返します。
+- v3 で作成した watermark 注文は、常に `{ errorCode, errorMessage }` を返します。
+- その他の注文（Anti-AI、AI Detection、v2 で作成した watermark 注文）は、保存された値をそのまま返します。通常はオブジェクトで、`errorCode` がなく `errorMessage` だけの場合があります。一部の古い注文は文字列を返します。
+
+`null`、オブジェクト、文字列のどれでも処理できるようにしてください。
+
+## 保管期間と URL の有効期間
+
+- `retentionDays`（7 または 30）は、注文の作成時にアカウントのファイル保管設定から取り込み、その注文に固定します。あとで設定を変えても既存の注文は変わりません。
+- `expiresAt` は、注文が初めて完了したときに完了日時に `retentionDays` を足した日時に決まります。`pending`・`inProgress` の間は仮の値です。結果ファイルは `expiresAt` まで受け取れます。
+- `retentionDays` と `expiresAt` はデータの例外でのみ `null` です。`expiresAt` が `null` でも無期限の保管ではなく、[ダウンロード](/ja/api-reference/orders/download-order-v3)は `409 FILE_RETENTION_UNKNOWN` を返します。
+- このレスポンスの URL は署名付きで、保管期間とは別に有効期間があります。Anti-AI・AI Detection・v2 の watermark 注文の画像は最大 7 日間、v3 で作成した watermark 注文のサムネイルは 15 分有効で、どちらも `expiresAt` を超えません。新しい URL が必要な場合は、注文を取得し直してください。
+
 ## 例
 
-注文の種類ごとの完了した注文:
+注文の種類ごとに、完了した注文の例を示します。
 
 <CodeGroup>
 ```json Anti-AI
@@ -289,7 +310,7 @@ v2 で作成した watermark 検出注文のうち、保存されたステータ
     "processingDelayed": false,
     "errors": {
       "errorCode": "WATERMARK_FILE_CORRUPTED",
-      "errorMessage": "파일이 손상되어 처리할 수 없습니다."
+      "errorMessage": "파일이 손상됐거나 읽을 수 없습니다. 원본 파일을 확인한 뒤 다시 시도해주세요."
     },
     "inputFiles": [
       { "fileId": "33", "fileName": "logo.png" }
@@ -307,9 +328,9 @@ v2 で作成した watermark 検出注文のうち、保存されたステータ
     "orderName": "cat.png",
     "channel": "api",
     "status": "expired",
-    "createdAt": "2026-10-08T01:00:00.000Z",
-    "updatedAt": "2026-10-08T01:00:40.000Z",
-    "expiresAt": "2026-10-01T00:00:00.000Z",
+    "createdAt": "2026-09-01T01:00:00.000Z",
+    "updatedAt": "2026-09-01T01:00:40.000Z",
+    "expiresAt": "2026-10-01T01:00:40.000Z",
     "retentionDays": 30,
     "thumbnailImageUrl": "https://cdn.bizmori.com/thumb/ex.webp",
     "processingDelayed": false,
@@ -325,7 +346,7 @@ v2 で作成した watermark 検出注文のうち、保存されたステータ
 
 - **Pending**: まだアップロード待ちのファイルにだけ `uploadUrl` があります。watermark 埋め込み、Anti-AI、AI Detection の注文には `role` がありません。
 - **Failed**: `errors` に理由があり、`result` は `null` です。`errorMessage` はエラーコードごとの固定の韓国語の案内文です。
-- **Expired**: 保管期限が過ぎた注文も取得できますが、`result` は `null` で、URL は発行しません。[ダウンロード](/ja/api-reference/orders/download-order-v3)は `400 ORDER_EXPIRED` を返します。
+- **Expired**: 保管期限が過ぎた注文も取得できますが、`result` は `null` で、URL は発行しません。Anti-AI・watermark 埋め込みの注文の[ダウンロード](/ja/api-reference/orders/download-order-v3)は `400 ORDER_EXPIRED` を返します。
 
 ## 以前のレスポンスからの変更
 
@@ -348,4 +369,4 @@ v2 で作成した watermark 検出注文のうち、保存されたステータ
 
 ## テストキー
 
-`sk_test_` キーで呼び出すと、同じキーで作成したテスト注文だけを上記の形式で返します。テスト注文のステータスの変化は[テスト API キー](/ja/test-api-keys)を参照してください。
+`sk_test_` キーで呼び出すと、キーが属するアカウントが所有するテスト注文だけを上記の形式で返します。この取得は読み取り専用ではなく、`inProgress` のテスト注文を `complete` または `failed` に進め、テスト用 Webhook のイベントを送信することがあります。テスト注文のステータスの変化は[テスト API キー](/ja/test-api-keys)を参照してください。

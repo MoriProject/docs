@@ -362,7 +362,7 @@ finished = wait_for_order(order['orderId'])
 | `inProgress` | 検出処理中 |
 | `complete` | 完了 — `result` を確認してください |
 | `failed` | 検出失敗。消費したクレジットは戻ります |
-| `expired` | 保管期間が終了し、ファイルが削除された |
+| `expired` | 注文に固定された保管期間が終わり、ファイルを受け取れなくなった状態 |
 
 | `result.detectionStatus` | 意味 |
 |--------------------------|------|

@@ -17,5 +17,5 @@ curl -X GET https://api.bizmori.com/api/v3/orders/{orderId}/download \
 ```
 
 <Warning>
-  The URLs are valid for up to 1 hour, so request new ones each time you download. You can download files until the order's `expiresAt`; after that, the endpoint returns `400 ORDER_EXPIRED`. For an `sk_test_` order, the URLs point to fixed sample files instead of your results.
+  The URLs are valid for up to 1 hour, so request new ones each time you download. You can download files until the order's `expiresAt`, the end of the retention period (7 or 30 days) fixed for the order; after that, the endpoint returns `400 ORDER_EXPIRED`. If you used Zero Copy (`mode.zeroCopy: true`), check the results in your upload targets; this endpoint does not guarantee the same results. For an `sk_test_` order, the URLs point to fixed sample files instead of your results.
 </Warning>

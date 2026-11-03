@@ -14,7 +14,7 @@ curl -X PUT "UPLOAD_URL" \
 ```
 
 <Note>
-  本番のプリサインドアップロード URL は **1 時間** で失効します。テストアップロード URL には独自の認証情報が含まれているため、Bearer ヘッダーは不要です。URL が失効する前にファイルをアップロードし、[注文の確認](/ja/api-reference/ai-detection/confirm-order) エンドポイントを呼び出してください。
+  本番のプリサインドアップロード URL とテストアップロード URL は、どちらも **1 時間** で失効します。URL 自体に認証情報が含まれているため、Bearer ヘッダーは付けません。本番キーの `fileKey` は S3 のオブジェクトキー、テストキーの `fileKey` は分離された論理キーです。永続テスト注文が無効な環境では、テストキーには保存されないモックレスポンスが返り、その `test.invalid` の `uploadUrl` にはアップロードできません。URL が失効する前にファイルをアップロードし、[注文の確認](/ja/api-reference/ai-detection/confirm-order) エンドポイントを呼び出してください。
 </Note>
 
 ## 検出結果の取得
@@ -54,9 +54,11 @@ curl -X PUT "UPLOAD_URL" \
 
 ### 判定
 
-| `result.verdict` | 確率の範囲 | 意味 |
-|---|---|---|
-| `likely_ai` | ≥ 0.75 | AI 生成の可能性が高い |
-| `uncertain_ai` | 0.5 – 0.75 | AI 生成の可能性がある |
-| `uncertain_real` | 0.25 – 0.5 | AI 生成ではない可能性がある |
-| `likely_real` | < 0.25 | AI 生成ではない可能性が高い |
+| `result.verdict` | 意味 |
+|---|---|
+| `likely_ai` | AI 生成の可能性が高い |
+| `uncertain_ai` | AI 生成の可能性がある |
+| `uncertain_real` | AI 生成ではない可能性がある |
+| `likely_real` | AI 生成ではない可能性が高い |
+
+判定は、サーバーが `result.probability` から決めます。判定は AI 生成である可能性の程度を表し、AI 生成かどうかを確定するものではありません。

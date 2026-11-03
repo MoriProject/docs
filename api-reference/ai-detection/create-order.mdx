@@ -14,7 +14,7 @@ curl -X PUT "UPLOAD_URL" \
 ```
 
 <Note>
-  Live presigned upload URLs expire after **1 hour**. Test upload URLs carry their own authorization and do not require a Bearer header. Upload the file before the URL expires, then call the [Confirm order](/api-reference/ai-detection/confirm-order) endpoint.
+  Live presigned upload URLs and test upload URLs both expire after **1 hour** and carry their own authorization, so do not add a Bearer header. With a live key, `fileKey` is the S3 object key; with a test key, it is an isolated logical key. If persistent test orders are disabled in your environment, a test key receives a mock response that is not stored, and its `test.invalid` `uploadUrl` cannot accept uploads. Upload the file before the URL expires, then call the [Confirm order](/api-reference/ai-detection/confirm-order) endpoint.
 </Note>
 
 ## Getting the detection result
@@ -54,9 +54,11 @@ When the order is `complete`, the detection result is in `result`. The example b
 
 ### Verdict
 
-| `result.verdict` | Probability range | Meaning |
-|---|---|---|
-| `likely_ai` | ≥ 0.75 | Likely AI-generated |
-| `uncertain_ai` | 0.5 – 0.75 | Possibly AI-generated |
-| `uncertain_real` | 0.25 – 0.5 | Possibly not AI-generated |
-| `likely_real` | < 0.25 | Likely not AI-generated |
+| `result.verdict` | Meaning |
+|---|---|
+| `likely_ai` | Likely AI-generated |
+| `uncertain_ai` | Possibly AI-generated |
+| `uncertain_real` | Possibly not AI-generated |
+| `likely_real` | Likely not AI-generated |
+
+The server determines the verdict from `result.probability`. A verdict expresses how likely the image is to be AI-generated. It does not confirm whether the image is AI-generated.

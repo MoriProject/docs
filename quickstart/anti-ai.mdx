@@ -307,7 +307,7 @@ Order statuses:
 | `inProgress` | Processing |
 | `complete` | Ready for download |
 | `failed` | Processing failed. Read the reason from `errors` |
-| `expired` | The retention period ended and the files were deleted |
+| `expired` | The retention period fixed for the order ended. The files are no longer available |
 
 ## Step 5: Download the result
 
@@ -503,7 +503,7 @@ export default function AntiAiUploader() {
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired` is terminal too: the files are deleted when the retention period ends.
+      // `expired` is terminal too: the files are no longer available after the retention period ends.
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setStatus('fetching download URL');
