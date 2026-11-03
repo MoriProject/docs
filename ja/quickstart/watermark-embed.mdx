@@ -172,7 +172,7 @@ order = res.json()['data']
 
 - `files[]` はリクエストの `files` と同じ順序で返されます。リクエストの `files[i]` のファイルは `files[i].uploadUrl` にアップロードしてください。
 - `outputs[]` には watermark 文言ごとに 1 件ずつ項目があります。ここの `fileId`（`501-1` など）はこの作成レスポンスでだけ使われます。注文詳細とダウンロードのレスポンスでは、結果ファイルを数字の `fileId` で区別します。
-- `expiresAt` は注文ファイルが削除される日時です。それまでに結果をダウンロードしてください。
+- `expiresAt` は、注文に固定された保管期間（7 日または 30 日）が終わる日時で、完了日時から数えます。それまでに結果をダウンロードしてください。
 
 <Tip>
   1 つの注文に最大 100 ファイルを含めることができ、画像と PDF を混在させることもできます。すでに公開されているファイルは、アップロードする代わりに `originalFileUrl` に HTTPS URL を指定できます。ContentCare がファイルを直接取得し（最大 32 MiB、リダイレクトは追跡しません）、そのファイルの `uploadUrl` は `null` になります。
@@ -334,7 +334,7 @@ finished = wait_for_order(order['orderId'])
 | `inProgress` | 処理中 |
 | `complete` | ダウンロード可能 |
 | `failed` | 処理失敗。消費したクレジットは戻ります |
-| `expired` | 保管期間が終了し、ファイルが削除された |
+| `expired` | 注文に固定された保管期間が終わり、ファイルを受け取れなくなった状態 |
 
 注文が `complete` になると、`result.outputFiles[]` に watermark 文言ごとに結果ファイルが 1 つずつ入ります。注文詳細はすべての注文の種類で同じ形式です。すべてのフィールドは[注文詳細を取得](/ja/api-reference/orders/get-order-v3)を参照してください。
 
@@ -687,7 +687,7 @@ v3 のリクエスト本文は v2 と同じ形式です。ほとんどの場合�
 | クレジット | — | 画像・PDF を問わず watermark 文言ごとに 1 クレジット |
 | 結果 | 注文全体をまとめてダウンロード | watermark 文言ごとに結果ファイルが 1 つずつ `result.outputFiles[]` に作成される |
 | 注文の取得 | `GET /api/v2/orders/{orderId}`（非推奨） | [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) |
-| ダウンロード | `GET /api/v2/orders/{orderId}/download`（非推奨、URL は 7 日間有効） | [`GET /api/v3/orders/{orderId}/download`](/ja/api-reference/orders/download-order-v3): `archiveUrl` と結果ファイルごとの URL（最大 1 時間有効） |
+| ダウンロード | `GET /api/v2/orders/{orderId}/download`（非推奨、URL は最大 7 日間有効で、`expiresAt` を超えない） | [`GET /api/v3/orders/{orderId}/download`](/ja/api-reference/orders/download-order-v3): `archiveUrl` と結果ファイルごとの URL（最大 1 時間有効） |
 | アップロード URL | 1 時間有効、`refresh-urls` で更新 | 900 秒間有効、`GET /api/v3/orders/{orderId}` を再度呼び出して新しい URL を取得 |
 | confirm ステップ | なし | なし |
 | Webhook | `order.watermarkEmbed.completed` / `failed` | イベント名と `data` フィールドは同じ |

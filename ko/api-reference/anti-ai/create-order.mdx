@@ -16,5 +16,5 @@ curl -X GET https://api.bizmori.com/api/v3/orders/{orderId}/download \
 ```
 
 <Warning>
-  URL은 최대 1시간 동안 유효하므로 다운로드할 때마다 새로 요청하세요. 파일은 주문의 `expiresAt`까지 내려받을 수 있으며, 그 뒤에는 `400 ORDER_EXPIRED`를 반환합니다. `sk_test_` 주문의 URL은 실제 결과가 아니라 고정 샘플 파일을 가리킵니다.
+  URL은 최대 1시간 동안 유효하므로 다운로드할 때마다 새로 요청하세요. 파일은 주문에 고정된 보관 기간(7일 또는 30일)이 끝나는 `expiresAt`까지 내려받을 수 있으며, 그 뒤에는 `400 ORDER_EXPIRED`를 반환합니다. Zero Copy(`mode.zeroCopy: true`)를 썼다면 결과는 지정한 업로드 대상에서 확인하세요. 이 엔드포인트로 같은 결과를 받을 수 있다고 보장하지 않습니다. `sk_test_` 주문의 URL은 실제 결과가 아니라 고정 샘플 파일을 가리킵니다.
 </Warning>

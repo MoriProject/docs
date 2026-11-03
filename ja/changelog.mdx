@@ -4,9 +4,9 @@ title: 'パッチノート'
 
 <Update label="API" description="2026-10-08">
 
-### 🔄 v3 の注文詳細・ダウンロードのレスポンスを 1 つの形式に統一しました（破壊的変更）
+### 🔄 v3 の注文詳細・ダウンロードのレスポンスを 1 つの形式に統一しました（後方互換性のない変更）
 
-`GET /api/v3/orders/{orderId}` と `GET /api/v3/orders/{orderId}/download` は、Anti-AI、AI Detection、watermark 埋め込み、watermark 検出のすべての注文を、v2 と v3 のどちらで作成したかに関係なく 1 つの形式で返すようになりました。
+`GET /api/v3/orders/{orderId}` は、Anti-AI、AI Detection、watermark 埋め込み、watermark 検出のすべての注文を、v2 と v3 のどちらで作成したかに関係なく 1 つの形式で返すようになりました。`GET /api/v3/orders/{orderId}/download` は、結果ファイルがある注文の種類（Anti-AI、watermark 埋め込み）を 1 つの形式で返します。
 
 **[注文詳細を取得（v3）](/ja/api-reference/orders/get-order-v3)**
 

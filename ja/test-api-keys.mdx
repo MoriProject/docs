@@ -115,7 +115,7 @@ curl -X POST https://api.bizmori.com/api/v2/orders/webhooks \
 
 | 操作 | テスト API キーの動作 |
 | --- | --- |
-| `GET /api/v3/orders/{orderId}` | テスト注文を返します。`pending` の間、`inputFiles[].uploadUrl` はテストアップロード URL です。Watermark Embed の注文では、watermark の文言ごとに `result.outputFiles` の項目が 1 件作成されます。`expiresAt` は注文作成の 7 日後です。 |
+| `GET /api/v3/orders/{orderId}` | テスト注文を返します。`pending` の間、`inputFiles[].uploadUrl` はテストアップロード URL です。Watermark Embed の注文では、watermark の文言ごとに `result.outputFiles` の項目が 1 件作成されます。`expiresAt` は本番注文と同じく、完了日時にアカウントの保管期間（7 日または 30 日）を足した日時です。テスト注文の取得は読み取り専用ではなく、時間が来た `inProgress` のテスト注文を `complete` または `failed` に進め、テスト用 Webhook のイベントを送信することがあります。 |
 | `GET /api/v3/orders/{orderId}/download` | 完了した Anti-AI と Watermark Embed のテスト注文でのみ動作します。固定のサンプルファイルを指す `archiveUrl` と `files[]` を返します。`expiresInSeconds` は本番注文と同じルール（最大 3600 秒）に従います。 |
 | `POST /api/v3/orders/{orderId}/reports`, `GET /api/v3/orders/{orderId}/reports/{locale}` | 結果が `detected` の Watermark Extract 注文でのみ動作します。`completed` と、300 秒間有効なサンプルレポート PDF の URL を返します。 |
 

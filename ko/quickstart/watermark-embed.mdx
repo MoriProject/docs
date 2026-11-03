@@ -172,7 +172,7 @@ order = res.json()['data']
 
 - `files[]`는 요청한 `files`와 같은 순서로 반환됩니다. 요청의 `files[i]` 파일은 `files[i].uploadUrl`로 업로드하세요.
 - `outputs[]`에는 워터마크 문구마다 항목이 하나씩 있습니다. 여기의 `fileId`(`501-1` 등)는 이 생성 응답에서만 쓰입니다. 주문 상세와 다운로드 응답은 결과 파일을 숫자로 된 `fileId`로 구분합니다.
-- `expiresAt`은 주문 파일이 삭제되는 시각입니다. 그 전에 결과를 다운로드하세요.
+- `expiresAt`은 주문에 고정된 보관 기간(7일 또는 30일)이 끝나는 시각이며 완료 시각부터 셉니다. 그 전에 결과를 다운로드하세요.
 
 <Tip>
   주문 하나에 파일을 최대 100개까지 넣을 수 있고, 이미지와 PDF를 섞어도 됩니다. 이미 공개된 파일이라면 업로드하는 대신 `originalFileUrl`에 HTTPS URL을 지정하세요. ContentCare가 파일을 직접 내려받으며(최대 32 MiB, 리다이렉트는 따라가지 않음), 이 파일의 `uploadUrl`은 `null`입니다.
@@ -334,7 +334,7 @@ finished = wait_for_order(order['orderId'])
 | `inProgress` | 처리 중 |
 | `complete` | 다운로드 가능 |
 | `failed` | 처리 실패. 사용한 크레딧은 복구됩니다 |
-| `expired` | 보관 기간이 끝나 파일이 삭제됨 |
+| `expired` | 주문에 고정된 보관 기간이 끝나 파일을 더 이상 받을 수 없음 |
 
 주문이 `complete`가 되면 `result.outputFiles[]`에 워터마크 문구마다 결과 파일이 하나씩 나옵니다. 주문 상세는 모든 주문 종류에서 같은 형식이며, 전체 필드는 [주문 상세 조회](/ko/api-reference/orders/get-order-v3)를 참고하세요.
 
@@ -687,7 +687,7 @@ v3의 요청 본문은 v2와 형태가 같습니다. 대부분은 엔드포인�
 | 크레딧 | — | 이미지·PDF 구분 없이 워터마크 문구당 1크레딧 |
 | 결과 | 주문 전체를 한 번에 다운로드 | 워터마크 문구마다 결과 파일이 하나씩 `result.outputFiles[]`에 생김 |
 | 주문 조회 | `GET /api/v2/orders/{orderId}` (deprecated) | [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3) |
-| 다운로드 | `GET /api/v2/orders/{orderId}/download` (deprecated, URL 7일 유효) | [`GET /api/v3/orders/{orderId}/download`](/ko/api-reference/orders/download-order-v3): `archiveUrl`과 결과 파일별 URL (최대 1시간 유효) |
+| 다운로드 | `GET /api/v2/orders/{orderId}/download` (deprecated, URL 최대 7일 유효, `expiresAt` 이내) | [`GET /api/v3/orders/{orderId}/download`](/ko/api-reference/orders/download-order-v3): `archiveUrl`과 결과 파일별 URL (최대 1시간 유효) |
 | 업로드 URL | 1시간 유효, `refresh-urls`로 갱신 | 900초 유효, `GET /api/v3/orders/{orderId}`를 다시 호출해 새 URL 받기 |
 | confirm 단계 | 없음 | 없음 |
 | 웹훅 | `order.watermarkEmbed.completed` / `failed` | 이벤트 이름과 `data` 필드 동일 |

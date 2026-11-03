@@ -6,7 +6,7 @@ title: "What's new"
 
 ### 🔄 One response shape for v3 order details and downloads (breaking change)
 
-`GET /api/v3/orders/{orderId}` and `GET /api/v3/orders/{orderId}/download` now return one shape for every order type (Anti-AI, AI Detection, watermark embed, and watermark extract), whether you created the order with v2 or v3.
+`GET /api/v3/orders/{orderId}` now returns one shape for every order type (Anti-AI, AI Detection, watermark embed, and watermark extract), whether you created the order with v2 or v3. `GET /api/v3/orders/{orderId}/download` returns one shape for the order types that have result files: Anti-AI and watermark embed.
 
 **[Get order details (v3)](/api-reference/orders/get-order-v3)**
 

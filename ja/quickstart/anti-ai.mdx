@@ -307,7 +307,7 @@ status = data['status']
 | `inProgress` | 処理中 |
 | `complete` | 完了（ダウンロード可能） |
 | `failed` | 処理失敗。原因は `errors` で確認 |
-| `expired` | 保管期限が過ぎ、ファイルが削除済み |
+| `expired` | 注文に固定された保管期間が終わり、ファイルを受け取れなくなった状態 |
 
 ## ステップ5: 結果のダウンロード
 
@@ -502,7 +502,7 @@ export default function AntiAiUploader() {
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired` も終了状態です。保管期限が過ぎるとファイルが削除されます。
+      // `expired` も終了状態です。保管期限が過ぎると、ファイルは受け取れなくなります。
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setStatus('fetching download URL');

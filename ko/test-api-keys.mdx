@@ -115,7 +115,7 @@ owner 및 모드 격리, 서명 검증, 이벤트 형식과 재전송 규칙은 
 
 | 작업 | 테스트 API 키 동작 |
 | --- | --- |
-| `GET /api/v3/orders/{orderId}` | 테스트 주문을 반환합니다. `pending` 동안 `inputFiles[].uploadUrl`은 테스트 업로드 URL입니다. 워터마크 삽입 주문은 워터마크 문구마다 `result.outputFiles` 항목이 하나씩 생깁니다. `expiresAt`은 주문 생성 7일 뒤입니다. |
+| `GET /api/v3/orders/{orderId}` | 테스트 주문을 반환합니다. `pending` 동안 `inputFiles[].uploadUrl`은 테스트 업로드 URL입니다. 워터마크 삽입 주문은 워터마크 문구마다 `result.outputFiles` 항목이 하나씩 생깁니다. `expiresAt`은 운영 주문과 같이 완료 시각 + 계정의 보관 기간(7일 또는 30일)입니다. 테스트 주문 조회는 읽기 전용이 아니며, 기한이 된 `inProgress` 테스트 주문을 `complete`·`failed`로 바꾸고 테스트 웹훅 이벤트를 보낼 수 있습니다. |
 | `GET /api/v3/orders/{orderId}/download` | 완료된 Anti-AI·워터마크 삽입 테스트 주문에서만 동작합니다. 고정 샘플 파일을 가리키는 `archiveUrl`과 `files[]`를 반환합니다. `expiresInSeconds`는 운영 주문과 같은 규칙(최대 3600초)을 따릅니다. |
 | `POST /api/v3/orders/{orderId}/reports`, `GET /api/v3/orders/{orderId}/reports/{locale}` | 결과가 `detected`인 워터마크 검출 주문에서만 동작합니다. `completed`와 300초 동안 유효한 샘플 보고서 PDF URL을 반환합니다. |
 

@@ -295,21 +295,21 @@ if data['status'] == 'complete':
 `result` は `status` が `complete` のときだけオブジェクトで、それ以外は `null` です。
 
 <Note>
-  `result.heatmapUrl`、`result.overlayUrl` は、ステップ1でそれぞれ `options.generateHeatmap`、`options.generateOverlay` をリクエストしなかった場合は `null` です。`result.originalImageUrl`、`result.heatmapUrl`、`result.overlayUrl` は 1 時間有効なため、新しい URL が必要な場合は注文詳細を再度取得してください。
+  `result.heatmapUrl`、`result.overlayUrl` は、ステップ1でそれぞれ `options.generateHeatmap`、`options.generateOverlay` をリクエストしなかった場合は `null` です。`result.originalImageUrl`、`result.heatmapUrl`、`result.overlayUrl` は発行から最大 7 日間有効で、`expiresAt` を超えません。新しい URL が必要な場合は注文詳細を再度取得してください。
   結果画像は、通常、長辺を1600px以内に縮小したWebPです。`result.originalImageUrl` も同じ方法で縮小した入力画像のコピーで、`thumbnailImageUrl` は740×400以内のサムネイルであり、`options.generateThumbnail` に関係なく返されます。リサイズ画像が用意できていない場合は、元のファイルを返します。
   `sk_test_` キーで作成した注文では、`result.originalImageUrl`、`result.heatmapUrl`、`result.overlayUrl` は `null` です。
 </Note>
 
 ### 結果の解釈
 
-`result.probability`（0〜1）は、画像が AI によって生成された確率を示します。`result.verdict` はこの確率に基づく判定です。`result.probability` が `null` の場合、`result.verdict` も `null` です。
+`result.probability`（0〜1）は、画像が AI によって生成された確率を示します。`result.verdict` は、サーバーがこの確率から決めた判定です。`result.probability` が `null` の場合、`result.verdict` も `null` です。判定は AI 生成である可能性の程度を表し、AI 生成かどうかを確定するものではありません。
 
-| `result.verdict` | 確率の範囲 | 意味 |
-|---|---|---|
-| `likely_real` | < 0.25 | AI 生成ではない可能性が高い |
-| `uncertain_real` | 0.25 – 0.5 | AI 生成ではない可能性がある |
-| `uncertain_ai` | 0.5 – 0.75 | AI 生成の可能性がある |
-| `likely_ai` | ≥ 0.75 | AI 生成の可能性が高い |
+| `result.verdict` | 意味 |
+|---|---|
+| `likely_real` | AI 生成ではない可能性が高い |
+| `uncertain_real` | AI 生成ではない可能性がある |
+| `uncertain_ai` | AI 生成の可能性がある |
+| `likely_ai` | AI 生成の可能性が高い |
 
 ## React 完全なサンプル
 
@@ -433,7 +433,7 @@ export default function AiDetectionChecker() {
       });
 
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
-      // `expired` も終了状態です。保管期限が過ぎるとファイルが削除されます。
+      // `expired` も終了状態です。保管期限が過ぎると、ファイルは受け取れなくなります。
       if (finished.status !== 'complete') throw new Error(`ORDER_${finished.status.toUpperCase()}`);
 
       setResult(finished.result);

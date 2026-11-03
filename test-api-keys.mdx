@@ -115,7 +115,7 @@ After the uploads finish, a test order moves to `inProgress` and then to `comple
 
 | Operation | Test API key behavior |
 | --- | --- |
-| `GET /api/v3/orders/{orderId}` | Returns the test order. While it is `pending`, `inputFiles[].uploadUrl` is a test upload URL. A Watermark Embed order has one item in `result.outputFiles` for each watermark text. `expiresAt` is seven days after the order was created. |
+| `GET /api/v3/orders/{orderId}` | Returns the test order. While it is `pending`, `inputFiles[].uploadUrl` is a test upload URL. A Watermark Embed order has one item in `result.outputFiles` for each watermark text. `expiresAt` follows the same rule as live orders: the completion time plus the retention period (7 or 30 days) of the account. Getting a test order is not read-only: it can move a due `inProgress` test order to `complete` or `failed` and send a test webhook event. |
 | `GET /api/v3/orders/{orderId}/download` | Completed Anti-AI and Watermark Embed test orders only. Returns `archiveUrl` and `files[]` that point to fixed sample files. `expiresInSeconds` follows the same rule as live orders (up to 3600 seconds). |
 | `POST /api/v3/orders/{orderId}/reports`, `GET /api/v3/orders/{orderId}/reports/{locale}` | Watermark Extract orders with a `detected` result only. Returns `completed` and a sample report PDF URL that is valid for 300 seconds. |
 

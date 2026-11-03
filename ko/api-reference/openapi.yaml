@@ -241,7 +241,7 @@ components:
 
             * failed - 실패
 
-            * expired - 만료됨 (주문 생성 후 7일이 지나면 파일 다운로드 불가)
+            * expired - 주문에 고정된 보관 기간(7일 또는 30일)이 끝나 파일을 더 이상 받을 수 없음
 
             '
         fileCount:
@@ -252,7 +252,7 @@ components:
           format: uri
           nullable: true
           description: |
-            썸네일 이미지 URL(presigned URL, 1시간 유효). aiDetection 주문은 generateThumbnail 옵션을 쓴 경우에만 반환합니다. 만료되면 null입니다.
+            썸네일 이미지 URL. Anti-AI·AI Detection·v2 워터마크 주문의 저장된 썸네일은 presigned URL이며 발급 시점부터 최대 7일 동안 유효하고 주문의 보관 기한을 넘지 않습니다. v3로 만든 워터마크 주문의 썸네일은 보관 기한 전에만 발급하지만 900초로 고정 서명합니다. aiDetection 주문은 generateThumbnail 옵션을 쓴 경우에만 반환합니다. 만료되면 null입니다.
             v3 워터마크 주문은 처리 완료 후 최대 100×100 WebP 썸네일(PDF는 첫 페이지)을 반환합니다. 처리 전·실패·썸네일이 없는 주문은 상태 이미지를 반환합니다.
         createdAt:
           type: string
@@ -296,6 +296,30 @@ components:
             * `uncertain_real` - 불확실, 실제 콘텐츠 쪽
             * `uncertain_ai` - 불확실, AI 생성 쪽
             * `likely_ai` - AI 생성 가능성 높음
+    OrderErrors:
+      description: |-
+        주문 처리 실패 정보(주문 상세의 `errors`). API 오류 응답 본문 `{ code }`와는 다른 값입니다.
+        - 실패하지 않은 주문은 `null`입니다. 실패한 뒤 보관 기한이 지나 `expired`가 된 주문은 실패 때 저장한 값을 그대로 유지합니다
+        - v3로 만든 워터마크 주문은 저장된 값을 공개 `errorCode`와 고정 `errorMessage`가 있는 객체로 바꿉니다. 예전 주문에 문자열로 저장된 값도 이 객체로 바꿉니다. 저장값이 `null`이면 `null` 그대로이며, 실패 상태라는 이유만으로 객체를 만들지 않습니다
+        - 그 밖의 주문(Anti-AI, AI Detection, v2로 만든 워터마크 주문)은 저장값을 그대로 반환합니다. 보통 객체이며 `errorCode` 없이 `errorMessage`만 있을 수 있고, 오래된 주문은 문자열일 수 있습니다
+
+        `null`, 객체, 문자열을 모두 처리하세요.
+      oneOf:
+      - $ref: '#/components/schemas/OrderErrorObject'
+      - type: string
+        description: 오래된 주문에 문자열로 저장된 오류 정보. v3로 만든 워터마크 주문에는 반환하지 않습니다. 저장값 그대로이며 정해진 형식이 없습니다
+    OrderErrorObject:
+      type: object
+      nullable: true
+      description: 객체 형식의 실패 정보. v3로 만든 워터마크 주문의 객체에는 두 필드가 모두 있고, 그 밖의 주문은 저장된 필드만 있습니다
+      properties:
+        errorCode:
+          type: string
+          description: 오류 코드. v3로 만든 워터마크 주문은 `WATERMARK_FILE_CORRUPTED`, `ORDER_TIMEOUT`, `PROCESSING_ERROR` 같은 공개 코드를 반환합니다. 공개 코드를 저장하는 AI Detection 주문은 `AI_DETECTION_INVALID_IMAGE`, `AI_DETECTION_TIMEOUT`, `AI_DETECTION_SERVICE_ERROR`, `AI_DETECTION_FAILED` 중 하나입니다. 그 밖의 주문에는 없을 수 있습니다
+          example: WATERMARK_FILE_CORRUPTED
+        errorMessage:
+          type: string
+          description: 실패 안내 문구(한국어). v3로 만든 워터마크 주문은 오류 코드별 고정 문구이며 처리기 원문을 담지 않습니다. 그 밖의 주문은 저장된 문구입니다
     OrderDetail:
       type: object
       description: 주문 상세 정보
@@ -337,7 +361,7 @@ components:
           format: uri
           nullable: true
           description: |
-            썸네일 이미지 URL(프리사인드 URL, 1시간 유효). 만료 상태 시 null입니다.
+            썸네일 이미지 URL. 저장된 썸네일은 프리사인드 URL이며 발급 시점부터 최대 7일(604,800초) 동안 유효하고 `expiresAt`을 넘지 않습니다. 이 URL 유효 시간은 파일 보관 기간과 별개이며, 새 URL이 필요하면 주문을 다시 조회하세요. 만료 상태 시 null입니다.
             Anti-AI 주문은 비율을 유지한 가로 740·세로 400 이내 WebP 상세 썸네일을 반환합니다. 이 변경 이전에 만든 주문이나 상세 썸네일을 만들지 못한 주문은 200×200 썸네일을 반환합니다.
             AI Detection 주문은 처리 완료 후 `generateThumbnail` 옵션과 관계없이 상세 썸네일(WebP, 740×400 이내)을 반환합니다. 리사이즈 이미지가 준비되지 않았으면 원본 입력 이미지 URL을 반환합니다.
         originalImageUrl:
@@ -345,7 +369,7 @@ components:
           format: uri
           nullable: true
           description: |
-            원본 입력 이미지 다운로드 URL(프리사인드 URL, 1시간 유효). aiDetection 주문 전용. 만료 상태 시 null입니다.
+            원본 입력 이미지 다운로드 URL(프리사인드 URL. 발급 시점부터 최대 7일 유효하며 `expiresAt`을 넘지 않음). aiDetection 주문 전용. 만료 상태 시 null입니다.
             처리 완료 후에는 보통 긴 변을 1600px 이내로 줄인 사본(WebP)을 반환합니다. 리사이즈 사본이 준비되지 않았으면 원본 입력 이미지를 반환합니다.
         createdAt:
           type: string
@@ -355,10 +379,17 @@ components:
           type: string
           format: date-time
           description: 수정 시각
-        errors:
-          type: string
+        retentionDays:
+          type: integer
           nullable: true
-          description: 에러 메시지 (실패 시)
+          description: 파일 보관 기간(일, 7 또는 30). 주문을 만들 때 계정의 파일 보관 설정에서 가져와 주문에 고정합니다. 데이터 예외에서만 `null`입니다
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: 주문 파일을 받을 수 있는 기한(UTC, ISO 8601). 주문이 처음 완료될 때 완료 시각 + `retentionDays`로 정해지며, `pending`·`inProgress`일 때는 임시값입니다. 데이터 예외에서만 `null`입니다. `null`은 무기한 보관이 아니며, 이때 v2 다운로드는 `409 FILE_RETENTION_UNKNOWN`을 반환합니다
+        errors:
+          $ref: '#/components/schemas/OrderErrors'
         watermarks:
           type: array
           items:
@@ -383,15 +414,17 @@ components:
 
             * undetected - 워터마크 미검출
 
-            **aiDetection 주문** (probability 기반 자동 계산):
+            **aiDetection 주문** (서버가 probability로 정한 판정):
 
-            * likely_real - probability < 0.25
+            * likely_real - AI 생성이 아닐 가능성이 높음
 
-            * uncertain_real - 0.25 <= probability < 0.5
+            * uncertain_real - AI 생성이 아닐 가능성이 있음
 
-            * uncertain_ai - 0.5 <= probability < 0.75
+            * uncertain_ai - AI 생성일 가능성이 있음
 
-            * likely_ai - probability >= 0.75
+            * likely_ai - AI 생성일 가능성이 높음
+
+            판정 값은 AI 생성일 가능성의 정도를 나타내며 AI 생성 여부를 확정하지 않습니다. 아직 `probability`가 없으면 `probability`와 `statusCode`를 모두 반환하지 않습니다.
 
             다른 주문 타입에서는 반환되지 않습니다.
 
@@ -418,14 +451,14 @@ components:
           format: uri
           nullable: true
           description: |
-            AI 판별 히트맵 이미지 다운로드 URL (aiDetection 주문 전용, generateHeatmap 옵션 사용 시 반환).
+            AI 판별 히트맵 이미지 다운로드 URL (aiDetection 주문 전용, generateHeatmap 옵션 사용 시 반환). 프리사인드 URL이며 발급 시점부터 최대 7일 유효하고 `expiresAt`을 넘지 않습니다.
             보통 긴 변을 1600px 이내로 줄인 WebP입니다. 리사이즈 이미지가 준비되지 않았으면 원본 크기 PNG를 반환합니다.
         overlayUrl:
           type: string
           format: uri
           nullable: true
           description: |
-            원본 위 히트맵 오버레이 이미지 다운로드 URL (aiDetection 주문 전용, generateOverlay 옵션 사용 시 반환).
+            원본 위 히트맵 오버레이 이미지 다운로드 URL (aiDetection 주문 전용, generateOverlay 옵션 사용 시 반환). 프리사인드 URL이며 발급 시점부터 최대 7일 유효하고 `expiresAt`을 넘지 않습니다.
             보통 긴 변을 1600px 이내로 줄인 WebP입니다. 리사이즈 이미지가 준비되지 않았으면 원본 크기 PNG를 반환합니다.
     UsageStats:
       type: object
@@ -655,7 +688,7 @@ components:
             * `inProgress` - 처리 중
             * `complete` - 처리 완료. 추출 주문은 `result`에서 결과를 확인합니다
             * `failed` - 처리 실패, 또는 12시간 안에 업로드되지 않음
-            * `expired` - 보관 기한이 지나 파일이 삭제됨
+            * `expired` - 주문에 고정된 보관 기간(7일 또는 30일)이 끝나 파일을 더 이상 받을 수 없음
         processingDelayed:
           type: boolean
           description: 자동 재시도를 모두 소진해 수동 복구를 기다리면 `true`. 주문은 `inProgress`로 유지됩니다
@@ -663,7 +696,7 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: 주문 파일이 삭제되는 시각. 이후 다운로드와 보고서는 `ORDER_EXPIRED`를 반환합니다
+          description: 주문 파일을 받을 수 있는 기한. 주문이 처음 완료될 때 완료 시각 + 주문에 고정된 보관 기간으로 정해지며, 그 전에는 임시값입니다. 이후 다운로드와 보고서는 `ORDER_EXPIRED`를 반환합니다
         files:
           type: array
           description: 요청 순서의 입력 파일. 추출 주문은 원본, 검사 파일 순서입니다
@@ -939,7 +972,7 @@ components:
           - error
           - null
           description: |-
-            판정 값. 검출 기록이 없는 v2 주문(데이터 이상)만 `null`입니다.
+            판정 값. 검출 기록이 없거나 알 수 없는 값으로 남은 v2 주문(과거 데이터 예외)만 `null`입니다. `error`·`unsupported`는 주문이 `complete`로 끝난 뒤의 검출 결과입니다. 주문 자체가 실패하면 `status`가 `failed`, `result`가 `null`이고 사유는 `errors`에 있습니다.
             * `detected` - 워터마크를 찾음
             * `undetected` - 끝까지 검사했으나 워터마크 없음. v3 엔진의 `not_detected`와 저장 status가 `undetected`인 v2 주문을 포함합니다
             * `inconclusive` - 후보는 있으나 확신 기준에 못 미쳐 판단할 수 없음
@@ -999,10 +1032,12 @@ components:
           - null
           description: |-
             `probability` 기준 판정. `probability`가 `null`이면 `null`입니다.
-            * `likely_real` - AI 생성 아님(높은 확률), probability < 0.25
-            * `uncertain_real` - AI 생성 아님(낮은 확률), 0.25 <= probability < 0.5
-            * `uncertain_ai` - AI 생성(낮은 확률), 0.5 <= probability < 0.75
-            * `likely_ai` - AI 생성(높은 확률), probability >= 0.75
+            * `likely_real` - AI 생성이 아닐 가능성이 높음
+            * `uncertain_real` - AI 생성이 아닐 가능성이 있음
+            * `uncertain_ai` - AI 생성일 가능성이 있음
+            * `likely_ai` - AI 생성일 가능성이 높음
+
+            판정 값은 AI 생성일 가능성의 정도를 나타내며 AI 생성 여부를 확정하지 않습니다.
         probability:
           type: number
           format: float
@@ -1026,17 +1061,17 @@ components:
           type: string
           format: uri
           nullable: true
-          description: 원본 입력 이미지 URL(presigned, 1시간 유효). 리사이즈 이미지가 모두 준비된 주문은 긴 변 1600px 이내 WebP입니다
+          description: 원본 입력 이미지 URL(presigned. 발급 시점부터 최대 7일 유효하며 `expiresAt`을 넘지 않음. 새 URL이 필요하면 주문을 다시 조회). 리사이즈 이미지가 모두 준비된 주문은 긴 변 1600px 이내 WebP입니다
         heatmapUrl:
           type: string
           format: uri
           nullable: true
-          description: 히트맵 이미지 URL(presigned, 1시간 유효). `generateHeatmap` 옵션을 쓴 주문만 반환하고 그 외에는 `null`입니다
+          description: 히트맵 이미지 URL(presigned. 발급 시점부터 최대 7일 유효하며 `expiresAt`을 넘지 않음. 새 URL이 필요하면 주문을 다시 조회). `generateHeatmap` 옵션을 쓴 주문만 반환하고 그 외에는 `null`입니다
         overlayUrl:
           type: string
           format: uri
           nullable: true
-          description: 원본 위 히트맵 오버레이 이미지 URL(presigned, 1시간 유효). `generateOverlay` 옵션을 쓴 주문만 반환하고 그 외에는 `null`입니다
+          description: 원본 위 히트맵 오버레이 이미지 URL(presigned. 발급 시점부터 최대 7일 유효하며 `expiresAt`을 넘지 않음. 새 URL이 필요하면 주문을 다시 조회). `generateOverlay` 옵션을 쓴 주문만 반환하고 그 외에는 `null`입니다
     PublicOrderV3DetailCommon:
       type: object
       description: v3 주문 상세의 공통 필드. 모든 주문 종류·워터마크 엔진에서 최상위 키 집합이 같으며 종류별 차이는 `result` 안에만 있습니다. 이전 응답의 최상위 `fileCount`, `statusCode`, `files`, `outputs`, `reports`, `watermarks` 필드는 반환하지 않습니다
@@ -1107,11 +1142,11 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: 파일 보관 기한(UTC, ISO 8601). 무결성 예외에서만 `null`입니다
+          description: 파일을 받을 수 있는 기한(UTC, ISO 8601). 주문이 처음 완료될 때 완료 시각 + `retentionDays`로 정해지며, `pending`·`inProgress`일 때는 임시값입니다. 무결성 예외에서만 `null`이며 무기한 보관을 뜻하지 않습니다
         retentionDays:
           type: integer
           nullable: true
-          description: 주문 생성 시 고정된 파일 보관 기간(일, 7 또는 30). 무결성 예외에서만 `null`입니다
+          description: 파일 보관 기간(일, 7 또는 30). 주문을 만들 때 계정의 파일 보관 설정에서 가져와 주문에 고정하며, 나중에 설정을 바꿔도 기존 주문은 바뀌지 않습니다. 무결성 예외에서만 `null`입니다
           example: 30
         thumbnailImageUrl:
           type: string
@@ -1122,17 +1157,7 @@ components:
           type: boolean
           description: v3로 만든 워터마크 주문이 자동 재시도를 모두 소진해 수동 복구를 기다리면 `true`입니다. 주문은 `inProgress`를 유지합니다. 그 외 주문은 항상 `false`입니다
         errors:
-          type: object
-          nullable: true
-          description: 실패한 주문의 오류 정보이며 그 외에는 `null`입니다. v3로 만든 워터마크 주문은 공개 `errorCode`와 고정 안내 문구 `errorMessage`를 반환합니다. 그 외 주문은 저장된 오류 정보를 그대로 반환하며 `errorCode`가 없을 수 있습니다
-          properties:
-            errorCode:
-              type: string
-              description: '오류 코드. 예: `WATERMARK_FILE_CORRUPTED`, `ORDER_TIMEOUT`, `PROCESSING_ERROR`'
-              example: WATERMARK_FILE_CORRUPTED
-            errorMessage:
-              type: string
-              description: 오류 코드별 고정 안내 문구(한국어). 처리기 원문 출력은 포함하지 않습니다
+          $ref: '#/components/schemas/OrderErrors'
         inputFiles:
           type: array
           description: 입력 파일 목록(요청 순서). 파일 수는 `inputFiles.length`입니다. `watermarkExtract` 주문은 `PublicExtractInputFile`(`role` 포함), 그 외 주문은 `PublicInputFile`입니다
@@ -1434,7 +1459,7 @@ paths:
     post:
       summary: Anti-AI 주문 생성
       operationId: createAntiAiOrder
-      description: 'AI 감지 방지 처리를 위한 주문을 생성합니다.
+      description: 'Anti-AI 주문을 생성합니다. Anti-AI는 이미지가 AI 학습에 쓰이지 않도록 AI 학습을 방해해 이미지를 보호합니다. AI 생성 이미지 판별(AI Detection)을 피하게 하는 기능이 아닙니다.
 
 
         ## 입력 모드 (업로드 / URL / 혼합)
@@ -1461,7 +1486,7 @@ paths:
 
         ## Zero Copy 모드
 
-        `mode.zeroCopy: true`로 설정하면, 처리 결과가 고객이 제공한 프리사인드 URL로 직접 업로드됩니다.
+        `mode.zeroCopy: true`로 설정하면, 처리 결과가 고객이 제공한 프리사인드 URL로 직접 업로드됩니다. 결과는 지정한 업로드 대상에서 확인하세요. 주문 다운로드 API로 같은 결과를 받을 수 있다고 보장하지 않습니다.
 
         이 경우 `outputTargets` 배열이 필수이며 `files` 배열과 동일한 길이여야 합니다.
 
@@ -1743,7 +1768,7 @@ paths:
 
         ## Zero Copy 모드
 
-        `mode.zeroCopy: true`로 설정하면, 처리 결과가 고객이 제공한 프리사인드 URL로 직접 업로드됩니다.
+        `mode.zeroCopy: true`로 설정하면, 처리 결과가 고객이 제공한 프리사인드 URL로 직접 업로드됩니다. 결과는 지정한 업로드 대상에서 확인하세요. 주문 다운로드 API로 같은 결과를 받을 수 있다고 보장하지 않습니다.
 
         '
       tags:
@@ -2423,13 +2448,16 @@ paths:
         ## 처리 흐름
 
 
-        1. 이 엔드포인트를 호출하여 업로드 URL을 발급받습니다
+        1. 이 엔드포인트를 호출하여 업로드 URL(`file.uploadUrl`)과 파일 키(`file.fileKey`)를 발급받습니다
 
-        2. live S3 URL 또는 테스트 ContentCare URL로 이미지를 업로드합니다
+        2. API 키 헤더 없이 `file.uploadUrl`로 이미지를 PUT합니다. URL 자체에 인가 정보가 있으며 1시간 동안 유효합니다. live 키는 S3 presigned URL을 받고 `fileKey`는 그 S3 object key입니다. 테스트 키는 절대 ContentCare 테스트 업로드 URL을 받고 `fileKey`는 격리된 logical key입니다. 테스트 업로드는 저장되지 않습니다. 요청 본문을 받아 폐기하고 업로드 완료 여부만 기록합니다
 
-        3. `POST /api/v2/orders/ai-detection/confirm` 을 호출하여 비동기 감지를 시작합니다
+        3. `orderId`와 함께 `POST /api/v2/orders/ai-detection/confirm` 을 호출하여 비동기 판별을 시작합니다. 그 전에 업로드 URL이 만료되면 `POST /api/v2/orders/{orderId}/refresh-urls`를 호출합니다
 
-        4. 웹훅 또는 주문 상세 조회 엔드포인트를 통해 결과를 확인합니다
+        4. 웹훅을 받거나 `GET /api/v3/orders/{orderId}`를 조회해 `result.verdict`와 `result.probability`를 확인합니다
+
+
+        영속 테스트 주문이 꺼진 환경에서는 테스트 키가 저장되지 않는 고정 목업 응답을 받습니다. `status`는 `complete`이고 `uploadUrl`은 업로드할 수 없는 `https://test.invalid/` 주소입니다. 이 주문은 나중에 조회할 수 없습니다.
 
 
         ## 주문 상태
@@ -2483,7 +2511,7 @@ paths:
                   example: photo.jpg
                 options:
                   type: object
-                  description: 출력 옵션 (선택사항). 생성된 파일은 주문 상세 조회 응답에 포함됩니다.
+                  description: 출력 옵션 (선택사항). 생성된 이미지는 주문 상세의 `heatmapUrl`·`overlayUrl`(v3는 `result.heatmapUrl`·`result.overlayUrl`)로 받습니다.
                   properties:
                     generateHeatmap:
                       type: boolean
@@ -2518,7 +2546,8 @@ paths:
                         type: string
                         enum:
                         - pending
-                        description: 주문 상태
+                        - complete
+                        description: 주문 상태. 생성 직후 `pending`입니다. 영속 테스트 주문이 꺼진 환경에서 테스트 키가 받는 고정 목업 응답만 `complete`입니다
                       file:
                         type: object
                         properties:
@@ -2801,7 +2830,21 @@ paths:
       summary: 주문 상세 조회
       operationId: getOrder
       deprecated: true
-      description: '**Deprecated**: 모든 주문 종류를 한 가지 형식으로 반환하는 [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)를 사용하세요. 이 API의 응답과 동작은 바뀌지 않습니다.'
+      description: |-
+        **Deprecated**: 모든 주문 종류를 한 가지 형식으로 반환하는 [`GET /api/v3/orders/{orderId}`](/ko/api-reference/orders/get-order-v3)를 사용하세요. 이 API의 응답과 동작은 바뀌지 않습니다.
+
+        **`errors`**: 주문 처리 실패 정보(`OrderErrors`)이며 API 오류 응답 `{ code }`와 다릅니다. 실패하지 않은 주문은 `null`이고, 실패한 뒤 만료된 주문은 저장된 값을 유지합니다. v3로 만든 워터마크 주문은 저장된 값을 `{ errorCode, errorMessage }`로 바꾸며, 저장값이 `null`이면 `null` 그대로입니다. 그 밖의 주문은 저장값을 그대로 반환하므로 `errorCode`가 없는 객체이거나, 일부 오래된 주문은 문자열입니다.
+
+        **AI Detection `statusCode`**: `likely_real`(AI 생성이 아닐 가능성이 높음), `uncertain_real`(AI 생성이 아닐 가능성이 있음), `uncertain_ai`(AI 생성일 가능성이 있음), `likely_ai`(AI 생성일 가능성이 높음) 중 하나입니다. 판정 값은 AI 생성 여부를 확정하지 않습니다. `probability`가 없는 주문은 `probability`와 `statusCode`를 모두 반환하지 않습니다.
+
+        **보관 기간과 URL 유효 시간**
+        - `retentionDays`(7 또는 30)는 주문을 만들 때 계정의 파일 보관 설정에서 가져와 주문에 고정합니다. `expiresAt`은 주문이 처음 완료될 때 완료 시각 + `retentionDays`로 정해집니다. 결과 파일은 `expiresAt`까지 받을 수 있습니다
+        - `retentionDays`와 `expiresAt`은 데이터 예외에서만 `null`입니다. `retentionDays`가 `null`인 주문은 기록된 `expiresAt`을 따릅니다. `expiresAt`이 `null`이어도 무기한 보관이 아니며, 이 v2 다운로드는 주문 종류보다 보관 기한을 먼저 검사하므로 `409 FILE_RETENTION_UNKNOWN`을 반환합니다
+        - 저장된 이미지의 서명 URL(`thumbnailImageUrl`, `originalImageUrl`, `heatmapUrl`, `overlayUrl`)은 발급 시점부터 최대 7일(604,800초) 동안 유효하고 `expiresAt`을 넘지 않습니다. 상태별 고정 이미지 URL은 서명 URL이 아닙니다. URL 유효 시간은 파일 보관 기간과 별개입니다. 새 URL이 필요하면 주문을 다시 조회하세요
+
+        **테스트 키(`sk_test_`)**: 키가 속한 계정이 소유한 테스트 주문을 같은 형식으로 반환하며 S3 이미지 URL은 주지 않습니다. 이 조회는 읽기 전용이 아닙니다. 같은 계정의 `inProgress` 테스트 주문은 5초가 지나면 `complete` 또는 `failed`가 되고, 테스트 웹훅을 등록했다면 이벤트가 전송됩니다. 영속 테스트 주문이 꺼진 환경에서는 `404 ORDER_NOT_FOUND`를 반환합니다.
+
+        **오류**: 주문이 없거나 다른 계정의 주문이면 `404 ORDER_NOT_FOUND`입니다.
       x-mint:
         href: /ko/api-reference/orders/get-order
       tags:
@@ -2895,7 +2938,13 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: 주문이 없거나 다른 계정의 주문
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_FOUND
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -2916,22 +2965,27 @@ paths:
       deprecated: true
       x-mint:
         href: /ko/api-reference/orders/download-order
-      description: '**Deprecated**: 결과 파일별 URL과 결과 전체 URL을 함께 반환하는 [`GET /api/v3/orders/{orderId}/download`](/ko/api-reference/orders/download-order-v3)를 사용하세요. 이 API의 응답과 동작은 바뀌지 않습니다.
+      description: |-
+        **Deprecated**: 결과 파일별 URL과 결과 전체 URL을 함께 반환하는 [`GET /api/v3/orders/{orderId}/download`](/ko/api-reference/orders/download-order-v3)를 사용하세요. 이 API의 응답과 동작은 바뀌지 않습니다.
 
-        완료된 주문 파일의 다운로드 URL을 발급합니다.
+        완료된 Anti-AI·워터마크 삽입 주문의 결과 다운로드 URL을 발급합니다. 워터마크 검출과 AI Detection 주문은 받을 결과 파일이 없습니다.
 
-        - `complete` 상태의 주문에서만 사용 가능
+        - `complete` 상태의 주문만 가능합니다
+        - 결과 파일은 주문에 고정된 보관 기간(7일 또는 30일, `retentionDays`)이 끝나는 `expiresAt`까지 받을 수 있습니다. 보관 기간은 주문이 완료된 시각부터 셉니다
+        - URL 유효 시간은 보관 기간과 별개입니다. Anti-AI 주문과 v2로 만든 워터마크 삽입 주문의 URL은 발급 시점부터 최대 7일(604,800초) 유효하며 `expiresAt`을 넘지 않습니다. v3로 만든 워터마크 삽입 주문의 URL은 남은 기한과 관계없이 300초로 고정 서명합니다. 보관 기한 전에만 발급하지만, `expiresAt` 직전에 발급된 URL은 그 뒤까지 유효할 수 있습니다. 주문이 만료되기 전이면 다시 호출해 새 URL을 받을 수 있습니다
+        - Zero Copy(`mode.zeroCopy: true`)로 만든 Anti-AI 주문은 결과를 지정한 업로드 대상에 저장합니다. 이 API로 같은 결과를 받을 수 있다고 보장하지 않습니다
 
-        - URL 유효 시간: 1시간
+        **오류 검사 순서** (처음 걸린 오류를 반환)
+        1. 주문이 없음 → `404 ORDER_NOT_FOUND`
+        2. 다른 계정의 주문 → `403 ORDER_NOT_OWNER`. v3 다운로드는 이 경우 `404 ORDER_NOT_FOUND`입니다
+        3. 보관 기한을 확인할 수 없음 → `409 FILE_RETENTION_UNKNOWN`. 보관 기한 만료 → `400 ORDER_EXPIRED`
+        4. `status`가 `complete`가 아님 → `400 ORDER_NOT_COMPLETED`
+        5. 워터마크 검출·AI Detection 주문 → `400 ORDER_TYPE_CANT_DOWNLOAD`
+        6. v2로 만든 워터마크 삽입 주문에 결과 기록이 없음 → `404 PROCESSED_FILE_NOT_FOUND`
 
-        - 주문 생성 후 최대 7일까지 파일 다운로드 가능
+        만료됐거나 완료되지 않은 워터마크 검출·AI Detection 주문은 3번이나 4번 오류가 먼저 나옵니다. v3 다운로드는 주문 종류를 보관 기한·상태보다 먼저 검사합니다.
 
-        - 7일이 경과하면 주문이 `expired` 상태로 전환되며, 이후 파일을 다운로드할 수 없습니다
-
-        - 테스트 주문은 결과 파일을 만들지 않으므로 이 엔드포인트가 `404`와
-        `PROCESSED_FILE_NOT_FOUND`를 반환합니다
-
-        '
+        **테스트 키(`sk_test_`)**: 테스트 주문은 결과 파일을 만들지 않으므로 어떤 주문이든 `404 PROCESSED_FILE_NOT_FOUND`를 반환합니다. 영속 테스트 주문이 꺼진 환경에서는 `404 ORDER_NOT_FOUND`입니다. 샘플 결과 URL은 v3 다운로드로 받으세요.
       tags:
       - Orders
       security:
@@ -2960,8 +3014,56 @@ paths:
                         description: 다운로드 URL (프리사인드)
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '400':
+          description: 보관 기한 만료, 미완료 주문, 결과 파일이 없는 주문 종류
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired:
+                  summary: 보관 기한 만료
+                  value:
+                    code: ORDER_EXPIRED
+                notCompleted:
+                  summary: pending·inProgress·failed 주문
+                  value:
+                    code: ORDER_NOT_COMPLETED
+                typeCantDownload:
+                  summary: 워터마크 검출·AI Detection 주문
+                  value:
+                    code: ORDER_TYPE_CANT_DOWNLOAD
+        '403':
+          description: 다른 계정의 주문
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: ORDER_NOT_OWNER
         '404':
-          $ref: '#/components/responses/NotFound'
+          description: 주문이 없거나, 결과 기록이 없거나, 테스트 키로 요청함
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notFound:
+                  summary: 주문이 없음(영속 테스트 주문이 꺼진 환경의 테스트 키 포함)
+                  value:
+                    code: ORDER_NOT_FOUND
+                processedFileNotFound:
+                  summary: 결과 기록이 없거나 영속 테스트 주문
+                  value:
+                    code: PROCESSED_FILE_NOT_FOUND
+        '409':
+          description: 주문의 보관 기한을 확인할 수 없음(`expiresAt`이 `null`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: FILE_RETENTION_UNKNOWN
       x-codeSamples:
       - lang: curl
         label: cURL
@@ -4195,7 +4297,10 @@ paths:
         - `type`은 `antiAi`, `aiDetection`, `watermarkEmbed`, `watermarkExtract` 중 하나입니다. v3로 만든 워터마크 주문도 엔진 버전 접미사 없이 같은 값을 씁니다
         - `status`는 `pending`, `inProgress`, `complete`, `failed`, `expired` 5개 값만 씁니다. v2 워터마크 검출 주문의 저장 status `detected`/`undetected`는 `complete`로 반환하고 판정 값은 `result.detectionStatus`에 담습니다
         - `processingDelayed`는 v3로 만든 워터마크 주문만 계산합니다. 그 외 주문은 항상 `false`입니다
-        - `errors`는 실패한 주문의 `{ errorCode, errorMessage }`이며 그 외에는 `null`입니다
+        - `errors`는 주문 처리 실패 정보(`OrderErrors`)이며 API 오류 응답 `{ code }`와 다릅니다. 실패하지 않은 주문은 `null`이고, 실패한 뒤 만료된 주문은 저장된 값을 유지합니다. v3로 만든 워터마크 주문은 저장된 값을 `{ errorCode, errorMessage }`로 바꾸며, 저장값이 `null`이면 실패 주문이어도 `null` 그대로입니다. 그 밖의 주문은 저장값을 그대로 반환하므로 `errorCode`가 없는 객체이거나, 일부 오래된 주문은 문자열입니다
+        - `retentionDays`(7 또는 30)는 주문을 만들 때 계정의 파일 보관 설정에서 가져와 주문에 고정합니다. 나중에 설정을 바꿔도 기존 주문은 바뀌지 않습니다. `expiresAt`은 주문이 처음 완료될 때 완료 시각 + `retentionDays`로 정해지며 처리 중에는 임시값입니다. 결과 파일은 `expiresAt`까지 받을 수 있습니다
+        - `retentionDays`와 `expiresAt`은 데이터 예외에서만 `null`입니다. `expiresAt`이 `null`이어도 무기한 보관이 아닙니다. 이때 v3 다운로드는 다운로드 가능한 종류(Anti-AI·워터마크 삽입)에서 `409 FILE_RETENTION_UNKNOWN`을 반환하고, 워터마크 검출·AI Detection 주문은 주문 종류를 보관 기한보다 먼저 검사하므로 `400 ORDER_TYPE_CANT_DOWNLOAD`를 반환합니다. 없거나 다른 계정의 주문은 그보다 먼저 `404 ORDER_NOT_FOUND`입니다
+        - 이미지 URL의 유효 시간은 보관 기간과 별개입니다. Anti-AI·AI Detection·v2 워터마크 주문의 저장된 이미지(`thumbnailImageUrl`, `result.originalImageUrl`, `result.heatmapUrl`, `result.overlayUrl`)는 발급 시점부터 최대 7일이며 `expiresAt`까지만 서명합니다. v3로 만든 워터마크 주문의 썸네일은 보관 기한 전에만 발급하지만 900초(15분)로 고정 서명하므로, 발급된 URL이 `expiresAt` 뒤까지 유효할 수 있습니다. 상태별 고정 이미지 URL은 서명 URL이 아닙니다. 새 URL이 필요하면 다시 조회하세요
 
         **`inputFiles[]`**: 입력 파일마다 `{ fileId, fileName }`을 요청 순서대로 반환합니다. 파일 수는 `inputFiles.length`로 확인하세요.
         - `role`(`original`/`query`)은 `watermarkExtract` 주문에만 나옵니다. v2 주문의 `watermarked` 역할은 `query`로 반환합니다
@@ -4204,8 +4309,8 @@ paths:
         **`result`**: 키는 항상 있습니다. `status`가 `complete`일 때만 객체이고, `pending`·`inProgress`·`failed`·`expired`에서는 `null`입니다.
         - `antiAi`: `{ outputFiles: [{ fileId, fileName, inputFileId }] }`
         - `watermarkEmbed`: `{ outputFiles: [{ fileId, fileName, inputFileId, watermarkText }] }`. v3 주문에서 입력 파일 하나에 워터마크 문구를 여러 개 넣으면 문구마다 결과 파일이 하나씩 나옵니다
-        - `watermarkExtract`: `{ detectionStatus, watermarkText, reportSupported, reports }`. `detectionStatus`는 `detected`, `undetected`, `inconclusive`, `unsupported`, `error` 중 하나입니다. `detectionStatus`가 `detected`가 아니면 `watermarkText`는 `null`입니다. v2 주문은 `reportSupported: false`, `reports: []`입니다
-        - `aiDetection`: `{ verdict, probability, options, originalImageUrl, heatmapUrl, overlayUrl }`. `verdict`는 `likely_real`, `uncertain_real`, `uncertain_ai`, `likely_ai` 중 하나이며 `probability`가 `null`이면 `verdict`도 `null`입니다. 저장된 옵션이 없으면 `options`는 `null`입니다
+        - `watermarkExtract`: `{ detectionStatus, watermarkText, reportSupported, reports }`. `detectionStatus`는 `detected`, `undetected`, `inconclusive`, `unsupported`, `error` 중 하나이며, 검출 기록이 없거나 알 수 없는 값으로 남은 v2 주문만 `null`입니다. `error`·`unsupported`는 완료된 주문의 검출 결과로, 주문 실패(`status: failed`, `result: null`, 사유는 `errors`)와 다릅니다. `detectionStatus`가 `detected`가 아니면 `watermarkText`는 `null`입니다. v2 주문은 `reportSupported: false`, `reports: []`입니다
+        - `aiDetection`: `{ verdict, probability, options, originalImageUrl, heatmapUrl, overlayUrl }`. `verdict`는 `likely_real`(AI 생성이 아닐 가능성이 높음), `uncertain_real`(AI 생성이 아닐 가능성이 있음), `uncertain_ai`(AI 생성일 가능성이 있음), `likely_ai`(AI 생성일 가능성이 높음) 중 하나이며 `probability`가 `null`이면 `verdict`도 `null`입니다. 판정 값은 AI 생성 여부를 확정하지 않습니다. 저장된 옵션이 없으면 `options`는 `null`입니다
 
         **`fileId`**: 모든 `fileId`와 `inputFileId`는 숫자로만 된 문자열입니다(`-` 같은 구분자 없음). `result.outputFiles[].fileId`는 주문 안에서 유일하며 [`GET /api/v3/orders/{orderId}/download`](/ko/api-reference/orders/download-order-v3)의 `files[].fileId`와 값·순서가 같습니다.
 
@@ -4217,7 +4322,7 @@ paths:
         - v2 상세와 같은 형식을 쓰던 그 외 주문의 최상위 `fileCount`, `statusCode`, `watermarks`, `watermarkText`, `probability`, `options`, `originalImageUrl`, `heatmapUrl`, `overlayUrl` 필드가 `inputFiles`와 `result`로 옮겨졌습니다. AI Detection의 `statusCode`는 `result.verdict`로 바뀌었습니다
         - deprecated된 [`GET /api/v2/orders/{orderId}`](/ko/api-reference/orders/get-order)의 응답은 바뀌지 않습니다
 
-        **테스트 키(`sk_test_`)**: 같은 키로 만든 테스트 주문만 조회합니다. live 주문과 다른 계정의 주문은 `404 ORDER_NOT_FOUND`이며, live 키로 테스트 주문을 조회해도 마찬가지입니다. v2·v3로 만든 모든 테스트 주문을 이 형식으로 반환합니다. `inProgress` 테스트 주문은 업로드가 끝나고 5초가 지난 뒤 조회하면 `complete` 또는 `failed`가 됩니다. pending 테스트 주문의 `uploadUrl`은 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`입니다. 검출 테스트 주문의 `result.reports`는 항상 빈 배열이며, `reportSupported`는 v3로 만든 검출 테스트 주문의 `detectionStatus`가 `detected`일 때만 `true`입니다. `expiresAt`은 주문 생성 7일 뒤입니다.
+        **테스트 키(`sk_test_`)**: 키가 속한 계정이 소유한 테스트 주문만 조회합니다. live 주문과 다른 계정의 주문은 `404 ORDER_NOT_FOUND`이며, live 키로 테스트 주문을 조회해도 마찬가지입니다. v2·v3로 만든 모든 테스트 주문을 이 형식으로 반환합니다. 이 조회는 읽기 전용이 아닙니다. 같은 계정의 `inProgress` 테스트 주문은 업로드가 끝나고 5초가 지난 뒤 조회하면 `complete` 또는 `failed`가 되고, 테스트 웹훅을 등록했다면 이벤트가 전송됩니다. pending 테스트 주문의 `uploadUrl`은 `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`입니다. 검출 테스트 주문의 `result.reports`는 항상 빈 배열이며, `reportSupported`는 v3로 만든 검출 테스트 주문의 `detectionStatus`가 `detected`일 때만 `true`입니다. `expiresAt`은 운영 주문과 같은 규칙(완료 시각 + 계정의 보관 기간)을 따릅니다.
       tags:
       - Orders
       security:
@@ -4501,7 +4606,7 @@ paths:
                       processingDelayed: false
                       errors:
                         errorCode: WATERMARK_FILE_CORRUPTED
-                        errorMessage: 파일이 손상되어 처리할 수 없습니다.
+                        errorMessage: 파일이 손상됐거나 읽을 수 없습니다. 원본 파일을 확인한 뒤 다시 시도해주세요.
                       inputFiles:
                       - fileId: '33'
                         fileName: logo.png
@@ -4515,9 +4620,9 @@ paths:
                       orderName: cat.png
                       channel: api
                       status: expired
-                      createdAt: '2026-10-08T01:00:00.000Z'
-                      updatedAt: '2026-10-08T01:00:40.000Z'
-                      expiresAt: '2026-10-01T00:00:00.000Z'
+                      createdAt: '2026-09-01T01:00:00.000Z'
+                      updatedAt: '2026-09-01T01:00:40.000Z'
+                      expiresAt: '2026-10-01T01:00:40.000Z'
                       retentionDays: 30
                       thumbnailImageUrl: https://cdn.bizmori.com/thumb/ex.webp
                       processingDelayed: false
@@ -4582,7 +4687,9 @@ paths:
         - `archiveUrl`: 이 URL 하나로 결과 전체를 받습니다. 항상 문자열입니다
           - Anti-AI 주문, v2로 만든 워터마크 삽입 주문: 결과 ZIP
           - v3로 만든 워터마크 삽입 주문: 결과 파일이 2개 이상이면 ZIP, 1개면 그 결과 파일 URL(`files[0].downloadUrl`과 같은 파일)
-        - `expiresInSeconds`: URL 유효 시간. 기본 3600초(1시간)이며, 보관 기한(`expiresAt`)까지 남은 시간이 더 짧으면 그 시간으로 줄입니다. 새 URL이 필요하면 다시 호출하세요
+        - `expiresInSeconds`: URL 유효 시간. 기본 3600초(1시간)이며, 보관 기한(`expiresAt`)까지 남은 시간이 더 짧으면 그 시간으로 줄입니다. URL 유효 시간은 주문에 고정된 보관 기간(7일 또는 30일)과 별개입니다. 새 URL이 필요하면 `expiresAt` 전까지 다시 호출하세요
+        - Zero Copy(`mode.zeroCopy: true`)로 만든 Anti-AI 주문은 결과를 지정한 업로드 대상(`outputTargets`)에 저장합니다. 이 API가 발급하는 URL로 같은 결과를 받을 수 있다고 보장하지 않습니다
+        - 결과 기록이 없는 완료 주문은 `404 PROCESSED_FILE_NOT_FOUND`입니다
 
         **오류 검사 순서** (처음 걸린 오류를 반환)
         1. 주문이 없거나 다른 계정의 주문 → `404 ORDER_NOT_FOUND`
@@ -4592,7 +4699,7 @@ paths:
 
         **이전 v3 응답과의 차이(breaking change, 2026-10-08)**: 응답이 `{ downloadUrl, expiresInSeconds: 300 }`에서 `{ archiveUrl, files, expiresInSeconds }`로 바뀌었고, Anti-AI 주문과 v2로 만든 워터마크 삽입 주문도 지원합니다. URL 유효 시간은 300초에서 최대 3600초로 늘었습니다. 미완료 주문은 `VALIDATION_FAILED` 대신 `ORDER_NOT_COMPLETED`를, 검출 주문은 `ORDER_TYPE_CANT_DOWNLOAD`를 반환합니다. 결과 파일 하나를 받는 `GET /api/v3/orders/{orderId}/files/{fileId}/download`는 삭제되었습니다. `files[]`를 사용하세요.
 
-        **테스트 키(`sk_test_`)**: 같은 키로 만든 완료된 Anti-AI·워터마크 삽입 테스트 주문(v2·v3)에서 동작합니다. URL은 처리 결과가 아니라 `https://api.bizmori.com/api/v2/test-samples/{signedToken}`에서 제공하는 샘플 파일을 가리킵니다. 결과 파일이 없는 Anti-AI 테스트 주문은 `files: []`와 샘플 ZIP `archiveUrl`을 반환합니다. 결과가 1개인 v3 삽입 테스트 주문은 그 샘플 파일을, 그 외 테스트 주문은 샘플 ZIP을 `archiveUrl`로 반환합니다. `expiresInSeconds`, 오류 코드, 검사 순서는 운영 주문과 같습니다.
+        **테스트 키(`sk_test_`)**: 키가 속한 계정이 소유한 완료된 Anti-AI·워터마크 삽입 테스트 주문(v2·v3)에서 동작합니다. URL은 처리 결과가 아니라 `https://api.bizmori.com/api/v2/test-samples/{signedToken}`에서 제공하는 샘플 파일을 가리킵니다. 결과 파일이 없는 Anti-AI 테스트 주문은 `files: []`와 샘플 ZIP `archiveUrl`을 반환합니다. 결과가 1개인 v3 삽입 테스트 주문은 그 샘플 파일을, 그 외 테스트 주문은 샘플 ZIP을 `archiveUrl`로 반환합니다. `expiresInSeconds`, 오류 코드, 검사 순서는 운영 주문과 같습니다.
       tags:
       - Orders
       security:
@@ -4674,13 +4781,20 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
         '404':
-          description: 주문이 없거나 다른 계정의 주문
+          description: 주문이 없거나 다른 계정의 주문(`ORDER_NOT_FOUND`), 또는 완료 주문의 결과 기록이 없음(`PROCESSED_FILE_NOT_FOUND`)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                code: ORDER_NOT_FOUND
+              examples:
+                notFound:
+                  summary: 주문이 없거나 다른 계정의 주문
+                  value:
+                    code: ORDER_NOT_FOUND
+                processedFileNotFound:
+                  summary: 완료 주문의 결과 기록 없음
+                  value:
+                    code: PROCESSED_FILE_NOT_FOUND
         '409':
           description: 주문의 보관 기한을 확인할 수 없음
           content:

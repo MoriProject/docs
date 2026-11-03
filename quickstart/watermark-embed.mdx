@@ -172,7 +172,7 @@ order = res.json()['data']
 
 - `files[]` follows the order of `files` in your request. Use `files[i].uploadUrl` to upload the file you sent as `files[i]`.
 - `outputs[]` has one entry per watermark text. Its `fileId` values (such as `501-1`) appear only in this create response. The order details and the download response identify output files with numeric `fileId` values instead.
-- `expiresAt` is when the order files are deleted. Download your results before then.
+- `expiresAt` is the end of the retention period (7 or 30 days) fixed for the order, counted from completion. Download your results before then.
 
 <Tip>
   One order can hold up to 100 files, and images and PDFs can be mixed. If a file is already hosted, send its public HTTPS URL in `originalFileUrl` instead of uploading it. ContentCare downloads the file (up to 32 MiB, redirects are not followed), and that file's `uploadUrl` is `null`.
@@ -334,7 +334,7 @@ finished = wait_for_order(order['orderId'])
 | `inProgress` | Processing |
 | `complete` | Ready for download |
 | `failed` | Processing failed. Used credits are restored |
-| `expired` | The retention period ended and the files were deleted |
+| `expired` | The retention period fixed for the order ended. The files are no longer available |
 
 When the order is `complete`, `result.outputFiles[]` lists one output file per watermark text. The order details have the same shape for every order type; see [Get order details](/api-reference/orders/get-order-v3) for every field.
 
@@ -687,7 +687,7 @@ The v3 request body has the same shape as v2, so most integrations only change t
 | Credits | — | 1 credit per watermark text, for images and PDFs alike |
 | Results | One download for the whole order | One output file per watermark text, listed in `result.outputFiles[]` |
 | Get the order | `GET /api/v2/orders/{orderId}` (deprecated) | [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) |
-| Download | `GET /api/v2/orders/{orderId}/download` (deprecated, URL valid for 7 days) | [`GET /api/v3/orders/{orderId}/download`](/api-reference/orders/download-order-v3): `archiveUrl` plus a URL for each output file (valid for up to 1 hour) |
+| Download | `GET /api/v2/orders/{orderId}/download` (deprecated, URL valid for up to 7 days and never past `expiresAt`) | [`GET /api/v3/orders/{orderId}/download`](/api-reference/orders/download-order-v3): `archiveUrl` plus a URL for each output file (valid for up to 1 hour) |
 | Upload URL | Valid for 1 hour; refresh with `refresh-urls` | Valid for 900 seconds; call `GET /api/v3/orders/{orderId}` for a fresh one |
 | Confirm step | None | None |
 | Webhooks | `order.watermarkEmbed.completed` / `failed` | Same event names and `data` fields |
