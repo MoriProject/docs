@@ -254,7 +254,7 @@ components:
           format: uri
           nullable: true
           description: |
-            Thumbnail image URL. A stored thumbnail is a presigned URL valid for up to 7 days after it is issued and never past the order's retention period. For aiDetection orders, only returned when generateThumbnail option is used. null when expired.
+            Thumbnail image URL. A stored thumbnail of an Anti-AI, AI Detection, or v2 watermark order is a presigned URL valid for up to 7 days after it is issued and never past the order's retention period. A thumbnail of a watermark order created with v3 is issued only before the retention period ends, but is signed for a fixed 900 seconds. For aiDetection orders, only returned when generateThumbnail option is used. null when expired.
             For v3 watermark orders, a thumbnail up to 100×100 WebP (the first page for PDFs) is returned after processing completes. Before completion, after a failure, or when no thumbnail exists, a status image is returned.
         createdAt:
           type: string
@@ -302,7 +302,7 @@ components:
       description: |-
         Failure details of an order (`errors` in order details). This is not the API error response body `{ code }`.
         - `null` when the order has not failed. An order that failed and later reached the end of its retention period (`expired`) keeps the value stored when it failed
-        - Watermark orders created with v3 always return an object with a public `errorCode` and a fixed `errorMessage`, even when an older order stored a string
+        - Watermark orders created with v3 convert a stored value to an object with a public `errorCode` and a fixed `errorMessage`, even when an older order stored a string. If the stored value is `null`, it stays `null`; a failed status alone does not create an object
         - Other orders (Anti-AI, AI Detection, and watermark orders created with v2) return the stored value as is. It is usually an object and may have only `errorMessage` without `errorCode`. Older orders may return a string
 
         Handle `null`, an object, and a string.
@@ -313,7 +313,7 @@ components:
     OrderErrorObject:
       type: object
       nullable: true
-      description: Failure details as an object. Watermark orders created with v3 always include both fields; other orders include only the stored fields
+      description: Failure details as an object. For watermark orders created with v3, the object includes both fields; other orders include only the stored fields
       properties:
         errorCode:
           type: string
@@ -389,7 +389,7 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: Date until which the order files are available (UTC, ISO 8601). Set to the completion time plus `retentionDays` when the order first completes, and provisional while the order is `pending` or `inProgress`. `null` only in data exceptions. `null` does not mean the files are kept indefinitely, and downloads then return `409 FILE_RETENTION_UNKNOWN`
+          description: Date until which the order files are available (UTC, ISO 8601). Set to the completion time plus `retentionDays` when the order first completes, and provisional while the order is `pending` or `inProgress`. `null` only in data exceptions. `null` does not mean the files are kept indefinitely, and the v2 download then returns `409 FILE_RETENTION_UNKNOWN`
         errors:
           $ref: '#/components/schemas/OrderErrors'
         watermarks:
@@ -2841,14 +2841,14 @@ paths:
       description: |-
         **Deprecated**: use [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3), which returns every order type in one shape. The response and behavior of this endpoint are unchanged.
 
-        **`errors`**: failure details (`OrderErrors`), not the API error response `{ code }`. `null` when the order has not failed; an order that failed and then expired keeps the stored value. Watermark orders created with v3 always return `{ errorCode, errorMessage }`. Other orders return the stored value as is: an object that may lack `errorCode`, or a string for some older orders.
+        **`errors`**: failure details (`OrderErrors`), not the API error response `{ code }`. `null` when the order has not failed; an order that failed and then expired keeps the stored value. Watermark orders created with v3 convert a stored value to `{ errorCode, errorMessage }`; if the stored value is `null`, it stays `null`. Other orders return the stored value as is: an object that may lack `errorCode`, or a string for some older orders.
 
         **AI Detection `statusCode`**: `likely_real` (likely not AI-generated), `uncertain_real` (possibly not AI-generated), `uncertain_ai` (possibly AI-generated), or `likely_ai` (likely AI-generated). A verdict does not confirm whether the image is AI-generated. Orders without a `probability` return neither `probability` nor `statusCode`.
 
         **Retention and URL lifetime**
         - `retentionDays` (7 or 30) is taken from the account's file retention setting when the order is created and stays fixed for the order. `expiresAt` is set to the completion time plus `retentionDays` when the order first completes. You can download the result files until `expiresAt`
-        - `retentionDays` and `expiresAt` are `null` only in data exceptions. An order with `retentionDays: null` follows its recorded `expiresAt`. `expiresAt: null` does not mean the files are kept indefinitely; downloads return `409 FILE_RETENTION_UNKNOWN`
-        - Image URLs (`thumbnailImageUrl`, `originalImageUrl`, `heatmapUrl`, `overlayUrl`) are presigned URLs valid for up to 7 days (604,800 seconds) after they are issued and never past `expiresAt`. This URL lifetime is separate from the file retention period. Get the order again for fresh URLs
+        - `retentionDays` and `expiresAt` are `null` only in data exceptions. An order with `retentionDays: null` follows its recorded `expiresAt`. `expiresAt: null` does not mean the files are kept indefinitely; this v2 download returns `409 FILE_RETENTION_UNKNOWN` because it checks the retention period before the order type
+        - Signed URLs of stored images (`thumbnailImageUrl`, `originalImageUrl`, `heatmapUrl`, `overlayUrl`) are valid for up to 7 days (604,800 seconds) after they are issued and never past `expiresAt`. Fixed status image URLs are not signed URLs. This URL lifetime is separate from the file retention period. Get the order again for fresh URLs
 
         **Test keys (`sk_test_`)**: returns test orders owned by the account of the key, in the same shape, without S3 image URLs. This call is not read-only: an `inProgress` test order of the same account becomes `complete` or `failed` once five seconds have passed, and a test webhook event is sent if you registered one. In environments where persistent test orders are disabled, this endpoint returns `404 ORDER_NOT_FOUND`.
 
@@ -2976,7 +2976,7 @@ paths:
 
         - Only available for orders with `complete` status
         - You can download the result files until `expiresAt`, the end of the retention period (7 or 30 days, `retentionDays`) fixed for the order. The period starts when the order completes
-        - The URL lifetime is separate from the retention period. For Anti-AI orders and watermark embed orders created with v2, the URL is valid for up to 7 days (604,800 seconds) after it is issued and never past `expiresAt`. For watermark embed orders created with v3, the URL is valid for 300 seconds. Call this endpoint again for a fresh URL while the order has not expired
+        - The URL lifetime is separate from the retention period. For Anti-AI orders and watermark embed orders created with v2, the URL is valid for up to 7 days (604,800 seconds) after it is issued and never past `expiresAt`. For watermark embed orders created with v3, the URL is signed for a fixed 300 seconds regardless of the time left. It is issued only before the retention period ends, but a URL issued just before `expiresAt` can remain valid after it. Call this endpoint again for a fresh URL while the order has not expired
         - For an Anti-AI order created with Zero Copy (`mode.zeroCopy: true`), the results are stored in the upload targets you specified. This endpoint does not guarantee that you can download the same results
 
         **Error check order** (the first matching error is returned)
@@ -4314,10 +4314,10 @@ paths:
         - `type` is `antiAi`, `aiDetection`, `watermarkEmbed`, or `watermarkExtract`. Watermark orders created with v3 use the same values, without an engine suffix
         - `status` is one of `pending`, `inProgress`, `complete`, `failed`, and `expired`. v2 watermark extract orders stored as `detected` or `undetected` return `complete`, with the outcome in `result.detectionStatus`
         - `processingDelayed` is calculated only for watermark orders created with v3. It is always `false` for other orders
-        - `errors` is the failure details (`OrderErrors`), not the API error response `{ code }`. It is `null` when the order has not failed, and an order that failed and then expired keeps the stored value. Watermark orders created with v3 always return `{ errorCode, errorMessage }`. Other orders return the stored value as is: an object that may lack `errorCode`, or a string for some older orders
+        - `errors` is the failure details (`OrderErrors`), not the API error response `{ code }`. It is `null` when the order has not failed, and an order that failed and then expired keeps the stored value. Watermark orders created with v3 convert a stored value to `{ errorCode, errorMessage }`; if the stored value is `null`, it stays `null`, even for a failed order. Other orders return the stored value as is: an object that may lack `errorCode`, or a string for some older orders
         - `retentionDays` (7 or 30) is taken from the account's file retention setting when the order is created and stays fixed for the order. Changing the setting later does not change existing orders. `expiresAt` is set to the completion time plus `retentionDays` when the order first completes and is provisional while the order is processing. You can download the result files until `expiresAt`
-        - `retentionDays` and `expiresAt` are `null` only in data exceptions. `expiresAt: null` does not mean the files are kept indefinitely; downloads return `409 FILE_RETENTION_UNKNOWN`
-        - Image URLs (`thumbnailImageUrl`, `result.originalImageUrl`, `result.heatmapUrl`, `result.overlayUrl`) are presigned URLs whose lifetime is separate from the retention period: up to 7 days for Anti-AI, AI Detection, and v2 watermark images, and 15 minutes for thumbnails of watermark orders created with v3, never past `expiresAt` in either case. Get the order again for fresh URLs
+        - `retentionDays` and `expiresAt` are `null` only in data exceptions. `expiresAt: null` does not mean the files are kept indefinitely. The v3 download then returns `409 FILE_RETENTION_UNKNOWN` for order types that can be downloaded (Anti-AI and watermark embed). Watermark extract and AI Detection orders return `400 ORDER_TYPE_CANT_DOWNLOAD` first because the order type is checked before the retention period, and an order that does not exist or belongs to another account returns `404 ORDER_NOT_FOUND` before that
+        - Image URLs have a lifetime separate from the retention period. Stored images of Anti-AI, AI Detection, and v2 watermark orders (`thumbnailImageUrl`, `result.originalImageUrl`, `result.heatmapUrl`, `result.overlayUrl`) are valid for up to 7 days and signed only until `expiresAt`. Thumbnails of watermark orders created with v3 are issued only before the retention period ends, but are signed for a fixed 900 seconds (15 minutes), so an issued URL can stay valid after `expiresAt`. Fixed status image URLs are not signed. Get the order again for fresh URLs
 
         **`inputFiles[]`**: `{ fileId, fileName }` for each input file, in request order. Use `inputFiles.length` for the file count.
         - `role` (`original` or `query`) appears only on `watermarkExtract` orders. The `watermarked` role of v2 orders is returned as `query`

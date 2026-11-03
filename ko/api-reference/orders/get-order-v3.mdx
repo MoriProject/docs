@@ -117,7 +117,7 @@ v2로 만든 워터마크 검출 주문 중 저장 status가 `detected` 또는 `
 `errors`는 주문 처리 실패 정보입니다. API 오류 응답 본문 `{ code }`와는 다른 값입니다.
 
 - 실패하지 않은 주문은 `null`입니다. 실패한 뒤 보관 기한이 지나 `expired`가 된 주문은 실패 때 저장한 값을 그대로 유지합니다.
-- v3로 만든 워터마크 주문은 항상 `{ errorCode, errorMessage }`를 반환합니다.
+- v3로 만든 워터마크 주문은 저장된 값을 `{ errorCode, errorMessage }`로 바꿉니다. 저장값이 `null`이면 실패 주문이어도 `errors`는 `null`입니다.
 - 그 밖의 주문(Anti-AI, AI Detection, v2로 만든 워터마크 주문)은 저장값을 그대로 반환합니다. 보통 객체이며 `errorCode` 없이 `errorMessage`만 있을 수 있고, 일부 오래된 주문은 문자열을 반환합니다.
 
 `null`, 객체, 문자열을 모두 처리하세요.
@@ -126,8 +126,8 @@ v2로 만든 워터마크 검출 주문 중 저장 status가 `detected` 또는 `
 
 - `retentionDays`(7 또는 30)는 주문을 만들 때 계정의 파일 보관 설정에서 가져와 주문에 고정합니다. 나중에 설정을 바꿔도 기존 주문은 바뀌지 않습니다.
 - `expiresAt`은 주문이 처음 완료될 때 완료 시각 + `retentionDays`로 정해집니다. `pending`·`inProgress`일 때는 임시값입니다. 결과 파일은 `expiresAt`까지 받을 수 있습니다.
-- `retentionDays`와 `expiresAt`은 데이터 예외에서만 `null`입니다. `expiresAt`이 `null`이어도 무기한 보관이 아니며, [다운로드](/ko/api-reference/orders/download-order-v3)는 `409 FILE_RETENTION_UNKNOWN`을 반환합니다.
-- 이 응답의 URL은 서명 URL이며 보관 기간과 별개로 유효 시간이 있습니다. Anti-AI·AI Detection·v2 워터마크 주문의 이미지는 최대 7일, v3로 만든 워터마크 주문의 썸네일은 15분이며, 어느 경우든 `expiresAt`을 넘지 않습니다. 새 URL이 필요하면 주문을 다시 조회하세요.
+- `retentionDays`와 `expiresAt`은 데이터 예외에서만 `null`입니다. `expiresAt`이 `null`이어도 무기한 보관이 아닙니다. Anti-AI·워터마크 삽입 주문의 [다운로드](/ko/api-reference/orders/download-order-v3)는 `409 FILE_RETENTION_UNKNOWN`을 반환하고, 워터마크 검출·AI Detection 주문은 다운로드가 주문 종류를 보관 기한보다 먼저 검사하므로 `400 ORDER_TYPE_CANT_DOWNLOAD`를 반환합니다.
+- 이미지 URL은 보관 기간과 별개로 유효 시간이 있습니다. Anti-AI·AI Detection·v2 워터마크 주문의 저장된 이미지는 최대 7일이며 `expiresAt`까지만 서명합니다. v3로 만든 워터마크 주문의 썸네일은 보관 기한 전에만 발급하지만 15분으로 고정 서명하므로, 발급된 URL이 `expiresAt` 뒤까지 유효할 수 있습니다. 상태별 고정 이미지는 서명 URL이 아닙니다. 새 URL이 필요하면 주문을 다시 조회하세요.
 
 ## 예시
 

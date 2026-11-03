@@ -117,7 +117,7 @@ Every `fileId` in this response and in the [download response](/api-reference/or
 `errors` holds the failure details of the order. It is not the API error response body `{ code }`.
 
 - It is `null` when the order has not failed. An order that failed and later reached the end of its retention period (`expired`) keeps the value stored when it failed.
-- Watermark orders created with v3 always return `{ errorCode, errorMessage }`.
+- Watermark orders created with v3 convert a stored value to `{ errorCode, errorMessage }`. If the stored value is `null`, `errors` is `null`, even for a failed order.
 - Other orders (Anti-AI, AI Detection, and watermark orders created with v2) return the stored value as is. It is usually an object and may have only `errorMessage` without `errorCode`. Some older orders return a string.
 
 Handle `null`, an object, and a string.
@@ -126,8 +126,8 @@ Handle `null`, an object, and a string.
 
 - `retentionDays` (7 or 30) is taken from the account's file retention setting when the order is created and stays fixed for the order. Changing the setting later does not change existing orders.
 - `expiresAt` is set to the completion time plus `retentionDays` when the order first completes. While the order is `pending` or `inProgress`, it is provisional. You can download the result files until `expiresAt`.
-- `retentionDays` and `expiresAt` are `null` only in data exceptions. `expiresAt: null` does not mean the files are kept indefinitely, and [downloads](/api-reference/orders/download-order-v3) return `409 FILE_RETENTION_UNKNOWN`.
-- URLs in this response are signed and have their own lifetime, separate from the retention period. Images of Anti-AI, AI Detection, and v2 watermark orders are valid for up to 7 days, and thumbnails of watermark orders created with v3 for 15 minutes. Neither goes past `expiresAt`. Get the order again for fresh URLs.
+- `retentionDays` and `expiresAt` are `null` only in data exceptions. `expiresAt: null` does not mean the files are kept indefinitely. For Anti-AI and watermark embed orders, [downloads](/api-reference/orders/download-order-v3) return `409 FILE_RETENTION_UNKNOWN`. Watermark extract and AI Detection orders return `400 ORDER_TYPE_CANT_DOWNLOAD` first, because the download checks the order type before the retention period.
+- Image URLs have their own lifetime, separate from the retention period. Stored images of Anti-AI, AI Detection, and v2 watermark orders are valid for up to 7 days and are signed only until `expiresAt`. Thumbnails of watermark orders created with v3 are issued only before the retention period ends, but each is signed for a fixed 15 minutes, so an issued URL can stay valid after `expiresAt`. Fixed status images are not signed URLs. Get the order again for fresh URLs.
 
 ## Examples
 

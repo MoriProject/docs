@@ -117,7 +117,7 @@ v2 で作成した watermark 検出注文のうち、保存されたステータ
 `errors` は注文の処理失敗の情報です。API のエラーレスポンス本文 `{ code }` とは別のものです。
 
 - 失敗していない注文は `null` です。失敗したあとに保管期限が過ぎて `expired` になった注文は、失敗時に保存した値をそのまま返します。
-- v3 で作成した watermark 注文は、常に `{ errorCode, errorMessage }` を返します。
+- v3 で作成した watermark 注文は、保存された値を `{ errorCode, errorMessage }` に変換します。保存された値が `null` なら、失敗した注文でも `errors` は `null` です。
 - その他の注文（Anti-AI、AI Detection、v2 で作成した watermark 注文）は、保存された値をそのまま返します。通常はオブジェクトで、`errorCode` がなく `errorMessage` だけの場合があります。一部の古い注文は文字列を返します。
 
 `null`、オブジェクト、文字列のどれでも処理できるようにしてください。
@@ -126,8 +126,8 @@ v2 で作成した watermark 検出注文のうち、保存されたステータ
 
 - `retentionDays`（7 または 30）は、注文の作成時にアカウントのファイル保管設定から取り込み、その注文に固定します。あとで設定を変えても既存の注文は変わりません。
 - `expiresAt` は、注文が初めて完了したときに完了日時に `retentionDays` を足した日時に決まります。`pending`・`inProgress` の間は仮の値です。結果ファイルは `expiresAt` まで受け取れます。
-- `retentionDays` と `expiresAt` はデータの例外でのみ `null` です。`expiresAt` が `null` でも無期限の保管ではなく、[ダウンロード](/ja/api-reference/orders/download-order-v3)は `409 FILE_RETENTION_UNKNOWN` を返します。
-- このレスポンスの URL は署名付きで、保管期間とは別に有効期間があります。Anti-AI・AI Detection・v2 の watermark 注文の画像は最大 7 日間、v3 で作成した watermark 注文のサムネイルは 15 分有効で、どちらも `expiresAt` を超えません。新しい URL が必要な場合は、注文を取得し直してください。
+- `retentionDays` と `expiresAt` はデータの例外でのみ `null` です。`expiresAt` が `null` でも無期限の保管ではありません。Anti-AI・watermark 埋め込みの注文の[ダウンロード](/ja/api-reference/orders/download-order-v3)は `409 FILE_RETENTION_UNKNOWN` を返します。watermark 検出・AI Detection の注文では、ダウンロードが注文の種類を保管期限より先に確認するため、`400 ORDER_TYPE_CANT_DOWNLOAD` を返します。
+- 画像の URL には、保管期間とは別に有効期間があります。Anti-AI・AI Detection・v2 の watermark 注文の保存済み画像は最大 7 日間で、`expiresAt` までしか署名しません。v3 で作成した watermark 注文のサムネイルは保管期限の前にだけ発行しますが、署名は 15 分に固定なので、発行した URL が `expiresAt` のあとも有効な場合があります。ステータスごとの固定画像は署名付き URL ではありません。新しい URL が必要な場合は、注文を取得し直してください。
 
 ## 例
 

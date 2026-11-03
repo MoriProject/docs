@@ -240,7 +240,7 @@ components:
           format: uri
           nullable: true
           description: |
-            サムネイル画像 URL。保存済みのサムネイルは presigned URL で、発行から最大 7 日間有効で、注文の保管期限を超えません。aiDetection 注文は generateThumbnail オプションを使用した場合のみ返します。失効すると null です。
+            サムネイル画像 URL。Anti-AI・AI Detection・v2 の watermark 注文の保存済みサムネイルは presigned URL で、発行から最大 7 日間有効で、注文の保管期限を超えません。v3 で作成した watermark 注文のサムネイルは保管期限の前にだけ発行しますが、署名は 900 秒に固定です。aiDetection 注文は generateThumbnail オプションを使用した場合のみ返します。失効すると null です。
             v3 watermark 注文は、処理完了後に最大 100×100 の WebP サムネイル(PDF は 1 ページ目)を返します。処理前・失敗・サムネイルがない注文はステータス画像を返します。
         createdAt:
           type: string
@@ -288,7 +288,7 @@ components:
       description: |-
         注文の処理失敗の情報（注文詳細の `errors`）。API のエラーレスポンス本文 `{ code }` とは別のものです。
         - 失敗していない注文は `null` です。失敗したあとに保管期限が過ぎて `expired` になった注文は、失敗時に保存した値をそのまま返します
-        - v3 で作成した watermark 注文は、公開の `errorCode` と固定の `errorMessage` を持つオブジェクトを常に返します。以前の注文が文字列で保存した値も、このオブジェクトに変換します
+        - v3 で作成した watermark 注文は、保存された値を公開の `errorCode` と固定の `errorMessage` を持つオブジェクトに変換します。以前の注文が文字列で保存した値も、このオブジェクトに変換します。保存された値が `null` なら `null` のままで、失敗のステータスだけを理由にオブジェクトを作ることはありません
         - その他の注文（Anti-AI、AI Detection、v2 で作成した watermark 注文）は、保存された値をそのまま返します。通常はオブジェクトで、`errorCode` がなく `errorMessage` だけの場合があります。古い注文では文字列の場合もあります
 
         `null`、オブジェクト、文字列のどれでも処理できるようにしてください。
@@ -299,7 +299,7 @@ components:
     OrderErrorObject:
       type: object
       nullable: true
-      description: オブジェクト形式の失敗情報。v3 で作成した watermark 注文は 2 つのフィールドを常に持ち、その他の注文は保存されたフィールドだけを持ちます
+      description: オブジェクト形式の失敗情報。v3 で作成した watermark 注文のオブジェクトは 2 つのフィールドをどちらも持ち、その他の注文は保存されたフィールドだけを持ちます
       properties:
         errorCode:
           type: string
@@ -375,7 +375,7 @@ components:
           type: string
           format: date-time
           nullable: true
-          description: 注文ファイルを受け取れる期限（UTC、ISO 8601）。注文が初めて完了したときに、完了日時に `retentionDays` を足した日時に決まり、`pending`・`inProgress` の間は仮の値です。データの例外でのみ `null` です。`null` は無期限の保管を意味せず、このときダウンロードは `409 FILE_RETENTION_UNKNOWN` を返します
+          description: 注文ファイルを受け取れる期限（UTC、ISO 8601）。注文が初めて完了したときに、完了日時に `retentionDays` を足した日時に決まり、`pending`・`inProgress` の間は仮の値です。データの例外でのみ `null` です。`null` は無期限の保管を意味せず、このとき v2 のダウンロードは `409 FILE_RETENTION_UNKNOWN` を返します
         errors:
           $ref: '#/components/schemas/OrderErrors'
         watermarks:
@@ -2728,14 +2728,14 @@ paths:
       description: |-
         **非推奨（Deprecated）**: すべての注文の種類を 1 つの形式で返す [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) を使用してください。このエンドポイントのレスポンスと動作は変わりません。
 
-        **`errors`**: 注文の処理失敗の情報（`OrderErrors`）で、API のエラーレスポンス `{ code }` とは別のものです。失敗していない注文は `null` で、失敗したあとに期限切れになった注文は保存された値をそのまま返します。v3 で作成した watermark 注文は常に `{ errorCode, errorMessage }` です。その他の注文は保存された値をそのまま返すため、`errorCode` のないオブジェクトの場合や、一部の古い注文では文字列の場合があります。
+        **`errors`**: 注文の処理失敗の情報（`OrderErrors`）で、API のエラーレスポンス `{ code }` とは別のものです。失敗していない注文は `null` で、失敗したあとに期限切れになった注文は保存された値をそのまま返します。v3 で作成した watermark 注文は、保存された値を `{ errorCode, errorMessage }` に変換し、保存された値が `null` なら `null` のままです。その他の注文は保存された値をそのまま返すため、`errorCode` のないオブジェクトの場合や、一部の古い注文では文字列の場合があります。
 
         **AI Detection の `statusCode`**: `likely_real`（AI 生成ではない可能性が高い）、`uncertain_real`（AI 生成ではない可能性がある）、`uncertain_ai`（AI 生成の可能性がある）、`likely_ai`（AI 生成の可能性が高い）のいずれかです。判定は AI 生成かどうかを確定するものではありません。`probability` がない注文は、`probability` と `statusCode` のどちらも返しません。
 
         **保管期間と URL の有効期間**
         - `retentionDays`（7 または 30）は、注文の作成時にアカウントのファイル保管設定から取り込み、その注文に固定します。`expiresAt` は、注文が初めて完了したときに完了日時に `retentionDays` を足した日時に決まります。結果ファイルは `expiresAt` まで受け取れます
-        - `retentionDays` と `expiresAt` はデータの例外でのみ `null` です。`retentionDays` が `null` の注文は記録されている `expiresAt` に従います。`expiresAt` が `null` でも無期限の保管ではなく、ダウンロードは `409 FILE_RETENTION_UNKNOWN` を返します
-        - 画像の URL（`thumbnailImageUrl`、`originalImageUrl`、`heatmapUrl`、`overlayUrl`）はプリサインドURLで、発行から最大 7 日間（604,800 秒）有効で、`expiresAt` を超えません。URL の有効期間はファイルの保管期間とは別です。新しい URL が必要な場合は注文を取得し直してください
+        - `retentionDays` と `expiresAt` はデータの例外でのみ `null` です。`retentionDays` が `null` の注文は記録されている `expiresAt` に従います。`expiresAt` が `null` でも無期限の保管ではなく、この v2 のダウンロードは注文の種類より先に保管期限を確認するため `409 FILE_RETENTION_UNKNOWN` を返します
+        - 保存済み画像の署名付き URL（`thumbnailImageUrl`、`originalImageUrl`、`heatmapUrl`、`overlayUrl`）は、発行から最大 7 日間（604,800 秒）有効で、`expiresAt` を超えません。ステータスごとの固定画像の URL は署名付き URL ではありません。URL の有効期間はファイルの保管期間とは別です。新しい URL が必要な場合は注文を取得し直してください
 
         **テストキー（`sk_test_`）**: キーが属するアカウントが所有するテスト注文を同じ形式で返し、S3 の画像 URL は返しません。この取得は読み取り専用ではありません。同じアカウントの `inProgress` のテスト注文は 5 秒たつと `complete` または `failed` になり、テスト用 Webhook を登録している場合はイベントが送信されます。永続テスト注文が無効な環境では `404 ORDER_NOT_FOUND` を返します。
 
@@ -2863,7 +2863,7 @@ paths:
 
         - `complete` ステータスの注文でのみ利用できます
         - 結果ファイルは、注文に固定された保管期間（7 日または 30 日、`retentionDays`）が終わる `expiresAt` まで受け取れます。保管期間は注文の完了日時から数えます
-        - URL の有効期間は保管期間とは別です。Anti-AI の注文と v2 で作成した watermark 埋め込み注文の URL は、発行から最大 7 日間（604,800 秒）有効で、`expiresAt` を超えません。v3 で作成した watermark 埋め込み注文の URL は 300 秒有効です。注文が期限切れになる前であれば、再度呼び出して新しい URL を受け取れます
+        - URL の有効期間は保管期間とは別です。Anti-AI の注文と v2 で作成した watermark 埋め込み注文の URL は、発行から最大 7 日間（604,800 秒）有効で、`expiresAt` を超えません。v3 で作成した watermark 埋め込み注文の URL は、残り時間に関係なく 300 秒に固定して署名します。発行は保管期限の前だけですが、`expiresAt` の直前に発行した URL はそのあとも有効な場合があります。注文が期限切れになる前であれば、再度呼び出して新しい URL を受け取れます
         - Zero Copy（`mode.zeroCopy: true`）で作成した Anti-AI の注文は、指定したアップロード先に結果を保存します。このエンドポイントで同じ結果を受け取れることは保証しません
 
         **エラーの確認順序**（最初に当てはまったエラーを返します）
@@ -4125,10 +4125,10 @@ paths:
         - `type` は `antiAi`、`aiDetection`、`watermarkEmbed`、`watermarkExtract` のいずれかです。v3 で作成した watermark 注文も、エンジンのバージョン接尾辞なしで同じ値を使います
         - `status` は `pending`、`inProgress`、`complete`、`failed`、`expired` の 5 つだけです。保存されたステータスが `detected` / `undetected` の v2 watermark 検出注文は `complete` を返し、判定は `result.detectionStatus` に入ります
         - `processingDelayed` は v3 で作成した watermark 注文だけで計算します。それ以外の注文では常に `false` です
-        - `errors` は注文の処理失敗の情報（`OrderErrors`）で、API のエラーレスポンス `{ code }` とは別のものです。失敗していない注文は `null` で、失敗したあとに期限切れになった注文は保存された値をそのまま返します。v3 で作成した watermark 注文は常に `{ errorCode, errorMessage }` です。その他の注文は保存された値をそのまま返すため、`errorCode` のないオブジェクトの場合や、一部の古い注文では文字列の場合があります
+        - `errors` は注文の処理失敗の情報（`OrderErrors`）で、API のエラーレスポンス `{ code }` とは別のものです。失敗していない注文は `null` で、失敗したあとに期限切れになった注文は保存された値をそのまま返します。v3 で作成した watermark 注文は、保存された値を `{ errorCode, errorMessage }` に変換し、保存された値が `null` なら失敗した注文でも `null` のままです。その他の注文は保存された値をそのまま返すため、`errorCode` のないオブジェクトの場合や、一部の古い注文では文字列の場合があります
         - `retentionDays`（7 または 30）は、注文の作成時にアカウントのファイル保管設定から取り込み、その注文に固定します。あとで設定を変えても既存の注文は変わりません。`expiresAt` は、注文が初めて完了したときに完了日時に `retentionDays` を足した日時に決まり、処理中は仮の値です。結果ファイルは `expiresAt` まで受け取れます
-        - `retentionDays` と `expiresAt` はデータの例外でのみ `null` です。`expiresAt` が `null` でも無期限の保管ではなく、ダウンロードは `409 FILE_RETENTION_UNKNOWN` を返します
-        - 画像の URL（`thumbnailImageUrl`、`result.originalImageUrl`、`result.heatmapUrl`、`result.overlayUrl`）は presigned URL で、有効期間は保管期間とは別です。Anti-AI・AI Detection・v2 の watermark の画像は発行から最大 7 日間、v3 で作成した watermark 注文のサムネイルは 15 分で、どちらも `expiresAt` を超えません。新しい URL が必要な場合は取得し直してください
+        - `retentionDays` と `expiresAt` はデータの例外でのみ `null` です。`expiresAt` が `null` でも無期限の保管ではありません。このとき v3 のダウンロードは、ダウンロードできる種類（Anti-AI・watermark 埋め込み）では `409 FILE_RETENTION_UNKNOWN` を返し、watermark 検出・AI Detection の注文では注文の種類を保管期限より先に確認するため `400 ORDER_TYPE_CANT_DOWNLOAD` を返します。存在しない注文や他のアカウントの注文は、それより先に `404 ORDER_NOT_FOUND` です
+        - 画像の URL の有効期間は保管期間とは別です。Anti-AI・AI Detection・v2 の watermark 注文の保存済み画像（`thumbnailImageUrl`、`result.originalImageUrl`、`result.heatmapUrl`、`result.overlayUrl`）は発行から最大 7 日間で、`expiresAt` までしか署名しません。v3 で作成した watermark 注文のサムネイルは保管期限の前にだけ発行しますが、署名は 900 秒（15 分）に固定なので、発行した URL が `expiresAt` のあとも有効な場合があります。ステータスごとの固定画像の URL は署名付き URL ではありません。新しい URL が必要な場合は取得し直してください
 
         **`inputFiles[]`**: 入力ファイルごとの `{ fileId, fileName }` をリクエストの順に返します。ファイル数は `inputFiles.length` で確認してください。
         - `role`（`original` / `query`）は `watermarkExtract` の注文にだけ含まれます。v2 注文の `watermarked` ロールは `query` として返します
