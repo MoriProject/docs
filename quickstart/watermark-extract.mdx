@@ -142,11 +142,13 @@ order = res.json()['data']
     "files": [
       {
         "fileId": "601",
-        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/..."
+        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
+        "uploadHeaders": { "Content-Type": "image/png" }
       },
       {
         "fileId": "602",
-        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/..."
+        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
+        "uploadHeaders": { "Content-Type": "image/png" }
       }
     ],
     "outputs": [],
@@ -166,7 +168,9 @@ order = res.json()['data']
 
 PUT each file to its presigned `uploadUrl`. This is a direct upload to storage — **no Authorization header needed**.
 
-Send a `Content-Type` header that matches the file extension. The presigned URL is signed for that type, so any other value is rejected.
+Send the headers in the response's `uploadHeaders` exactly as they are. The presigned URL is signed for that `Content-Type`, so with any other value storage returns `403 SignatureDoesNotMatch`. The file is not stored, and the order and your credits do not change, so you can PUT again with the right header. If you sent the optional `byteSize` when you created the order, the body size must match it too.
+
+The server sets `Content-Type` from the file extension:
 
 | Extension | `Content-Type` |
 |-----------|----------------|
@@ -193,34 +197,27 @@ curl -X PUT "https://s3.ap-northeast-2.amazonaws.com/...checked..." \
 ```javascript Node.js
 import { readFile } from 'node:fs/promises';
 
-async function putFile(uploadUrl, path, contentType) {
+async function putFile({ uploadUrl, uploadHeaders }, path) {
   const res = await fetch(uploadUrl, {
     method: 'PUT',
-    headers: { 'Content-Type': contentType },
+    headers: uploadHeaders,
     body: await readFile(path),
   });
   if (!res.ok) throw new Error(`UPLOAD_FAILED_${res.status}`);
 }
 
-await putFile(order.files[0].uploadUrl, 'campaign.png', 'image/png'); // original
-await putFile(order.files[1].uploadUrl, 'suspect.png', 'image/png'); // file to check
+await putFile(order.files[0], 'campaign.png'); // original
+await putFile(order.files[1], 'suspect.png'); // file to check
 ```
 
 ```jsx React
-// The presigned URL is signed for the type that matches the file extension,
-// so derive Content-Type from the name instead of trusting `file.type`.
-const CONTENT_TYPES = {
-  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
-  bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', pdf: 'application/pdf',
-};
-const contentTypeOf = (name) => CONTENT_TYPES[name.split('.').pop().toLowerCase()];
-
 // fetch() cannot report upload progress, so use XMLHttpRequest for the PUT.
-function putFile(file, uploadUrl, onProgress) {
+function putFile(file, { uploadUrl, uploadHeaders }, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
+    // Send the headers from the order response as they are.
+    Object.entries(uploadHeaders).forEach(([name, value]) => xhr.setRequestHeader(name, value));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -235,19 +232,19 @@ function putFile(file, uploadUrl, onProgress) {
 
 // files[0] is the original, files[1] is the file to check.
 await Promise.all([
-  putFile(originalFile, order.files[0].uploadUrl, () => {}),
-  putFile(checkedFile, order.files[1].uploadUrl, (ratio) => setProgress(ratio)),
+  putFile(originalFile, order.files[0], () => {}),
+  putFile(checkedFile, order.files[1], (ratio) => setProgress(ratio)),
 ]);
 ```
 
 ```python Python
-def put_file(upload_url, path, content_type):
+def put_file(file, path):
     with open(path, 'rb') as f:
-        res = requests.put(upload_url, headers={'Content-Type': content_type}, data=f)
+        res = requests.put(file['uploadUrl'], headers=file['uploadHeaders'], data=f)
     res.raise_for_status()
 
-put_file(order['files'][0]['uploadUrl'], 'campaign.png', 'image/png')  # original
-put_file(order['files'][1]['uploadUrl'], 'suspect.png', 'image/png')   # file to check
+put_file(order['files'][0], 'campaign.png')  # original
+put_file(order['files'][1], 'suspect.png')   # file to check
 ```
 </CodeGroup>
 
@@ -537,11 +534,12 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   }
 }
 
-function putFile(file, uploadUrl, onProgress) {
+function putFile(file, { uploadUrl, uploadHeaders }, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
+    // Send the headers from the order response as they are.
+    Object.entries(uploadHeaders).forEach(([name, value]) => xhr.setRequestHeader(name, value));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -610,8 +608,8 @@ export default function WatermarkExtractChecker() {
       setStatus('uploading');
       // files[0] is the original, files[1] is the file to check.
       await Promise.all([
-        putFile(original, created.files[0].uploadUrl, () => {}),
-        putFile(checked, created.files[1].uploadUrl, setProgress),
+        putFile(original, created.files[0], () => {}),
+        putFile(checked, created.files[1], setProgress),
       ]);
 
       const finished = await poll(
@@ -707,6 +705,7 @@ The public result contains only `detectionStatus`, `reportSupported`, and `water
 |-------------|---------|--------|
 | `400` | Invalid request, `REPORT_LOCALE_UNSUPPORTED`, or `ORDER_EXPIRED` after the retention period | Check parameters, file extensions, and the report locale |
 | `401` | Authentication failed | Verify your API key |
+| `403` | `SignatureDoesNotMatch` from storage on the upload `PUT`: `Content-Type` differs from `uploadHeaders`, or the body size differs from `byteSize` | The file was not stored. PUT again with the headers in `uploadHeaders`. This response body is XML, not JSON |
 | `404` | `ORDER_NOT_FOUND`, or `REPORT_NOT_FOUND` for a locale you haven't requested | Check the order ID, and create the report before getting it |
 | `409` | `WATERMARK_V2_CONFLICT` for a reused `idempotencyKey`, or `REPORT_NOT_AVAILABLE` when the result does not support a report | Use a new `idempotencyKey`, or check `result.reportSupported` |
 | `429` | Rate limit, or `PLAN_LIMIT_EXCEEDED` when the plan quota is spent | Check the `code` field. A rate limit clears on retry; `PLAN_LIMIT_EXCEEDED` does not — upgrade the plan |

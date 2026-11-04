@@ -54,6 +54,14 @@ The HTTP status code conveys the error category. Use the `code` field for progra
 
 When an order fails after it was created, the order details return `errors.errorCode` and `errors.errorMessage`, and the failed webhook event carries the same values. These codes describe why processing failed (for example, `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED`). See [Failed event error codes](/webhooks#failed-event-error-codes) for the full list.
 
+## Upload errors
+
+Storage answers the `PUT` to a presigned `uploadUrl` directly, so these errors have an XML body instead of `{ "code": "..." }`.
+
+| Error Code | HTTP Status | Description |
+|-----------|-------------|-------------|
+| `SignatureDoesNotMatch` | 403 | `Content-Type` differs from the order's `uploadHeaders`, or the body size differs from `byteSize`. The file was not stored, and the order and your credits did not change. PUT again with the headers in `uploadHeaders` |
+
 ## Test upload errors
 
 | Error Code | HTTP Status | Description |
