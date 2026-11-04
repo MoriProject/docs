@@ -740,6 +740,7 @@ components:
       required:
       - fileId
       - uploadUrl
+      - uploadHeaders
       properties:
         fileId:
           type: string
@@ -751,6 +752,18 @@ components:
           description: |
             Presigned `PUT` URL for uploading the file, valid for 900 seconds. Issued only while the order `status` is `pending`, the retention period has not ended, and the file is waiting for upload.
             It is `null` for files given by `originalFileUrl`, files already uploaded, orders that became `failed` after the 12-hour upload window, and expired orders.
+            Send the headers in `uploadHeaders` with the PUT as they are. Otherwise storage rejects the upload with 403 `SignatureDoesNotMatch`. If you sent `byteSize`, the body size must match it.
+        uploadHeaders:
+          type: object
+          nullable: true
+          description: |
+            Headers to send as they are when you PUT to `uploadUrl`. `null` when `uploadUrl` is `null`.
+            Currently only `Content-Type`, which the server sets from the file extension. `Content-Length` is not included because your HTTP client sets it from the body size.
+            Test key orders return the same value, but a test upload does not check `Content-Type`. A test file whose extension live orders do not support gets an empty object.
+          additionalProperties:
+            type: string
+          example:
+            Content-Type: image/jpeg
     WatermarkV1Output:
       type: object
       required:
@@ -845,7 +858,15 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: Presigned `PUT` URL for uploading the file. Present only while the order `status` is `pending`, the retention period has not ended, and the file is waiting for upload. Omitted for files already uploaded, files given by `originalFileUrl`, and orders that are not `pending`
+          description: Presigned `PUT` URL for uploading the file. Present only while the order `status` is `pending`, the retention period has not ended, and the file is waiting for upload. Omitted for files already uploaded, files given by `originalFileUrl`, and orders that are not `pending`. If `uploadHeaders` is present, send those headers with the PUT as they are. Otherwise storage rejects the upload with 403 `SignatureDoesNotMatch`.
+        uploadHeaders:
+          type: object
+          description: |
+            Headers to send as they are when you PUT to `uploadUrl`. Present only on watermark orders created with v3, together with `uploadUrl`. Otherwise the key is omitted.
+          additionalProperties:
+            type: string
+          example:
+            Content-Type: image/jpeg
     PublicExtractInputFile:
       type: object
       description: Input file of a `watermarkExtract` order. Adds `role`, which tells the original apart from the file to inspect. `uploadUrl` follows the same rules as `PublicInputFile`
@@ -876,7 +897,15 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: Presigned `PUT` URL for uploading the file. Present only while `status` is `pending` and the file is waiting for upload
+          description: Presigned `PUT` URL for uploading the file. Present only while `status` is `pending` and the file is waiting for upload. If `uploadHeaders` is present, send those headers with the PUT as they are. Otherwise storage rejects the upload with 403 `SignatureDoesNotMatch`.
+        uploadHeaders:
+          type: object
+          description: |
+            Headers to send as they are when you PUT to `uploadUrl`. Present only on watermark orders created with v3, together with `uploadUrl`. Otherwise the key is omitted.
+          additionalProperties:
+            type: string
+          example:
+            Content-Type: image/jpeg
     PublicOutputFile:
       type: object
       description: One output file of an Anti-AI order. `fileId` matches `files[].fileId` of the download response in value and order
@@ -3908,6 +3937,17 @@ paths:
         - Processing starts automatically when every file is uploaded. There is no confirm step
         - Orders whose files are not uploaded within 12 hours become `failed`
         - Poll [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3) until `status` is `complete`, then call the download endpoint
+
+        **Upload headers**: when you PUT to `uploadUrl`, send the `uploadHeaders` of the same entry as they are. `Content-Type` is part of the signature, so with any other value storage returns 403 `SignatureDoesNotMatch`. The file is not stored, and the order and your credits do not change. PUT again with the right header to the same `uploadUrl` (within 900 seconds) or to a new `uploadUrl` from [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3). If you sent `byteSize`, the body size must match it.
+
+        | Extension | Content-Type |
+        |---|---|
+        | jpg, jpeg | image/jpeg |
+        | png | image/png |
+        | webp | image/webp |
+        | bmp | image/bmp |
+        | tif, tiff | image/tiff |
+        | pdf | application/pdf |
       tags:
       - Watermark Embed
       security:
@@ -3992,8 +4032,11 @@ paths:
                   files:
                   - fileId: '501'
                     uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...
+                    uploadHeaders:
+                      Content-Type: image/jpeg
                   - fileId: '502'
                     uploadUrl: null
+                    uploadHeaders: null
                   outputs:
                   - fileId: 501-1
                     inputFileId: '501'
@@ -4165,6 +4208,17 @@ paths:
         - The response `files[]` contains two entries: `files[0]` is the original and `files[1]` is the file to inspect. Upload each with `PUT` to its `uploadUrl`
         - Processing starts automatically when both files are uploaded. Each order uses 1 credit, and `unsupported` or `error` results are refunded
         - Read the outcome from `result` in [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3)
+
+        **Upload headers**: when you PUT to `uploadUrl`, send the `uploadHeaders` of the same entry as they are. `Content-Type` is part of the signature, so with any other value storage returns 403 `SignatureDoesNotMatch`. The file is not stored, and the order and your credits do not change. PUT again with the right header to the same `uploadUrl` (within 900 seconds) or to a new `uploadUrl` from [`GET /api/v3/orders/{orderId}`](/api-reference/orders/get-order-v3). If you sent `byteSize`, the body size must match it.
+
+        | Extension | Content-Type |
+        |---|---|
+        | jpg, jpeg | image/jpeg |
+        | png | image/png |
+        | webp | image/webp |
+        | bmp | image/bmp |
+        | tif, tiff | image/tiff |
+        | pdf | application/pdf |
       tags:
       - Watermark Extract
       security:
@@ -4322,6 +4376,7 @@ paths:
         **`inputFiles[]`**: `{ fileId, fileName }` for each input file, in request order. Use `inputFiles.length` for the file count.
         - `role` (`original` or `query`) appears only on `watermarkExtract` orders. The `watermarked` role of v2 orders is returned as `query`
         - `uploadUrl` (presigned `PUT` URL) appears only while `status` is `pending` and the file is waiting for upload. Otherwise the key is omitted, not set to `null`
+        - `uploadHeaders` appears only on watermark orders created with v3, together with `uploadUrl`. Send these headers as they are with the PUT. With any other `Content-Type`, storage returns 403 `SignatureDoesNotMatch` and the file is not stored.
 
         **`result`**: the key is always present. It is an object only when `status` is `complete`, and `null` for `pending`, `inProgress`, `failed`, and `expired`.
         - `antiAi`: `{ outputFiles: [{ fileId, fileName, inputFileId }] }`
@@ -4339,7 +4394,7 @@ paths:
         - For other orders, which used the v2 detail format, the top-level `fileCount`, `statusCode`, `watermarks`, `watermarkText`, `probability`, `options`, `originalImageUrl`, `heatmapUrl`, and `overlayUrl` fields moved to `inputFiles` and `result`. The AI Detection `statusCode` is now `result.verdict`
         - The response of the deprecated [`GET /api/v2/orders/{orderId}`](/api-reference/orders/get-order) is unchanged
 
-        **Test keys (`sk_test_`)**: returns only test orders owned by the account of the key. Live orders and other accounts' orders return `404 ORDER_NOT_FOUND`, as do test orders requested with a live key. Every test order, created with v2 or v3, uses this shape. This call is not read-only: an `inProgress` test order of the same account becomes `complete` or `failed` when you get it more than five seconds after the uploads finish, and a test webhook event is sent if you registered one. The `uploadUrl` of a pending test order is `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`. `result.reports` of a test extract order is always empty, and `reportSupported` is `true` only for a v3 test extract order whose `detectionStatus` is `detected`. `expiresAt` follows the same rule as live orders: the completion time plus the retention period of the account.
+        **Test keys (`sk_test_`)**: returns only test orders owned by the account of the key. Live orders and other accounts' orders return `404 ORDER_NOT_FOUND`, as do test orders requested with a live key. Every test order, created with v2 or v3, uses this shape. This call is not read-only: an `inProgress` test order of the same account becomes `complete` or `failed` when you get it more than five seconds after the uploads finish, and a test webhook event is sent if you registered one. The `uploadUrl` of a pending test order is `https://api.bizmori.com/api/v2/test-uploads/{signedToken}`. `result.reports` of a test extract order is always empty, and `reportSupported` is `true` only for a v3 test extract order whose `detectionStatus` is `detected`. `expiresAt` follows the same rule as live orders: the completion time plus the retention period of the account. Watermark orders created with v3 return `uploadHeaders` as live orders do, but a test upload does not check `Content-Type`.
       tags:
       - Orders
       security:
@@ -4557,10 +4612,14 @@ paths:
                         fileName: original.png
                         role: original
                         uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/81?X-Amz-...
+                        uploadHeaders:
+                          Content-Type: image/png
                       - fileId: '82'
                         fileName: suspect.png
                         role: query
                         uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/82?X-Amz-...
+                        uploadHeaders:
+                          Content-Type: image/png
                       result: null
                 watermarkEmbedPending:
                   summary: Watermark embed · pending (no `role`, `uploadUrl` only)
@@ -4582,9 +4641,13 @@ paths:
                       - fileId: '34'
                         fileName: logo.png
                         uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/34?X-Amz-...
+                        uploadHeaders:
+                          Content-Type: image/png
                       - fileId: '35'
                         fileName: banner.png
                         uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/35?X-Amz-...
+                        uploadHeaders:
+                          Content-Type: image/png
                       result: null
                 antiAiInProgress:
                   summary: Anti-AI · inProgress

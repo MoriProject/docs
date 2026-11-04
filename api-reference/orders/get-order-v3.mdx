@@ -42,10 +42,11 @@ Watermark extract orders created with v2 that are stored as `detected` or `undet
 
 ## Input files
 
-Each `inputFiles[]` item has `fileId` and `fileName`, in the order of your create request. Two more keys appear only when they apply. When they do not apply, the key is omitted rather than set to `null`.
+Each `inputFiles[]` item has `fileId` and `fileName`, in the order of your create request. Three more keys appear only when they apply. When they do not apply, the key is omitted rather than set to `null`.
 
 - `role` appears only on `watermarkExtract` orders. `original` is the file the watermark was embedded in, and `query` is the file to check.
 - `uploadUrl` appears only while `status` is `pending` and the file is still waiting for upload. PUT the file to this URL. If an upload URL expires, call this endpoint again for a fresh one.
+- `uploadHeaders` appears only on watermark orders created with v3, together with `uploadUrl`. Send these headers as they are with the PUT. With any other `Content-Type`, storage returns `403 SignatureDoesNotMatch`.
 
 Every `fileId` in this response and in the [download response](/api-reference/orders/download-order-v3) is a numeric string such as `"11"`. It never contains a separator such as `-`.
 
@@ -280,13 +281,15 @@ Orders that are not complete return `result: null`:
         "fileId": "81",
         "fileName": "original.png",
         "role": "original",
-        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/81?X-Amz-..."
+        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/81?X-Amz-...",
+        "uploadHeaders": { "Content-Type": "image/png" }
       },
       {
         "fileId": "82",
         "fileName": "suspect.png",
         "role": "query",
-        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/82?X-Amz-..."
+        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/82?X-Amz-...",
+        "uploadHeaders": { "Content-Type": "image/png" }
       }
     ],
     "result": null

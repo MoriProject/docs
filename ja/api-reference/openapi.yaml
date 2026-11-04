@@ -705,6 +705,7 @@ components:
       required:
       - fileId
       - uploadUrl
+      - uploadHeaders
       properties:
         fileId:
           type: string
@@ -716,6 +717,18 @@ components:
           description: |
             ファイルアップロード用の presigned `PUT` URL(900 秒有効)。注文の `status` が `pending` で保管期限前、かつアップロード待ちのファイルにだけ発行します。
             `originalFileUrl` で指定したファイル、アップロード済みのファイル、12 時間のアップロード期限を過ぎて `failed` になった注文、保管期限を過ぎた注文は `null` です。
+            PUT のときに `uploadHeaders` のヘッダーをそのまま送信します。異なるとストレージが 403 `SignatureDoesNotMatch` で拒否します。`byteSize` を送った場合は、本文のサイズもその値と同じにする必要があります。
+        uploadHeaders:
+          type: object
+          nullable: true
+          description: |
+            `uploadUrl` へ PUT するときにそのまま送信するヘッダー。`uploadUrl` が `null` のときは `null` です。
+            現在は `Content-Type` のみで、値はサーバーがファイルの拡張子から決めます。`Content-Length` は HTTP クライアントが本文のサイズから設定するため含みません。
+            テストキーの注文も同じ値を返しますが、テストアップロードは `Content-Type` を検査しません。本番注文が対応していない拡張子のテストファイルは空のオブジェクトです。
+          additionalProperties:
+            type: string
+          example:
+            Content-Type: image/jpeg
     WatermarkV1Output:
       type: object
       required:
@@ -808,7 +821,15 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: ファイルをアップロードするための presigned `PUT` URL。注文の `status` が `pending` で保管期限前、かつそのファイルがアップロード待ちのときだけ含まれます。アップロード済みのファイル、`originalFileUrl` で指定したファイル、`pending` ではない注文ではキーがありません
+          description: ファイルをアップロードするための presigned `PUT` URL。注文の `status` が `pending` で保管期限前、かつそのファイルがアップロード待ちのときだけ含まれます。アップロード済みのファイル、`originalFileUrl` で指定したファイル、`pending` ではない注文ではキーがありません。 `uploadHeaders` が含まれる場合は、PUT のときにそのヘッダーをそのまま送信します。異なるとストレージが 403 `SignatureDoesNotMatch` で拒否します。
+        uploadHeaders:
+          type: object
+          description: |
+            `uploadUrl` へ PUT するときにそのまま送信するヘッダー。v3 で作成した watermark 注文で `uploadUrl` と一緒にだけ含まれ、それ以外ではキーがありません。
+          additionalProperties:
+            type: string
+          example:
+            Content-Type: image/jpeg
     PublicExtractInputFile:
       type: object
       description: '`watermarkExtract` の注文の入力ファイル。元のファイルと検査対象を区別する `role` が加わります。`uploadUrl` のルールは `PublicInputFile` と同じです'
@@ -839,7 +860,15 @@ components:
         uploadUrl:
           type: string
           format: uri
-          description: ファイルをアップロードするための presigned `PUT` URL。`status` が `pending` で、そのファイルがアップロード待ちのときだけ含まれます
+          description: ファイルをアップロードするための presigned `PUT` URL。`status` が `pending` で、そのファイルがアップロード待ちのときだけ含まれます。 `uploadHeaders` が含まれる場合は、PUT のときにそのヘッダーをそのまま送信します。異なるとストレージが 403 `SignatureDoesNotMatch` で拒否します。
+        uploadHeaders:
+          type: object
+          description: |
+            `uploadUrl` へ PUT するときにそのまま送信するヘッダー。v3 で作成した watermark 注文で `uploadUrl` と一緒にだけ含まれ、それ以外ではキーがありません。
+          additionalProperties:
+            type: string
+          example:
+            Content-Type: image/jpeg
     PublicOutputFile:
       type: object
       description: Anti-AI の注文の結果ファイル 1 件。`fileId` はダウンロードのレスポンスの `files[].fileId` と値・順序が一致します
@@ -3724,6 +3753,17 @@ paths:
         - すべてのファイルのアップロードが終わると処理が自動で始まります。confirm の呼び出しはありません
         - 12 時間以内にアップロードされない注文は `failed` になります
         - [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) で `status` が `complete` になるまで照会してから、ダウンロード API を呼び出してください
+
+        **アップロードヘッダー**: `uploadUrl` へ PUT するときは、同じ項目の `uploadHeaders` をそのまま送信します。`Content-Type` は署名に含まれているため、ほかの値を送るとストレージが 403 `SignatureDoesNotMatch` を返します。ファイルは保存されず、注文とクレジットも変わりません。同じ `uploadUrl`（900 秒以内）または [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) で取得した新しい `uploadUrl` に、正しいヘッダーで再度 PUT してください。`byteSize` を送った場合は、本文のサイズもその値と同じにする必要があります。
+
+        | 拡張子 | Content-Type |
+        |---|---|
+        | jpg, jpeg | image/jpeg |
+        | png | image/png |
+        | webp | image/webp |
+        | bmp | image/bmp |
+        | tif, tiff | image/tiff |
+        | pdf | application/pdf |
       tags:
       - Watermark Embed
       security:
@@ -3804,8 +3844,11 @@ paths:
                   files:
                   - fileId: '501'
                     uploadUrl: https://s3.ap-northeast-2.amazonaws.com/...
+                    uploadHeaders:
+                      Content-Type: image/jpeg
                   - fileId: '502'
                     uploadUrl: null
+                    uploadHeaders: null
                   outputs:
                   - fileId: 501-1
                     inputFileId: '501'
@@ -3977,6 +4020,17 @@ paths:
         - レスポンスの `files[]` は 2 件です。`files[0]` が元ファイル、`files[1]` が検査ファイルで、それぞれ `uploadUrl` へ `PUT` でアップロードします
         - 2 つのファイルのアップロードが終わると処理が自動で始まります。注文あたり 1 クレジットを使用し、`unsupported`・`error` の結果は返金されます
         - 結果は [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) の `result` で確認します
+
+        **アップロードヘッダー**: `uploadUrl` へ PUT するときは、同じ項目の `uploadHeaders` をそのまま送信します。`Content-Type` は署名に含まれているため、ほかの値を送るとストレージが 403 `SignatureDoesNotMatch` を返します。ファイルは保存されず、注文とクレジットも変わりません。同じ `uploadUrl`（900 秒以内）または [`GET /api/v3/orders/{orderId}`](/ja/api-reference/orders/get-order-v3) で取得した新しい `uploadUrl` に、正しいヘッダーで再度 PUT してください。`byteSize` を送った場合は、本文のサイズもその値と同じにする必要があります。
+
+        | 拡張子 | Content-Type |
+        |---|---|
+        | jpg, jpeg | image/jpeg |
+        | png | image/png |
+        | webp | image/webp |
+        | bmp | image/bmp |
+        | tif, tiff | image/tiff |
+        | pdf | application/pdf |
       tags:
       - Watermark Extract
       security:
@@ -4133,6 +4187,7 @@ paths:
         **`inputFiles[]`**: 入力ファイルごとの `{ fileId, fileName }` をリクエストの順に返します。ファイル数は `inputFiles.length` で確認してください。
         - `role`（`original` / `query`）は `watermarkExtract` の注文にだけ含まれます。v2 注文の `watermarked` ロールは `query` として返します
         - `uploadUrl`（presigned `PUT` URL）は、`status` が `pending` で、そのファイルがアップロード待ちのときだけ含まれます。それ以外はキー自体がありません（`null` にはなりません）
+        - `uploadHeaders` は v3 で作成した watermark 注文で、`uploadUrl` と一緒にだけ含まれます。PUT のときにこのヘッダーをそのまま送信してください。ほかの `Content-Type` を送ると、ストレージが 403 `SignatureDoesNotMatch` を返し、ファイルは保存されません。
 
         **`result`**: キーは常にあります。`status` が `complete` のときだけオブジェクトで、`pending`、`inProgress`、`failed`、`expired` では `null` です。
         - `antiAi`: `{ outputFiles: [{ fileId, fileName, inputFileId }] }`
@@ -4150,7 +4205,7 @@ paths:
         - v2 の詳細と同じ形式だったそれ以外の注文では、トップレベルの `fileCount`、`statusCode`、`watermarks`、`watermarkText`、`probability`、`options`、`originalImageUrl`、`heatmapUrl`、`overlayUrl` が `inputFiles` と `result` に移りました。AI Detection の `statusCode` は `result.verdict` に変わりました
         - 非推奨（deprecated）の [`GET /api/v2/orders/{orderId}`](/ja/api-reference/orders/get-order) のレスポンスは変わりません
 
-        **テストキー（`sk_test_`）**: キーが属するアカウントが所有するテスト注文だけを取得します。本番注文と他のアカウントの注文は `404 ORDER_NOT_FOUND` を返し、本番キーでテスト注文を取得した場合も同じです。v2・v3 で作成したすべてのテスト注文をこの形式で返します。この取得は読み取り専用ではありません。同じアカウントの `inProgress` のテスト注文は、アップロード完了から 5 秒以上たってから取得すると `complete` または `failed` になり、テスト用 Webhook を登録している場合はイベントが送信されます。pending のテスト注文の `uploadUrl` は `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` です。検出テスト注文の `result.reports` は常に空の配列で、`reportSupported` は v3 で作成した検出テスト注文の `detectionStatus` が `detected` のときだけ `true` です。`expiresAt` は本番注文と同じ規則（完了日時にアカウントの保管期間を足した日時）に従います。
+        **テストキー（`sk_test_`）**: キーが属するアカウントが所有するテスト注文だけを取得します。本番注文と他のアカウントの注文は `404 ORDER_NOT_FOUND` を返し、本番キーでテスト注文を取得した場合も同じです。v2・v3 で作成したすべてのテスト注文をこの形式で返します。この取得は読み取り専用ではありません。同じアカウントの `inProgress` のテスト注文は、アップロード完了から 5 秒以上たってから取得すると `complete` または `failed` になり、テスト用 Webhook を登録している場合はイベントが送信されます。pending のテスト注文の `uploadUrl` は `https://api.bizmori.com/api/v2/test-uploads/{signedToken}` です。検出テスト注文の `result.reports` は常に空の配列で、`reportSupported` は v3 で作成した検出テスト注文の `detectionStatus` が `detected` のときだけ `true` です。`expiresAt` は本番注文と同じ規則（完了日時にアカウントの保管期間を足した日時）に従います。 v3 で作成した watermark 注文は本番注文と同じく `uploadHeaders` を返しますが、テストアップロードは `Content-Type` を検査しません。
       tags:
       - Orders
       security:
@@ -4368,10 +4423,14 @@ paths:
                         fileName: original.png
                         role: original
                         uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/81?X-Amz-...
+                        uploadHeaders:
+                          Content-Type: image/png
                       - fileId: '82'
                         fileName: suspect.png
                         role: query
                         uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/82?X-Amz-...
+                        uploadHeaders:
+                          Content-Type: image/png
                       result: null
                 watermarkEmbedPending:
                   summary: watermark 埋め込み · pending（`role` なし、`uploadUrl` のみ）
@@ -4393,9 +4452,13 @@ paths:
                       - fileId: '34'
                         fileName: logo.png
                         uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/34?X-Amz-...
+                        uploadHeaders:
+                          Content-Type: image/png
                       - fileId: '35'
                         fileName: banner.png
                         uploadUrl: https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/35?X-Amz-...
+                        uploadHeaders:
+                          Content-Type: image/png
                       result: null
                 antiAiInProgress:
                   summary: Anti-AI · inProgress

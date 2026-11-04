@@ -28,7 +28,7 @@ description: "파일을 실제로 처리하거나 크레딧을 사용하지 않�
     ```
   </Step>
   <Step title="테스트 파일 업로드">
-    업로드 방식의 테스트 주문은 응답의 `uploadUrl`로 파일을 전송합니다. 테스트 업로드 URL은 `PUT /api/v2/test-uploads/{token}` 경로를 사용합니다.
+    업로드 방식의 테스트 주문은 응답의 `uploadUrl`로 파일을 전송합니다. 테스트 업로드 URL은 `PUT /api/v2/test-uploads/{token}` 경로를 사용합니다. v3로 만든 워터마크 삽입·추출 주문은 운영 주문처럼 `uploadHeaders`를 주므로 같은 코드를 쓸 수 있지만, 테스트 업로드는 `Content-Type`을 검사하지 않습니다.
 
     업로드 URL 자체가 인증 정보를 포함하므로 API 키 헤더를 추가하지 마세요. ContentCare는 요청 스트림을 소비해 업로드 완료만 기록하고 파일 내용은 폐기합니다.
 

@@ -143,7 +143,8 @@ order = res.json()['data']
     "files": [
       {
         "fileId": "501",
-        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/..."
+        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
+        "uploadHeaders": { "Content-Type": "image/jpeg" }
       }
     ],
     "outputs": [
@@ -171,6 +172,7 @@ order = res.json()['data']
 ```
 
 - `files[]`는 요청한 `files`와 같은 순서로 반환됩니다. 요청의 `files[i]` 파일은 `files[i].uploadUrl`로 업로드하세요.
+- `files[i].uploadHeaders`는 그 PUT에 보낼 헤더입니다. `uploadUrl`이 `null`이면 `null`입니다.
 - `outputs[]`에는 워터마크 문구마다 항목이 하나씩 있습니다. 여기의 `fileId`(`501-1` 등)는 이 생성 응답에서만 쓰입니다. 주문 상세와 다운로드 응답은 결과 파일을 숫자로 된 `fileId`로 구분합니다.
 - `expiresAt`은 주문에 고정된 보관 기간(7일 또는 30일)이 끝나는 시각이며 완료 시각부터 셉니다. 그 전에 결과를 다운로드하세요.
 
@@ -186,7 +188,9 @@ order = res.json()['data']
 
 각 파일을 프리사인드 `uploadUrl`로 PUT 업로드합니다. 스토리지로 직접 올리는 업로드이므로 **Authorization 헤더는 필요 없습니다**.
 
-`Content-Type` 헤더는 파일 확장자에 맞는 값으로 보내야 합니다. 프리사인드 URL이 이 타입으로 서명되어 있어 다른 값을 보내면 업로드가 거부됩니다.
+응답의 `uploadHeaders`에 있는 헤더를 그대로 보내세요. 프리사인드 URL이 이 `Content-Type`으로 서명되어 있어 다른 값을 보내면 스토리지가 `403 SignatureDoesNotMatch`를 반환합니다. 파일은 저장되지 않고 주문과 크레딧도 바뀌지 않으므로 올바른 헤더로 다시 PUT하면 됩니다. 주문을 만들 때 선택 항목인 `byteSize`를 보냈다면 본문 크기도 그 값과 같아야 합니다.
+
+`Content-Type`은 서버가 파일 확장자로 정합니다.
 
 | 확장자 | `Content-Type` |
 |--------|----------------|
@@ -209,27 +213,20 @@ import { readFile } from 'node:fs/promises';
 
 const upload = await fetch(order.files[0].uploadUrl, {
   method: 'PUT',
-  headers: { 'Content-Type': 'image/jpeg' },
+  headers: order.files[0].uploadHeaders,
   body: await readFile('photo.jpg'),
 });
 if (!upload.ok) throw new Error(`UPLOAD_FAILED_${upload.status}`);
 ```
 
 ```jsx React
-// 프리사인드 URL은 파일 확장자에 맞는 타입으로 서명되어 있으므로,
-// `file.type` 대신 파일 이름에서 Content-Type을 정합니다.
-const CONTENT_TYPES = {
-  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
-  bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', pdf: 'application/pdf',
-};
-const contentTypeOf = (name) => CONTENT_TYPES[name.split('.').pop().toLowerCase()];
-
 // fetch()는 업로드 진행률을 알려줄 수 없으므로, PUT에는 XMLHttpRequest를 사용합니다.
-function putFile(file, uploadUrl, onProgress) {
+function putFile(file, { uploadUrl, uploadHeaders }, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
+    // 주문 응답의 헤더를 그대로 보냅니다.
+    Object.entries(uploadHeaders).forEach(([name, value]) => xhr.setRequestHeader(name, value));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -242,14 +239,14 @@ function putFile(file, uploadUrl, onProgress) {
   });
 }
 
-await putFile(file, order.files[0].uploadUrl, (ratio) => setProgress(ratio));
+await putFile(file, order.files[0], (ratio) => setProgress(ratio));
 ```
 
 ```python Python
 with open('photo.jpg', 'rb') as f:
     upload = requests.put(
         order['files'][0]['uploadUrl'],
-        headers={'Content-Type': 'image/jpeg'},
+        headers=order['files'][0]['uploadHeaders'],
         data=f,
     )
 upload.raise_for_status()
@@ -468,11 +465,12 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   }
 }
 
-function putFile(file, uploadUrl, onProgress) {
+function putFile(file, { uploadUrl, uploadHeaders }, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
+    // 주문 응답의 헤더를 그대로 보냅니다.
+    Object.entries(uploadHeaders).forEach(([name, value]) => xhr.setRequestHeader(name, value));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -576,7 +574,7 @@ export default function WatermarkEmbedUploader() {
 
       setOrderId(order.orderId);
       setStatus('uploading');
-      await putFile(selectedFile, order.files[0].uploadUrl, setProgress);
+      await putFile(selectedFile, order.files[0], setProgress);
 
       // confirm 단계 없음 — 업로드가 끝나면 처리가 자동으로 시작됩니다.
       const finished = await pollOrder(order.orderId, { onStatus: setStatus });
@@ -666,6 +664,7 @@ export default function WatermarkEmbedUploader() {
 |----------------|------|------|
 | `400` | 잘못된 요청, 처리가 끝나지 않은 주문을 다운로드할 때의 `ORDER_NOT_COMPLETED`, 또는 보관 기간이 지난 `ORDER_EXPIRED` | 파라미터와 파일 확장자를 확인하세요. `complete`가 된 뒤 다운로드하세요. 만료된 주문은 다운로드할 수 없습니다 |
 | `401` | 인증 실패 | API 키 확인 |
+| `403` | 업로드 `PUT`에서 스토리지가 반환한 `SignatureDoesNotMatch`: `Content-Type`이 `uploadHeaders`와 다르거나 본문 크기가 `byteSize`와 다름 | 파일은 저장되지 않았습니다. `uploadHeaders`의 헤더로 다시 PUT하세요. 이 응답 본문은 JSON이 아니라 XML입니다 |
 | `409` | `WATERMARK_V2_CONFLICT`: 이미 사용한 `idempotencyKey`로 본문이 다른 요청을 보냄 | 새 주문에는 새 `idempotencyKey`를 사용하세요 |
 | `429` | 레이트 리밋, 또는 요금제 사용량 소진 시 `PLAN_LIMIT_EXCEEDED` | `code` 값을 확인하세요. 레이트 리밋은 재시도로 풀리지만 `PLAN_LIMIT_EXCEEDED`는 풀리지 않으므로 요금제를 업그레이드해야 합니다 |
 | `503` | `WATERMARK_V2_UNAVAILABLE`: 워터마크 처리를 일시적으로 사용할 수 없음 | 같은 `idempotencyKey`로 잠시 후 다시 시도하세요 |

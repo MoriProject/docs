@@ -42,10 +42,11 @@ v2 で作成した watermark 検出注文のうち、保存されたステータ
 
 ## 入力ファイル
 
-`inputFiles[]` の各項目には `fileId` と `fileName` があり、注文作成リクエストの順に並びます。次の 2 つのキーは該当する場合だけ含まれます。該当しない場合は `null` ではなく、キー自体が含まれません。
+`inputFiles[]` の各項目には `fileId` と `fileName` があり、注文作成リクエストの順に並びます。次の 3 つのキーは該当する場合だけ含まれます。該当しない場合は `null` ではなく、キー自体が含まれません。
 
 - `role` は `watermarkExtract` の注文にだけ含まれます。`original` は watermark を埋め込んだ元のファイル、`query` は検査するファイルです。
 - `uploadUrl` は `status` が `pending` で、そのファイルがまだアップロード待ちのときだけ含まれます。この URL にファイルを PUT してください。アップロード URL の期限が切れた場合は、このエンドポイントを再度呼び出すと新しい URL を取得できます。
+- `uploadHeaders` は v3 で作成した watermark 注文で、`uploadUrl` と一緒にだけ含まれます。PUT のときにこのヘッダーをそのまま送信してください。ほかの `Content-Type` を送ると、ストレージが `403 SignatureDoesNotMatch` を返します。
 
 このレスポンスと[ダウンロードのレスポンス](/ja/api-reference/orders/download-order-v3)のすべての `fileId` は、`"11"` のような数字だけの文字列です。`-` などの区切り文字は含みません。
 
@@ -280,13 +281,15 @@ v2 で作成した watermark 検出注文のうち、保存されたステータ
         "fileId": "81",
         "fileName": "original.png",
         "role": "original",
-        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/81?X-Amz-..."
+        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/81?X-Amz-...",
+        "uploadHeaders": { "Content-Type": "image/png" }
       },
       {
         "fileId": "82",
         "fileName": "suspect.png",
         "role": "query",
-        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/82?X-Amz-..."
+        "uploadUrl": "https://bucket.s3.ap-northeast-2.amazonaws.com/inputs/82?X-Amz-...",
+        "uploadHeaders": { "Content-Type": "image/png" }
       }
     ],
     "result": null

@@ -142,11 +142,13 @@ order = res.json()['data']
     "files": [
       {
         "fileId": "601",
-        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/..."
+        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
+        "uploadHeaders": { "Content-Type": "image/png" }
       },
       {
         "fileId": "602",
-        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/..."
+        "uploadUrl": "https://s3.ap-northeast-2.amazonaws.com/...",
+        "uploadHeaders": { "Content-Type": "image/png" }
       }
     ],
     "outputs": [],
@@ -166,7 +168,9 @@ order = res.json()['data']
 
 各ファイルをプリサインド `uploadUrl` に PUT でアップロードします。ストレージへの直接アップロードなので、**Authorization ヘッダーは不要です**。
 
-`Content-Type` ヘッダーには、ファイルの拡張子に合った値を指定してください。プリサインド URL はこのタイプで署名されているため、ほかの値を送るとアップロードは拒否されます。
+レスポンスの `uploadHeaders` のヘッダーをそのまま送信してください。プリサインド URL はこの `Content-Type` で署名されているため、ほかの値を送るとストレージが `403 SignatureDoesNotMatch` を返します。ファイルは保存されず、注文とクレジットも変わらないので、正しいヘッダーで再度 PUT してください。注文の作成時に任意の `byteSize` を送った場合は、本文のサイズもその値と同じにする必要があります。
+
+`Content-Type` はサーバーがファイルの拡張子から決めます。
 
 | 拡張子 | `Content-Type` |
 |--------|----------------|
@@ -193,34 +197,27 @@ curl -X PUT "https://s3.ap-northeast-2.amazonaws.com/...checked..." \
 ```javascript Node.js
 import { readFile } from 'node:fs/promises';
 
-async function putFile(uploadUrl, path, contentType) {
+async function putFile({ uploadUrl, uploadHeaders }, path) {
   const res = await fetch(uploadUrl, {
     method: 'PUT',
-    headers: { 'Content-Type': contentType },
+    headers: uploadHeaders,
     body: await readFile(path),
   });
   if (!res.ok) throw new Error(`UPLOAD_FAILED_${res.status}`);
 }
 
-await putFile(order.files[0].uploadUrl, 'campaign.png', 'image/png'); // 元のファイル
-await putFile(order.files[1].uploadUrl, 'suspect.png', 'image/png'); // 検査するファイル
+await putFile(order.files[0], 'campaign.png'); // 元のファイル
+await putFile(order.files[1], 'suspect.png'); // 検査するファイル
 ```
 
 ```jsx React
-// プリサインド URL は拡張子に合ったタイプで署名されているため、
-// `file.type` ではなくファイル名から Content-Type を決めます。
-const CONTENT_TYPES = {
-  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp',
-  bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', pdf: 'application/pdf',
-};
-const contentTypeOf = (name) => CONTENT_TYPES[name.split('.').pop().toLowerCase()];
-
 // fetch() はアップロードの進捗を通知できないため、PUT には XMLHttpRequest を使用します。
-function putFile(file, uploadUrl, onProgress) {
+function putFile(file, { uploadUrl, uploadHeaders }, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
+    // 注文レスポンスのヘッダーをそのまま送信します。
+    Object.entries(uploadHeaders).forEach(([name, value]) => xhr.setRequestHeader(name, value));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -235,19 +232,19 @@ function putFile(file, uploadUrl, onProgress) {
 
 // files[0] は元のファイル、files[1] は検査するファイルです。
 await Promise.all([
-  putFile(originalFile, order.files[0].uploadUrl, () => {}),
-  putFile(checkedFile, order.files[1].uploadUrl, (ratio) => setProgress(ratio)),
+  putFile(originalFile, order.files[0], () => {}),
+  putFile(checkedFile, order.files[1], (ratio) => setProgress(ratio)),
 ]);
 ```
 
 ```python Python
-def put_file(upload_url, path, content_type):
+def put_file(file, path):
     with open(path, 'rb') as f:
-        res = requests.put(upload_url, headers={'Content-Type': content_type}, data=f)
+        res = requests.put(file['uploadUrl'], headers=file['uploadHeaders'], data=f)
     res.raise_for_status()
 
-put_file(order['files'][0]['uploadUrl'], 'campaign.png', 'image/png')  # 元のファイル
-put_file(order['files'][1]['uploadUrl'], 'suspect.png', 'image/png')   # 検査するファイル
+put_file(order['files'][0], 'campaign.png')  # 元のファイル
+put_file(order['files'][1], 'suspect.png')   # 検査するファイル
 ```
 </CodeGroup>
 
@@ -537,11 +534,12 @@ async function api(path, { method = 'GET', body, idempotencyKey } = {}) {
   }
 }
 
-function putFile(file, uploadUrl, onProgress) {
+function putFile(file, { uploadUrl, uploadHeaders }, onProgress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', contentTypeOf(file.name));
+    // 注文レスポンスのヘッダーをそのまま送信します。
+    Object.entries(uploadHeaders).forEach(([name, value]) => xhr.setRequestHeader(name, value));
 
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress(event.loaded / event.total);
@@ -610,8 +608,8 @@ export default function WatermarkExtractChecker() {
       setStatus('uploading');
       // files[0] は元のファイル、files[1] は検査するファイルです。
       await Promise.all([
-        putFile(original, created.files[0].uploadUrl, () => {}),
-        putFile(checked, created.files[1].uploadUrl, setProgress),
+        putFile(original, created.files[0], () => {}),
+        putFile(checked, created.files[1], setProgress),
       ]);
 
       const finished = await poll(
@@ -707,6 +705,7 @@ export default function WatermarkExtractChecker() {
 |----------------|------|------|
 | `400` | 不正なリクエスト、`REPORT_LOCALE_UNSUPPORTED`、または保管期間を過ぎた `ORDER_EXPIRED` | パラメータ、ファイルの拡張子、レポートの locale を確認してください |
 | `401` | 認証失敗 | API キーを確認 |
+| `403` | アップロードの `PUT` でストレージが返す `SignatureDoesNotMatch`：`Content-Type` が `uploadHeaders` と異なるか、本文のサイズが `byteSize` と異なります | ファイルは保存されていません。`uploadHeaders` のヘッダーで再度 PUT してください。このレスポンスの本文は JSON ではなく XML です |
 | `404` | `ORDER_NOT_FOUND`、またはリクエストしていない locale の `REPORT_NOT_FOUND` | 注文 ID を確認し、レポートは作成してから取得してください |
 | `409` | 使用済みの `idempotencyKey` による `WATERMARK_V2_CONFLICT`、またはレポートを作成できない結果の `REPORT_NOT_AVAILABLE` | 新しい `idempotencyKey` を使うか、`result.reportSupported` を確認してください |
 | `429` | レート制限、またはプラン使用量の超過時は `PLAN_LIMIT_EXCEEDED` | `code` を確認してください。レート制限は再試行で解消しますが、`PLAN_LIMIT_EXCEEDED` は解消しないためプランのアップグレードが必要です |

@@ -53,6 +53,14 @@ HTTP ステータスコードがエラーの種類を示します。プログラ
 
 作成済みの注文が処理中に失敗すると、注文詳細の `errors.errorCode`・`errors.errorMessage` と失敗Webhookイベントに同じ値が入ります。このコードは処理失敗の原因を表します（例: `WATERMARK_IMAGE_COLOR_MODE_UNSUPPORTED`）。一覧は[失敗イベントのエラーコード](/ja/webhooks#失敗イベントのエラーコード)を参照してください。
 
+## アップロードエラー
+
+プリサインド `uploadUrl` への `PUT` にはストレージが直接応答するため、このエラーの本文は `{ "code": "..." }` ではなく XML です。
+
+| エラーコード | HTTP ステータス | 説明 |
+|-----------|-----------|------|
+| `SignatureDoesNotMatch` | 403 | `Content-Type` が注文の `uploadHeaders` と異なるか、本文のサイズが `byteSize` と異なります。ファイルは保存されておらず、注文とクレジットも変わっていません。`uploadHeaders` のヘッダーで再度 PUT してください |
+
 ## 使用量・プランエラー
 
 | エラーコード | HTTP ステータス | 説明 |
