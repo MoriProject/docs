@@ -91,14 +91,12 @@
               {
                 "group": "Watermark Embed",
                 "pages": [
-                  "api-reference/watermark-embed/create-order",
                   "api-reference/watermark-embed/create-order-v3"
                 ]
               },
               {
                 "group": "Watermark Extract",
                 "pages": [
-                  "api-reference/watermark-extract/create-order",
                   "api-reference/watermark-extract/create-order-v3"
                 ]
               },
@@ -224,14 +222,12 @@
               {
                 "group": "Watermark-Embed",
                 "pages": [
-                  "ko/api-reference/watermark-embed/create-order",
                   "ko/api-reference/watermark-embed/create-order-v3"
                 ]
               },
               {
                 "group": "Watermark-Extract",
                 "pages": [
-                  "ko/api-reference/watermark-extract/create-order",
                   "ko/api-reference/watermark-extract/create-order-v3"
                 ]
               },
@@ -357,14 +353,12 @@
               {
                 "group": "Watermark-Embed",
                 "pages": [
-                  "ja/api-reference/watermark-embed/create-order",
                   "ja/api-reference/watermark-embed/create-order-v3"
                 ]
               },
               {
                 "group": "Watermark-Extract",
                 "pages": [
-                  "ja/api-reference/watermark-extract/create-order",
                   "ja/api-reference/watermark-extract/create-order-v3"
                 ]
               },
@@ -551,6 +545,30 @@
     {
       "source": "/ja/api-reference/orders/download-file-v3",
       "destination": "/ja/api-reference/orders/download-order-v3"
+    },
+    {
+      "source": "/api-reference/watermark-embed/create-order",
+      "destination": "/api-reference/watermark-embed/create-order-v3"
+    },
+    {
+      "source": "/ko/api-reference/watermark-embed/create-order",
+      "destination": "/ko/api-reference/watermark-embed/create-order-v3"
+    },
+    {
+      "source": "/ja/api-reference/watermark-embed/create-order",
+      "destination": "/ja/api-reference/watermark-embed/create-order-v3"
+    },
+    {
+      "source": "/api-reference/watermark-extract/create-order",
+      "destination": "/api-reference/watermark-extract/create-order-v3"
+    },
+    {
+      "source": "/ko/api-reference/watermark-extract/create-order",
+      "destination": "/ko/api-reference/watermark-extract/create-order-v3"
+    },
+    {
+      "source": "/ja/api-reference/watermark-extract/create-order",
+      "destination": "/ja/api-reference/watermark-extract/create-order-v3"
     }
   ],
   "api": {
