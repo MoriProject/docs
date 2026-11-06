@@ -2,6 +2,34 @@
 title: 'パッチノート'
 ---
 
+<Update label="API" description="2026-11-07">
+
+### 🔒 削除した注文・レポート作成・失敗コードの API レスポンスが変わりました
+
+**[注文詳細を取得（v3）](/ja/api-reference/orders/get-order-v3) · [注文詳細を取得（v2）](/ja/api-reference/orders/get-order)**
+
+- コンソールの利用履歴から削除した注文は、`GET /api/v3/orders/{orderId}` と `GET /api/v2/orders/{orderId}` で `404 ORDER_NOT_FOUND` を返します。以前は `200` で注文を返していました。テスト API キーも同じです。
+- 削除していない注文のレスポンスは変わりません。
+
+**[watermark 埋め込み（v3）](/ja/api-reference/watermark-embed/create-order-v3) · [watermark 検出（v3）](/ja/api-reference/watermark-extract/create-order-v3)**
+
+- 削除した注文の作成に使った `idempotencyKey` で再リクエストすると、`409 WATERMARK_V2_ORDER_DELETED` を返します。削除した注文は返さず、新しい注文も作成しません。新しい `idempotencyKey` で再リクエストしてください。
+- 削除していない注文の同じキーでの再リクエストは変わりません（同じ本文なら同じ注文、異なる本文なら `409 WATERMARK_V2_CONFLICT`）。
+
+**[注文レポートを作成](/ja/api-reference/reports/create-report)**
+
+- Free プランで AI Detection の注文のレポートを新しく作成すると、`403 PLAN_UPGRADE_REQUIRED` を返します。レポートの作成は Pro 以上のプランで利用できます。
+- すでに作成したレポートは Free プランでもそのまま受け取れ、[注文レポートを取得](/ja/api-reference/reports/get-report) も変わりません。watermark 検出のレポートとテスト API キーのレスポンスは変わりません。
+
+**注文の失敗レスポンス（`errors`）**
+
+- Anti-AI、AI Detection の注文と以前の方式の watermark 注文が失敗すると、注文詳細の `errors` に `errorCode` が含まれます。以前は `errorMessage` だけが返る場合がありました。`errorMessage` とほかのフィールドは変わらず、保存値が空のオブジェクト（`{}`）の以前の注文はそのまま返します。
+- 200 ページを超える PDF で作成した watermark 埋め込み・検出の注文は、アップロード確認の段階で `WATERMARK_PDF_UNSUPPORTED` で失敗し、使用したクレジットが戻ります。以前は処理後に `PROCESSING_ERROR` で終わることがありました。新しいエラーコードはありません。
+
+これらの `404`・`409`・`403` レスポンスや `errors.errorCode` の値で分岐している場合は、上記の内容を反映してください。
+
+</Update>
+
 <Update label="API" description="2026-10-08">
 
 ### 🔄 v3 の注文詳細・ダウンロードのレスポンスを 1 つの形式に統一しました（後方互換性のない変更）

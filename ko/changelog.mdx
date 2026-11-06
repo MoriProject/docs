@@ -2,6 +2,34 @@
 title: '패치노트'
 ---
 
+<Update label="API" description="2026-11-07">
+
+### 🔒 삭제한 주문·보고서 생성·실패 코드의 API 응답이 바뀌었어요
+
+**[주문 상세 조회(v3)](/ko/api-reference/orders/get-order-v3) · [주문 상세 조회(v2)](/ko/api-reference/orders/get-order)**
+
+- 콘솔 사용 기록에서 삭제한 주문은 `GET /api/v3/orders/{orderId}`와 `GET /api/v2/orders/{orderId}`에서 `404 ORDER_NOT_FOUND`를 반환합니다. 이전에는 `200`으로 주문을 반환했습니다. 테스트 API 키도 같습니다.
+- 삭제하지 않은 주문의 응답은 바뀌지 않습니다.
+
+**[워터마크 삽입(v3)](/ko/api-reference/watermark-embed/create-order-v3) · [워터마크 검출(v3)](/ko/api-reference/watermark-extract/create-order-v3)**
+
+- 삭제한 주문을 만들 때 쓴 `idempotencyKey`로 다시 요청하면 `409 WATERMARK_V2_ORDER_DELETED`를 반환합니다. 삭제한 주문을 다시 돌려주지 않고 새 주문도 만들지 않습니다. 새 `idempotencyKey`로 다시 요청하세요.
+- 삭제하지 않은 주문의 같은 키 재요청은 그대로입니다(같은 본문이면 같은 주문, 다른 본문이면 `409 WATERMARK_V2_CONFLICT`).
+
+**[주문 보고서 생성](/ko/api-reference/reports/create-report)**
+
+- Free 플랜에서 AI Detection 주문의 보고서를 새로 만들면 `403 PLAN_UPGRADE_REQUIRED`를 반환합니다. 보고서 생성은 Pro 이상 플랜에서 할 수 있습니다.
+- 이미 만든 보고서는 Free 플랜에서도 그대로 받을 수 있고, [주문 보고서 조회](/ko/api-reference/reports/get-report)도 바뀌지 않습니다. 워터마크 검출 보고서와 테스트 API 키 응답은 바뀌지 않습니다.
+
+**주문 실패 응답(`errors`)**
+
+- Anti-AI, AI Detection 주문과 이전 방식 워터마크 주문이 실패하면 주문 상세의 `errors`에 `errorCode`가 함께 옵니다. 이전에는 `errorMessage`만 오는 경우가 있었습니다. `errorMessage`와 다른 필드는 그대로이고, 저장된 값이 빈 객체(`{}`)인 이전 주문은 그대로 반환합니다.
+- 200쪽을 넘는 PDF로 만든 워터마크 삽입·검출 주문은 업로드 확인 단계에서 `WATERMARK_PDF_UNSUPPORTED`로 실패하고 사용한 크레딧이 돌아옵니다. 이전에는 처리 뒤 `PROCESSING_ERROR`로 끝날 수 있었습니다. 새 오류 코드는 없습니다.
+
+`404`·`409`·`403` 응답이나 `errors.errorCode` 값으로 분기하고 있다면 위 내용을 반영해 주세요.
+
+</Update>
+
 <Update label="API" description="2026-10-08">
 
 ### 🔄 v3 주문 상세·다운로드 응답을 한 가지 형식으로 통일했어요 (하위 호환되지 않는 변경)
