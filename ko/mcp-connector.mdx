@@ -1,9 +1,9 @@
 ---
 title: 'MCP 커넥터'
-description: '코드도 API 키도 없이, Claude에서 대화만으로 ContentCare 사용하기'
+description: '코드도 API 키도 없이, Claude나 Gemini에서 대화만으로 ContentCare 사용하기'
 ---
 
-**ContentCare MCP 커넥터**를 쓰면 Claude 같은 AI 어시스턴트 안에서 바로 ContentCare를 사용할 수 있습니다. ContentCare 계정으로 한 번만 연결해두면, 이후에는 평소 말하듯 요청하면 됩니다.
+**ContentCare MCP 커넥터**를 쓰면 Claude나 Gemini 같은 AI 어시스턴트 안에서 바로 ContentCare를 사용할 수 있습니다. ContentCare 계정으로 한 번만 연결해두면, 이후에는 평소 말하듯 요청하면 됩니다.
 
 > "이 이미지가 AI로 생성된 건지 확인해줘: `<이미지 주소>`"
 
@@ -104,6 +104,49 @@ Claude가 ContentCare에서 작업을 실행하고 결과를 대화창에 알려
     브라우저 창이 열리면 ContentCare 계정으로 로그인하고 연결을 승인하세요.
 
   </Tab>
+  <Tab title="Gemini 앱">
+    <Steps>
+      <Step title="커넥터 설정 열기">
+        Gemini 앱(웹 또는 데스크톱)에서 **설정**을 열고 커넥터 설정을 찾으세요. 맞춤 커넥터(맞춤 MCP 서버)를 추가하는 메뉴를 고르세요.
+
+        <Note>
+          메뉴 이름은 앱 버전과 요금제에 따라 다릅니다. 맞춤 커넥터는 개인 Google 계정이 필요하고, 요금제에 따라 쓰지 못할 수 있습니다.
+        </Note>
+
+      </Step>
+      <Step title="커넥터 URL 붙여넣기">
+        ```
+        https://mcp.contentcare.ai/mcp
+        ```
+
+        클라이언트 ID나 클라이언트 보안 비밀을 물으면 비워 두세요. ContentCare가 Gemini를 자동으로 등록합니다.
+
+      </Step>
+      <Step title="ContentCare 계정으로 로그인">
+        ContentCare 로그인 창이 열립니다. [app.contentcare.ai](https://app.contentcare.ai)에서 쓰는 계정으로 로그인하고 연결을 승인하세요. 커넥터는 **Contentcare**라는 이름으로 보입니다.
+      </Step>
+      <Step title="요청해 보기">
+        새 대화를 열고 이렇게 요청해 보세요.
+
+        ```text
+        ContentCare로 이 이미지가 AI로 생성된 건지 확인해줘:
+        <이미지 주소>
+        ```
+
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="Gemini CLI">
+    터미널에서 커넥터를 추가합니다.
+
+    ```bash
+    gemini mcp add --transport http contentcare https://mcp.contentcare.ai/mcp
+    ```
+
+    Gemini CLI 안에서 `/mcp auth contentcare`를 실행하고, 열리는 브라우저 창에서 ContentCare 계정으로 로그인하세요.
+
+  </Tab>
 </Tabs>
 
 <Note>
@@ -120,6 +163,8 @@ Claude가 ContentCare에서 작업을 실행하고 결과를 대화창에 알려
 | **Claude 앱** (웹 / 데스크톱)  |          X           |  ✓ (업로드 창)   |       ✓        |
 | **Claude Code** (터미널 / IDE) |          —           |        ✓         |       ✓        |
 | **Codex**                      |          —           |        ✓         |       ✓        |
+| **Gemini 앱** (웹 / 데스크톱)  |          X           |  ✓ (업로드 링크) |       ✓        |
+| **Gemini CLI**                 |          —           |        ✓         |       ✓        |
 
 <AccordionGroup>
   <Accordion title="Claude 앱 — 업로드 창이나 파일 주소를 쓰세요" icon="browser">
@@ -147,6 +192,19 @@ Claude가 ContentCare에서 작업을 실행하고 결과를 대화창에 알려
 
   </Accordion>
   <Accordion title="Codex CLI — 로컬 파일 업로드가 가능합니다" icon="terminal">
+    Claude Code와 동일하게 파일 경로만 주면 업로드까지 처리합니다.
+  </Accordion>
+  <Accordion title="Gemini 앱 — 업로드 링크나 파일 주소를 쓰세요" icon="browser">
+    Claude 앱과 마찬가지로 대화창에 첨부한 파일은 커넥터에 전달되지 않습니다. 대신 Gemini에게 업로드 링크를 달라고 하세요.
+
+    ```text
+    AI 생성 검사할 이미지를 올릴 수 있게 ContentCare 업로드 링크 줘.
+    ```
+
+    링크를 열어 파일을 고르고, 업로드가 끝나면 Gemini에게 알려 주세요. 링크는 파일 하나를 받고 10분 동안 쓸 수 있습니다. 파일 주소를 써도 됩니다.
+
+  </Accordion>
+  <Accordion title="Gemini CLI — 로컬 파일 업로드가 가능합니다" icon="terminal">
     Claude Code와 동일하게 파일 경로만 주면 업로드까지 처리합니다.
   </Accordion>
 </AccordionGroup>
@@ -262,7 +320,7 @@ Trace를 쓰면 ContentCare가 웹에서 내 콘텐츠의 사본을 찾아냅니
 
 ## 이렇게 물어보세요
 
-`<이미지 주소>` 에 파일 링크를 넣으세요. Claude Code나 Codex CLI를 쓴다면 파일 경로를 넣어도 됩니다.
+`<이미지 주소>` 에 파일 링크를 넣으세요. Claude Code, Codex CLI, Gemini CLI를 쓴다면 파일 경로를 넣어도 됩니다.
 
 ```text
 이 이미지 AI 생성인지 검사해줘:
@@ -346,6 +404,11 @@ ContentCare에서 조직에 소속되어 있다면, 작업을 개인 계정으�
   <Accordion title='다운로드 링크에서 오류가 납니다'>
     링크가 만료된 것입니다. Claude에게 해당 작업을 다시 조회해달라고 해서 새
     링크를 받거나, 대시보드에서 내려받으세요.
+  </Accordion>
+  <Accordion title='Gemini에서 커넥터를 쓸 수 없거나, 15분쯤 지나면 동작하지 않습니다'>
+    2026년 11월 3일 전에 Gemini에 ContentCare를 연결했다면 커넥터를 삭제하고
+    다시 추가하세요. 그 전에 연결한 커넥터는 새 도구 목록과 자동으로 갱신되는
+    토큰을 받지 못했습니다.
   </Accordion>
   <Accordion title='그 밖의 문제'>
     [support@contentcare.ai](mailto:support@contentcare.ai)으로 문의해주세요.
