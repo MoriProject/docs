@@ -1,9 +1,9 @@
 ---
 title: 'MCP Connector'
-description: 'Use ContentCare from Claude by chatting — no code, no API key'
+description: 'Use ContentCare from Claude or Gemini by chatting — no code, no API key'
 ---
 
-The **ContentCare MCP connector** lets you use ContentCare directly inside an AI assistant like Claude. You connect once with your ContentCare account, then ask in plain language:
+The **ContentCare MCP connector** lets you use ContentCare directly inside an AI assistant like Claude or Gemini. You connect once with your ContentCare account, then ask in plain language:
 
 > "Check whether this image is AI-generated: `<image URL>`"
 
@@ -106,6 +106,49 @@ Claude runs the job on ContentCare and reports the result back in the chat. No c
     A browser window opens. Sign in with your ContentCare account and approve the connection.
 
   </Tab>
+  <Tab title="Gemini app">
+    <Steps>
+      <Step title="Open your connector settings">
+        In the Gemini app (web or desktop), open **Settings** and find the connector settings. Choose to add a custom connector (a custom MCP server).
+
+        <Note>
+          Menu names differ by app version and plan. Custom connectors need a personal Google Account and may not be available on every plan.
+        </Note>
+
+      </Step>
+      <Step title="Paste the connector URL">
+        ```
+        https://mcp.contentcare.ai/mcp
+        ```
+
+        If Gemini asks for a client ID or client secret, leave them empty. ContentCare registers Gemini automatically.
+
+      </Step>
+      <Step title="Sign in with your ContentCare account">
+        A ContentCare login window opens. Sign in with the same account you use for [app.contentcare.ai](https://app.contentcare.ai) and approve the connection. The connector appears as **Contentcare**.
+      </Step>
+      <Step title="Ask for something">
+        Start a new chat and try:
+
+        ```text
+        Use ContentCare to check if this image is AI-generated:
+        <image URL>
+        ```
+
+      </Step>
+    </Steps>
+
+  </Tab>
+  <Tab title="Gemini CLI">
+    Add the connector from your terminal:
+
+    ```bash
+    gemini mcp add --transport http contentcare https://mcp.contentcare.ai/mcp
+    ```
+
+    Then run `/mcp auth contentcare` inside Gemini CLI, and sign in with your ContentCare account in the browser window that opens.
+
+  </Tab>
 </Tabs>
 
 <Note>
@@ -122,6 +165,8 @@ Claude runs the job on ContentCare and reports the result back in the chat. No c
 | **Claude app** (web / desktop)   |           X           |  ✓ (upload window)    |    ✓     |
 | **Claude Code** (terminal / IDE) |           —           |           ✓           |    ✓     |
 | **Codex**                        |           —           |           ✓           |    ✓     |
+| **Gemini app** (web / desktop)   |           X           |  ✓ (upload link)      |    ✓     |
+| **Gemini CLI**                   |           —           |           ✓           |    ✓     |
 
 <AccordionGroup>
   <Accordion title="Claude app — use the upload window or a file URL" icon="browser">
@@ -149,6 +194,19 @@ Claude runs the job on ContentCare and reports the result back in the chat. No c
 
   </Accordion>
   <Accordion title="Codex CLI — local file upload works" icon="terminal">
+    Same as Claude Code: give it the file path and it handles the upload.
+  </Accordion>
+  <Accordion title="Gemini app — use an upload link or a file URL" icon="browser">
+    As in the Claude app, a file you attach to the chat does not reach the connector. Ask Gemini for an upload link instead:
+
+    ```text
+    Give me a ContentCare upload link so I can check an image for AI generation.
+    ```
+
+    Open the link, choose your file, and tell Gemini when the upload is done. The link takes one file and is valid for 10 minutes. A file URL works too.
+
+  </Accordion>
+  <Accordion title="Gemini CLI — local file upload works" icon="terminal">
     Same as Claude Code: give it the file path and it handles the upload.
   </Accordion>
 </AccordionGroup>
@@ -265,7 +323,7 @@ With Trace, ContentCare watches the web for copies of your content. From the cha
 
 ## Good things to ask
 
-Put your file link in `<image URL>`. If you use Claude Code or Codex CLI, a file path works too.
+Put your file link in `<image URL>`. If you use Claude Code, Codex CLI, or Gemini CLI, a file path works too.
 
 ```text
 Check if this image is AI-generated:
@@ -352,6 +410,11 @@ If your personal account is the only one you have, nothing is asked and it is us
   <Accordion title='A download link returns an error'>
     The link expired. Ask Claude to look up that job again for a new link, or
     download it from the dashboard.
+  </Accordion>
+  <Accordion title="Gemini can't use the connector, or it stops working after about 15 minutes">
+    If you connected ContentCare to Gemini before November 3, 2026, remove the
+    connector and add it again. Earlier connections did not get the updated
+    tool list or a token that renews automatically.
   </Accordion>
   <Accordion title='Something else is wrong'>
     Contact [support@contentcare.ai](mailto:support@contentcare.ai).
