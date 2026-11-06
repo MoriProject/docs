@@ -2,6 +2,34 @@
 title: "What's new"
 ---
 
+<Update label="API" description="2026-11-07">
+
+### 🔒 API responses changed for deleted orders, report creation, and failure codes
+
+**[Get order details (v3)](/api-reference/orders/get-order-v3) · [Get order details (v2)](/api-reference/orders/get-order)**
+
+- An order you deleted from your usage history in the console now returns `404 ORDER_NOT_FOUND` from `GET /api/v3/orders/{orderId}` and `GET /api/v2/orders/{orderId}`. Previously these returned the order with `200`. Test API keys behave the same way.
+- Responses for orders you have not deleted are unchanged.
+
+**[Watermark embed (v3)](/api-reference/watermark-embed/create-order-v3) · [Watermark extract (v3)](/api-reference/watermark-extract/create-order-v3)**
+
+- Retrying with the `idempotencyKey` of an order you deleted now returns `409 WATERMARK_V2_ORDER_DELETED`. The deleted order is not returned and no new order is created. Send the request again with a new `idempotencyKey`.
+- Retries for orders you have not deleted are unchanged: the same body returns the same order, and a different body returns `409 WATERMARK_V2_CONFLICT`.
+
+**[Create order report](/api-reference/reports/create-report)**
+
+- Creating a new report for an AI Detection order on the Free plan now returns `403 PLAN_UPGRADE_REQUIRED`. Report creation is available on the Pro plan and above.
+- Reports you already created are still available on the Free plan, and [Get order report](/api-reference/reports/get-report) is unchanged. Watermark extract reports and test API key responses are unchanged.
+
+**Order failure responses (`errors`)**
+
+- When an Anti-AI order, an AI Detection order, or a legacy watermark order fails, `errors` in the order details now includes `errorCode`. Previously some of these returned only `errorMessage`. `errorMessage` and the other fields are unchanged, and older orders whose stored value is an empty object (`{}`) are returned as is.
+- Watermark embed and extract orders made with a PDF over 200 pages now fail at upload confirmation with `WATERMARK_PDF_UNSUPPORTED`, and the credits used are returned. Previously these could end with `PROCESSING_ERROR` after processing. No new error code was added.
+
+If your integration branches on these `404`, `409`, or `403` responses or on `errors.errorCode`, update it accordingly.
+
+</Update>
+
 <Update label="API" description="2026-10-08">
 
 ### 🔄 One response shape for v3 order details and downloads (breaking change)
